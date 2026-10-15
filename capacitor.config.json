@@ -1,0 +1,10 @@
+{
+  "appId": "app.midad.reader",
+  "appName": "مداد",
+  "webDir": "www",
+  "server": { "androidScheme": "https" },
+  "android": {
+    "backgroundColor": "#0b1020",
+    "adjustMarginsForEdgeToEdge": "auto"
+  }
+}
