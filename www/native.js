@@ -104,11 +104,28 @@
       keys.map(String).filter(k=>k.startsWith(PRE)).map(k=>k.slice(PRE.length)).forEach(id=>{if(!have.has(id))q.add(id)});saveQ();
       emit();await flush();const got=await pull();return {sent:0,got};
     }
-    function unlink(){ses=null;LSS('midad.sbSession',null);q.clear();saveQ();st.err='';emit()}
+    /* notifications: a background check (runner.js) asks Supabase every ~15 min for chapters translated since you left the app */
+    const BR=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.BackgroundRunner;const LABEL='app.midad.reader.check';
+    const brSend=details=>BR?BR.dispatchEvent({label:LABEL,event:'configure',details}).catch(()=>{}):Promise.resolve();
+    async function notify(on){
+      if(!BR)throw {message:'الإشعارات غير متاحة في هذه النسخة'};
+      if(on){
+        if(!ses)throw {message:'اربط المكتبة أولاً'};
+        try{const p=await BR.requestPermissions({apis:['notifications']});if(p&&p.notifications==='denied')throw {message:'اسمح لمداد بالإشعارات من إعدادات الهاتف'}}catch(e){if(e&&e.message)throw e}
+        let k=LSG('midad.nkey:'+ses.uid,'');
+        if(!k){const a=new Uint8Array(24);crypto.getRandomValues(a);k=[...a].map(x=>x.toString(16).padStart(2,'0')).join('');
+          await rest('notify_keys',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({key:k,user_id:ses.uid})});LSS('midad.nkey:'+ses.uid,k)}
+        await brSend({on:true,url:SBC.url,key:SBC.key,nkey:k,since:new Date().toISOString()});
+      }else await brSend({on:false});
+      LSS('midad.notify',!!on);emit();
+    }
+    // only chapters that arrive after you leave the app are announced
+    document.addEventListener('visibilitychange',()=>{if(document.hidden&&LSG('midad.notify',false))brSend({since:new Date().toISOString()})});
+    function unlink(){ses=null;LSS('midad.sbSession',null);q.clear();saveQ();st.err='';brSend({on:false});LSS('midad.notify',false);emit()}
     setInterval(()=>{if(ses&&!document.hidden)pull()},60000);
     document.addEventListener('visibilitychange',()=>{if(ses&&!document.hidden){flush();setTimeout(pull,800)}});
     if(ses)setTimeout(()=>{flush();pull()},4000);
-    return {queue,flush,pull,link,unlink,onChange:f=>listeners.add(f),
+    return {queue,flush,pull,link,unlink,notify,canNotify:()=>!!BR,notifyOn:()=>!!LSG('midad.notify',false),onChange:f=>listeners.add(f),
       state:()=>({linked:!!ses,email:ses&&ses.email,pending:q.size,busy:st.busy,pulling:st.pulling,err:st.err,lastAt:st.lastAt})};
   })();
   window.midadCloud=cloud;

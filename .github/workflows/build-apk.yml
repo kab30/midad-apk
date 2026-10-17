@@ -43,6 +43,9 @@ jobs:
             else echo "line ^$v failed: $(grep -m1 -E 'ERESOLVE|ETARGET|peer|notarget' npm-opt.log | cut -c1-160)" >> build-info.txt; fi
           done
           [ -n "$OPTIONAL" ] || echo "::warning::optional plugins skipped"
+          # background check for new chapters (notifications)
+          if npm install --no-audit --no-fund "@capacitor/background-runner@latest-7" >npm-br.log 2>&1; then OPTIONAL="$OPTIONAL @capacitor/background-runner"; echo "background-runner: ok" >> build-info.txt
+          else echo "background-runner failed: $(grep -m1 -E 'ERESOLVE|ETARGET|peer|notarget' npm-br.log | cut -c1-160)" >> build-info.txt; fi
           # opens the downloaded update in Android's installer
           for v in 7 6; do
             if npm install --no-audit --no-fund "@capacitor-community/file-opener@^$v" >npm-fo.log 2>&1; then OPTIONAL="$OPTIONAL @capacitor-community/file-opener"; echo "file-opener: line ^$v" >> build-info.txt; break

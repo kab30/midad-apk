@@ -1613,6 +1613,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
         <button class="btn primary" id="sbLink" type="button" style="margin-top:10px">اربط المكتبة</button>
       </div>
       <div id="sbOn" hidden style="display:flex;gap:8px"><button class="btn primary" id="sbNow" type="button" style="flex:1">زامن الآن</button><button class="redo" id="sbOff" type="button" style="padding:0 14px">افصل</button></div>
+      <label class="tog" for="sbNotify" id="sbNotifyRow" style="border:0;padding:0" hidden><span>إشعار عند ترجمة فصل جديد<small>يصلك إشعار على الهاتف حتى والتطبيق مغلق، عندما يُترجم فصل في مداد على Gemini أو في التطبيق. يتحقق كل 15 دقيقة تقريباً</small></span><input type="checkbox" id="sbNotify" class="cb"></label>
       <small class="cpnote" id="sbNote">كل ما تترجمه أو تقرؤه هنا يظهر في تطبيق الهاتف، والعكس. أنشئ الحساب مرة واحدة من لوحة Supabase: Authentication ← Users ← Add user، وفعّل Auto Confirm.</small>
     </div>
     <div class="gdrive" hidden>
@@ -5188,7 +5189,8 @@ async function sbLinkNow(){
 }
 function renderSb(){
   const st=$('#sbStatus');if(!st)return;
-  if(NC){const c=NC.state();$('#sbPassRow').hidden=false;$('#sbForm').hidden=c.linked;$('#sbOn').hidden=!c.linked;
+  if(NC){const c=NC.state();$('#sbPassRow').hidden=false;
+    $('#sbNotifyRow').hidden=!(c.linked&&NC.canNotify&&NC.canNotify());if(NC.notifyOn)$('#sbNotify').checked=NC.notifyOn();$('#sbForm').hidden=c.linked;$('#sbOn').hidden=!c.linked;
     if(!$('#sbEmail').value)$('#sbEmail').value=c.email||prefs.sbEmail||'';st.classList.toggle('err',!!c.err);
     $('#sbNote').textContent='سجّل الدخول بنفس الحساب الذي ربطته في مداد على Gemini، فتصير المكتبة واحدة في الاثنين.';
     st.textContent=!c.linked?'غير مربوطة':c.err?c.err:c.pending?`يرفع ${c.pending} عنصر…`:c.pulling?'يجلب التحديثات…':c.lastAt?`مربوطة بـ ${c.email||''} · آخر مزامنة ${fmtAgo(c.lastAt)}`:`مربوطة بـ ${c.email||''}`;return}
@@ -5205,6 +5207,9 @@ $('#sbLink').onclick=async()=>{
   catch(e){toast(e&&e.message?String(e.message).slice(0,120):'تعذّر تسجيل الدخول')}
   finally{b.disabled=false;b.textContent='اربط المكتبة';renderSb()}};
 if(NC)NC.onChange(()=>renderSb());
+$('#sbNotify').onchange=async e=>{const on=e.target.checked;
+  try{await NC.notify(on);toast(on?'ستصلك إشعارات الفصول الجديدة':'أُوقفت الإشعارات')}
+  catch(x){e.target.checked=!on;toast(x&&x.message?x.message:'تعذّر تفعيل الإشعارات')}};
 $('#sbNow').onclick=async()=>{if(NC){await NC.flush();await NC.pull();return}await sbFlush();await sbPull()};
 $('#sbOff').onclick=()=>{const b=$('#sbOff');if(!b.classList.contains('arm')){b.classList.add('arm');b.textContent='تأكيد';setTimeout(()=>{b.classList.remove('arm');b.textContent='افصل'},4000);return}
   if(NC){NC.unlink();renderSb();toast('فُصل التطبيق عن Supabase. لم يُحذف شيء');return}

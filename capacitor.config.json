@@ -2,9 +2,21 @@
   "appId": "app.midad.reader",
   "appName": "مداد",
   "webDir": "www",
-  "server": { "androidScheme": "https" },
+  "server": {
+    "androidScheme": "https"
+  },
   "android": {
     "backgroundColor": "#0b1020",
     "adjustMarginsForEdgeToEdge": "auto"
+  },
+  "plugins": {
+    "BackgroundRunner": {
+      "label": "app.midad.reader.check",
+      "src": "runner.js",
+      "event": "checkNew",
+      "repeat": true,
+      "interval": 15,
+      "autoStart": true
+    }
   }
 }

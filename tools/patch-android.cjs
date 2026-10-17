@@ -22,9 +22,13 @@ if(!g.includes('midad-signing')){
         }
     }`);
 }
+// background-runner ships its JS engine as a local library
+if(fs.existsSync(path.join(root,'node_modules','@capacitor','background-runner'))&&!g.includes('background-runner/android/src/main/libs'))
+  g=g.replace(/dirs\s+'([^']*capacitor-cordova-android-plugins[^']*)'\s*,\s*'libs'/,"dirs '$1', '../../node_modules/@capacitor/background-runner/android/src/main/libs', 'libs'");
 fs.writeFileSync(f,g);
 const mf=path.join(root,'android','app','src','main','AndroidManifest.xml');
 let m=fs.readFileSync(mf,'utf8');
 if(!m.includes('REQUEST_INSTALL_PACKAGES'))m=m.replace(/<manifest([^>]*)>/,'<manifest$1>\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />');
+if(!m.includes('POST_NOTIFICATIONS'))m=m.replace(/<manifest([^>]*)>/,'<manifest$1>\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />');
 fs.writeFileSync(mf,m);
-console.log('patched',(g.match(/versionCode \d+/)||[])[0],(g.match(/versionName "[^"]*"/)||[])[0]);
+console.log('runner libs:',g.includes('background-runner/android'));console.log('patched',(g.match(/versionCode \d+/)||[])[0],(g.match(/versionName "[^"]*"/)||[])[0]);
