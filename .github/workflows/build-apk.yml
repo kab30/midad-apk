@@ -29,8 +29,16 @@ jobs:
           set -e
           test -f www/index.html || { echo "::error::مجلد www غير موجود في المستودع، ارفعه"; exit 1; }
           npm install --no-audit --no-fund
-          OPTIONAL="@capacitor-community/keep-awake @capacitor-community/text-to-speech"
-          npm install --no-audit --no-fund $OPTIONAL || { echo "::warning::optional plugins skipped"; OPTIONAL=""; }
+          CAPV=$(node -p "require('@capacitor/core/package.json').version")
+          echo "Capacitor $CAPV" > build-info.txt
+          # read-aloud + keep-screen-on plugins: try the release line that matches this Capacitor version first
+          OPTIONAL=""
+          for v in 7 6 8 5; do
+            if npm install --no-audit --no-fund "@capacitor-community/keep-awake@^$v" "@capacitor-community/text-to-speech@^$v" >npm-opt.log 2>&1; then
+              OPTIONAL="@capacitor-community/keep-awake @capacitor-community/text-to-speech"; echo "optional plugins: line ^$v" >> build-info.txt; break
+            else echo "line ^$v failed: $(grep -m1 -E 'ERESOLVE|ETARGET|peer|notarget' npm-opt.log | cut -c1-160)" >> build-info.txt; fi
+          done
+          [ -n "$OPTIONAL" ] || echo "::warning::optional plugins skipped"
           npx cap add android
           if [ -d assets ]; then
             npx --yes @capacitor/assets generate --android --iconBackgroundColor '#0b1020' --iconBackgroundColorDark '#0b1020' --splashBackgroundColor '#0b1020' --splashBackgroundColorDark '#0b1020' || echo "::warning::icon generation skipped"
@@ -39,11 +47,12 @@ jobs:
           build(){ npx cap sync android && (cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon); }
           if ! build; then
             [ -n "$OPTIONAL" ] || exit 1
-            echo "::warning::retrying without optional plugins"
+            echo "::warning::retrying without optional plugins"; echo "build with optional plugins failed, built without them" >> build-info.txt
             npm uninstall --no-audit --no-fund $OPTIONAL
             build
           fi
           cp android/app/build/outputs/apk/debug/app-debug.apk midad-${{ github.run_number }}.apk
+          npm ls --depth=0 2>/dev/null | grep -E "capacitor" >> build-info.txt || true
 
       - uses: actions/upload-artifact@v4
         with:
@@ -56,3 +65,4 @@ jobs:
           tag_name: build-${{ github.run_number }}
           name: مداد ${{ github.run_number }}
           files: midad-${{ github.run_number }}.apk
+          body_path: build-info.txt
