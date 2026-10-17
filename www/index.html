@@ -115,6 +115,14 @@ button{cursor:pointer;border:0;background:none;touch-action:manipulation}
 .shelf .novel .bar{height:2px}
 [hidden]{display:none!important}
 .novel{display:flex;flex-direction:column;gap:8px;text-align:start;min-width:0}
+#trashSheet{height:85%;max-height:85%}
+.tritem{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:14px;background:var(--deck);border:1px solid var(--line);margin-bottom:8px}
+.tritem b{font-size:14.5px}
+.tritem small{color:var(--dim);font-size:12px}
+.tritem .tra{display:flex;gap:8px;margin-top:4px}
+.tritem .tra button{flex:1;height:36px;border-radius:11px;font-size:13px;font-weight:600;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+.tritem .tra .rs{border-color:var(--plasma);color:var(--plasma)}
+.tritem .tra .pd.arm{background:var(--danger);border-color:var(--danger);color:#fff}
 .opcard.danger,.opcard.danger .opi{color:var(--danger)}
 .opcard.danger.arm{background:var(--danger)}.opcard.danger.arm,.opcard.danger.arm .opi,.opcard.danger.arm small{color:#fff}
 .selbar{position:fixed;inset-inline:12px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:60;display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:18px;background:var(--panel);border:1px solid var(--line);box-shadow:0 18px 40px -18px rgba(0,0,0,.6)}
@@ -1190,6 +1198,10 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
         <small class="cpnote" id="trLangHint"></small>
       </div>
       <div class="trstyle" id="trStyleInfo"></div>
+      <label class="tog" for="trEco" style="border:0;padding:0">
+        <span>وضع التوفير<small>يرسل من القاموس الأسماء الموجودة في النص فقط، ويترجم الفصل في طلبات أقل، ويحدّث الشخصيات والمسرد وسلّم القوة كل 5 فصول بنموذج أخف. الترجمة نفسها بنفس الجودة</small></span>
+        <input type="checkbox" id="trEco" class="cb">
+      </label>
       <label class="tog" for="trClean" style="border:0;padding:0">
         <span>نظّف الفصل الخام قبل ترجمته<small>يحذف طلبات التذاكر والتبرعات، وكلام المؤلف في آخر الفصل، والروابط وعلامات المواقع، والأسطر المكررة. يوفّر الاستهلاك ولا يمس القصة</small></span>
         <input type="checkbox" id="trClean" class="cb">
@@ -1324,6 +1336,15 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
   <button type="button" id="selDel" class="sd">احذف</button>
   <button type="button" id="selCancel">إلغاء</button>
 </div>
+<section class="sheet" id="trashSheet" dir="rtl" aria-label="سلة المحذوفات">
+  <div class="grab"></div>
+  <h3>سلة المحذوفات</h3>
+  <div class="scroll">
+    <small class="cpnote">ما تحذفه من فصول وروايات يبقى هنا 30 يوماً، ثم يُحذف نهائياً. المحادثات والصور تُحذف مباشرة ولا تدخل السلة.</small>
+    <div id="trashList"></div>
+    <button type="button" class="redo" id="trashEmpty" style="min-height:38px">أفرغ السلة</button>
+  </div>
+</section>
 <section class="sheet" id="cmSheet" dir="rtl" aria-label="خيارات الفصل">
   <div class="grab"></div>
   <h3 id="cmTitle"></h3>
@@ -1582,6 +1603,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
       <span class="opt-t"><b>استرجاع من نسخة</b><small>يضيف الفصول غير الموجودة فقط، ولا يحذف أو يغيّر شيئاً عندك</small></span>
     </label>
     <input type="file" id="bkFile" accept=".json,application/json" hidden>
+    <button class="opcard" id="trashBtn" type="button"><span class="opi"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></span><span class="opt-t"><b>سلة المحذوفات</b><small id="trashInfo">فارغة</small></span></button>
     <div class="gdrive" id="sbCard">
       <div class="gdh"><span class="gdi"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a5 5 0 1 1 1.2-9.86A6 6 0 0 1 19.5 10 4 4 0 0 1 18 18z"/><path d="m9.5 13.5 2.5 2.5 3.5-4"/></svg></span><span class="opt-t"><b>مكتبة مشتركة مع تطبيق الهاتف</b><small id="sbStatus">—</small></span></div>
       <div id="sbForm">
@@ -1857,6 +1879,7 @@ const imgsOfCh=chId=>Object.entries(imgs).filter(([k,v])=>v&&v.ch===chId).map(([
 const imgsOfNovel=novel=>Object.entries(imgs).filter(([k,v])=>v&&v.novel===novel).map(([k,v])=>Object.assign({id:k},v));
 /* chapter-assistant conversations: one document per chapter ("chat-<chapterId>") */
 const isChatId=id=>id.startsWith('chat-');
+const isTrashId=id=>id.startsWith('trash-');let trash={};
 let chatStore=LS.get('midad.chats',{});if(!chatStore||typeof chatStore!=='object')chatStore={};
 const chatT={};
 function saveChat(chId){
@@ -1901,10 +1924,11 @@ async function connectDb(){
     const first=await Promise.race([ref.get(),new Promise((_,rej)=>setTimeout(()=>rej({code:'timeout'}),45000))]);
     connTry=0;
     // the account is the source of truth: show its chapters right away, before the live snapshot arrives
-    {const pend=chapters.filter(x=>x.pending);const docs=first.docs.filter(x=>{const k=x.id;return k!==META_ID&&k!==PREFS_ID&&k!==USAGE_ID&&k!==STATS_ID&&k!==DISC_ID&&!isCoverId(k)&&!isRawId(k)&&!isChatId(k)&&!isImgId(k)});
+    {const pend=chapters.filter(x=>x.pending);const docs=first.docs.filter(x=>{const k=x.id;return k!==META_ID&&k!==PREFS_ID&&k!==USAGE_ID&&k!==STATS_ID&&k!==DISC_ID&&!isCoverId(k)&&!isRawId(k)&&!isChatId(k)&&!isImgId(k)&&!isTrashId(k)});
      const ids=new Set(docs.map(x=>x.id));chapters=docs.map(x=>Object.assign({id:x.id},x.data())).concat(pend.filter(p=>!ids.has(p.id)));
      const m=first.docs.find(x=>x.id===META_ID);if(m&&m.data().novels){meta={novels:Object.assign({},m.data().novels)};LS.set('midad.meta',meta)}
      const rp=raws.filter(r=>r.pending);const rd=first.docs.filter(x=>isRawId(x.id)).map(x=>{const v=Object.assign({},x.data());delete v.kind;return Object.assign({id:x.id},v)});const rids=new Set(rd.map(r=>r.id));raws=rd.concat(rp.filter(r=>!rids.has(r.id)));
+     {const t={};first.docs.filter(x=>isTrashId(x.id)).forEach(x=>t[x.id]=x.data());trash=t;renderTrashInfo()}
      persistLocal();persistRaw();setSyncState('ok');renderLibrary();if(curNovel)renderNovel()}
     const have=new Set(first.docs.map(x=>x.id));
     sbRaw=ref;col=sbWrap(ref);
@@ -1947,7 +1971,8 @@ async function connectDb(){
       for(const cid of Object.keys(chatStore)){if(!remoteChats[cid]&&!chatT[cid]&&chatStore[cid]&&chatStore[cid].synced)delete chatStore[cid]}
       Object.keys(remoteChats).forEach(cid=>{if(chatStore[cid])chatStore[cid].synced=true});
       LS.set('midad.chats',chatStore);
-      const docs=s.docs.filter(x=>x.id!==META_ID&&x.id!==PREFS_ID&&x.id!==USAGE_ID&&x.id!==STATS_ID&&x.id!==DISC_ID&&!isCoverId(x.id)&&!isRawId(x.id)&&!isChatId(x.id)&&!isImgId(x.id));
+      const docs=s.docs.filter(x=>x.id!==META_ID&&x.id!==PREFS_ID&&x.id!==USAGE_ID&&x.id!==STATS_ID&&x.id!==DISC_ID&&!isCoverId(x.id)&&!isRawId(x.id)&&!isChatId(x.id)&&!isImgId(x.id)&&!isTrashId(x.id));
+      {const t={};s.docs.filter(x=>isTrashId(x.id)).forEach(x=>t[x.id]=x.data());trash=t;trashExpire();renderTrashInfo()}
       const m=s.docs.find(x=>x.id===META_ID);
       if(m&&m.data().novels){meta={novels:Object.assign({},m.data().novels)};LS.set('midad.meta',meta)}
       const ids=new Set(docs.map(x=>x.id));
@@ -2426,7 +2451,7 @@ ${gloss?`قاموس الأسماء (الأصل = العربي):\n${gloss}\n`:''}
 أعد فقط كائن JSON بهذا الشكل: {"list":[{"name":"الاسم بالعربية","src":"الاسم الأصلي إن عُرف من القاموس أو فارغ","role":"البطل / صديق / خصم…","desc":"وصف قصير جملة أو جملتان","rel":"علاقاته بالشخصيات الأخرى باختصار","first":رقم أول فصل ظهر فيه}]} حتى 80 شخصية، الأهم أولاً.
 
 ${batch.map(it=>`${batchHead(it)}\n${kbText(it)}`).join('\n\n')}`;
-      const res=await sample.json(prompt,{cache:false});trackUse('chars',0);
+      const res=await sample.json(prompt,{cache:false,...ecoTier()});trackUse('chars',0);
       let list=(res&&Array.isArray(res.list)?res.list:[]).filter(x=>x&&x.name).slice(0,80).map(x=>({name:applyTerms(String(x.name).trim().slice(0,60)),src:String(x.src||'').slice(0,40),role:String(x.role||'').slice(0,30),desc:applyTerms(String(x.desc||'').slice(0,300)),rel:applyTerms(String(x.rel||'').slice(0,200)),first:+x.first||null}));
       // never lose a character Gemini forgot to repeat
       const names=new Set(list.map(c=>c.name));cur.list.forEach(c=>{if(!names.has(c.name))list.push(c)});
@@ -2447,9 +2472,11 @@ let kbAutoT=null;
 function autoKnowledge(novel){
   clearTimeout(kbAutoT);kbAutoT=setTimeout(async()=>{
     const m=meta.novels[novel]||{};
-    if(m.chars&&m.chars.list&&m.chars.list.length)await updateChars(novel,true);
-    if(m.lex&&m.lex.list&&m.lex.list.length)await updateLex(novel,true);
-    if(m.power&&(m.power.upTo||m.power.part))await updatePower(novel,true);
+    // economy mode: wait until 5 new chapters are read, then update in one go
+    const due=cur=>!prefs.eco||kbTodo(novel,cur||{upTo:0}).filter(it=>it.f>=1).length>=5;
+    if(m.chars&&m.chars.list&&m.chars.list.length&&due(m.chars))await updateChars(novel,true);
+    if(m.lex&&m.lex.list&&m.lex.list.length&&due(m.lex))await updateLex(novel,true);
+    if(m.power&&(m.power.upTo||m.power.part)&&due(m.power))await updatePower(novel,true);
   },1500);
 }
 
@@ -2494,7 +2521,7 @@ ${(m.glossary||'').trim()?`قاموس الأسماء (الأصل = العربي)
 أعد فقط كائن JSON: {"list":[{"term":"المصطلح كما في الترجمة","src":"الأصل إن عُرف أو فارغ","cat":"واحد من: ${LEX_CATS.join('، ')}","desc":"شرح قصير جملة أو جملتان","first":رقم أول فصل}]} حتى 100 مصطلح، الأهم أولاً.
 
 ${batch.map(it=>`${batchHead(it)}\n${kbText(it)}`).join('\n\n')}`;
-      const res=await sample.json(prompt,{cache:false});trackUse('lex',0);
+      const res=await sample.json(prompt,{cache:false,...ecoTier()});trackUse('lex',0);
       const list=(res&&Array.isArray(res.list)?res.list:[]).filter(x=>x&&x.term).slice(0,100).map(x=>({term:applyTerms(String(x.term).trim().slice(0,60)),src:String(x.src||'').slice(0,40),cat:LEX_CATS.includes(x.cat)?x.cat:'أخرى',desc:applyTerms(String(x.desc||'').slice(0,300)),first:+x.first||null}));
       const terms=new Set(list.map(x=>x.term));cur.list.forEach(x=>{if(!terms.has(x.term))list.push(x)});
       cur=Object.assign(kbAdvance(cur,batch),{list:list.slice(0,120)});
@@ -2575,9 +2602,60 @@ $('#cmOpen').onclick=()=>{hideSheet();openReader(cmCh.id)};
 $('#cmDel').onclick=async()=>{const b=$('#cmDel');if(!b.classList.contains('arm')){b.classList.add('arm');$('#cmDelT').textContent='اضغط مرة أخرى لتأكيد الحذف';return}
   const ch=cmCh;hideSheet();await deleteChapters([ch]);toast(`حُذف ${ch.title}`)};
 $('#cmSel').onclick=()=>{const id=cmCh&&cmCh.id;hideSheet();startSel(id)};
+/* ---------- trash: deleted chapters / novels kept 30 days ---------- */
+const TRASH_DAYS=30;
+const ecoTier=()=>prefs.eco?{modelTier:'quick'}:{};
+const stripDoc=o=>{const {id,pending,...b}=o;return JSON.parse(JSON.stringify(b))};
+async function toTrash(items,label){
+  const g='g'+uid(),at=Date.now();
+  for(const it of items){const tid='trash-'+it.type[0]+'-'+it.id;const d={kind:'trash',ttype:it.type,tid:it.id,tgroup:g,tlabel:label,tat:at,tname:it.name||'',tdoc:it.data};
+    trash[tid]=d;if(col){try{await col.doc(tid).set(d)}catch(e){}}}
+  renderTrashInfo();
+}
+function trashGroups(){
+  const by={};Object.entries(trash).forEach(([k,v])=>{if(!v||!v.tgroup)return;(by[v.tgroup]=by[v.tgroup]||{g:v.tgroup,label:v.tlabel||'',at:v.tat||0,keys:[],chapters:0,raws:0,novel:null});const b=by[v.tgroup];b.keys.push(k);
+    if(v.ttype==='chapter')b.chapters++;else if(v.ttype==='raw')b.raws++;else if(v.ttype==='novel')b.novel=v.tdoc&&v.tdoc.name});
+  return Object.values(by).sort((a,b)=>b.at-a.at);
+}
+function trashExpire(){const lim=Date.now()-TRASH_DAYS*864e5;Object.entries(trash).forEach(([k,v])=>{if(v&&v.tat&&v.tat<lim){delete trash[k];if(col)col.doc(k).delete().catch(()=>{})}})}
+function renderTrashInfo(){const el=$('#trashInfo');if(!el)return;const g=trashGroups();el.textContent=g.length?`${g.length} ${g.length===1?'عنصر':'عناصر'} يمكن استرجاعها`:'فارغة'}
+async function trashPurge(keys){keys.forEach(k=>delete trash[k]);if(col)await Promise.allSettled(keys.map(k=>col.doc(k).delete()));renderTrashInfo()}
+async function trashRestore(grp){
+  renameBusy=true;
+  try{
+    const items=grp.keys.map(k=>[k,trash[k]]).filter(x=>x[1]);
+    for(const [k,v] of items){const d=v.tdoc||{};
+      if(v.ttype==='novel'){if(d.name&&!meta.novels[d.name])meta.novels[d.name]=d.meta||{created:Date.now()}}
+      else if(v.ttype==='cover'){if(typeof d==='string'){covers[v.tid]=d;saveCoversLocal();if(col)col.doc(v.tid).set({kind:'cover',data:d}).catch(()=>{})}}
+      else if(v.ttype==='raw'){if(!raws.some(r=>r.id===v.tid)){const r=Object.assign({},d,{id:v.tid});delete r.kind;raws.push(r);rawSet(r)}}
+      else if(v.ttype==='chapter'){if(!chapters.some(c=>c.id===v.tid)){const c=Object.assign({},d,{id:v.tid});chapters.push(c);remoteSet(c)}}
+    }
+    saveMeta();persistLocal();persistRaw();
+    await trashPurge(items.map(x=>x[0]));
+    renderLibrary();if(curNovel)renderNovel();
+  }finally{setTimeout(()=>{renameBusy=false},1500)}
+}
+function renderTrash(){
+  const L=$('#trashList');L.innerHTML='';const gs=trashGroups();
+  if(!gs.length){L.innerHTML='<div class="empty">السلة فارغة.</div>'}
+  gs.forEach(g=>{
+    const d=document.createElement('div');d.className='tritem';
+    const left=Math.max(0,Math.ceil((g.at+TRASH_DAYS*864e5-Date.now())/864e5));
+    d.innerHTML='<b></b><small></small><div class="tra"><button type="button" class="rs">استرجع</button><button type="button" class="pd">احذف نهائياً</button></div>';
+    d.querySelector('b').textContent=g.label||(g.novel?`رواية «${g.novel}»`:'فصول');
+    d.querySelector('small').textContent=[g.chapters?`${g.chapters} فصل مترجم`:'',g.raws?`${g.raws} فصل خام`:'',`حُذف ${fmtAgo(g.at)}`,`يُحذف نهائياً بعد ${left} يوم`].filter(Boolean).join(' · ');
+    d.querySelector('.rs').onclick=async()=>{await trashRestore(g);renderTrash();toast('تم الاسترجاع')};
+    const pd=d.querySelector('.pd');pd.onclick=async()=>{if(!pd.classList.contains('arm')){pd.classList.add('arm');pd.textContent='اضغط للتأكيد';return}await trashPurge(g.keys);renderTrash();toast('حُذف نهائياً')};
+    L.appendChild(d);
+  });
+  const e=$('#trashEmpty');e.hidden=!gs.length;e.classList.remove('arm');e.textContent='أفرغ السلة';
+}
+$('#trashBtn').onclick=()=>{renderTrash();hideSheet();showSheet($('#trashSheet'))};
+$('#trashEmpty').onclick=async()=>{const e=$('#trashEmpty');if(!e.classList.contains('arm')){e.classList.add('arm');e.textContent='اضغط للتأكيد: يُحذف كل ما في السلة نهائياً';return}await trashPurge(Object.keys(trash));renderTrash();toast('أُفرغت السلة')};
 /* ---------- delete chapters (one or many), everywhere ---------- */
-async function deleteChapters(list){
+async function deleteChapters(list,label){
   if(!list.length)return 0;
+  await toTrash(list.map(c=>({type:'chapter',id:c.id,data:stripDoc(c),name:c.title})),label||(list.length===1?list[0].title+' · '+nv(list[0]):`${list.length} فصول من «${nv(list[0])}»`));
   const ids=new Set(list.map(c=>c.id));
   renameBusy=true; // pause sync so a half-finished delete can't bring chapters back
   try{
@@ -2740,7 +2818,7 @@ ${(m.glossary||'').slice(0,1200)}
 <<<
 ${txt.slice(0,12000)}
 >>>`;
-    const r=await sample.json(prompt,{cache:false});trackUse('power',0);
+    const r=await sample.json(prompt,{cache:false,...ecoTier()});trackUse('power',0);
     const S=v=>typeof v==='string'?applyTerms(v.trim()):'';
     const got=(r&&Array.isArray(r.ladders)?r.ladders:[]).map(l=>({name:S(l.name).slice(0,60),kind:PKINDS[l.kind]?l.kind:'other',locked:true,hero:null,
       stages:(Array.isArray(l.stages)?l.stages:[]).filter(x=>x&&x.name).slice(0,60).map(x=>({name:S(x.name).slice(0,60),src:String(x.src||'').slice(0,40),desc:S(x.desc).slice(0,300),subs:(Array.isArray(x.subs)?x.subs:[]).map(S).filter(Boolean).slice(0,12),chars:[],sure:true}))})).filter(l=>l.stages.length).slice(0,8);
@@ -2787,7 +2865,7 @@ ${(m.glossary||'').trim()?`قاموس الأسماء:\n${(m.glossary||'').slice(
 أعد فقط كائن JSON: {"system":"اسم النظام بإيجاز أو فارغ","ladders":[{"kind":"people","name":"اسم السلّم","stages":[{"name":"اسم المرحلة","src":"الأصل إن عُرف","desc":"شرح قصير","subs":["المستويات الفرعية"],"chars":["أسماء الشخصيات"],"sure":true}],"hero":{"name":"اسم البطل أو روحه","stage":"اسم المرحلة كما في القائمة","sub":"المستوى الفرعي أو فارغ","ch":رقم الفصل}}]}
 
 ${batch.map(it=>`${batchHead(it)}\n${kbText(it)}`).join('\n\n')}`;
-      const r=await sample.json(prompt,{cache:false});trackUse('power',0);
+      const r=await sample.json(prompt,{cache:false,...ecoTier()});trackUse('power',0);
       const S=v=>typeof v==='string'?applyTerms(v.trim()):'';
       const cleanSt=x=>({name:S(x.name).slice(0,60),src:String(x.src||'').slice(0,40),desc:S(x.desc).slice(0,300),
         subs:(Array.isArray(x.subs)?x.subs:[]).map(S).filter(Boolean).slice(0,12),chars:(Array.isArray(x.chars)?x.chars:[]).map(S).filter(Boolean).slice(0,10),sure:x.sure!==false});
@@ -3215,13 +3293,17 @@ let curNovelBefore=null;
 function delLabel(n){const c=chapters.filter(x=>nv(x)===n).length,r=raws.filter(x=>x.novel===n).length;return c||r?`احذف الرواية وكل محتواها (${c} فصل${r?' و'+r+' خام':''})`:'حذف الرواية'}
 $('#eDelete').onclick=async()=>{
   const b=$('#eDelete');
-  if(!b.classList.contains('arm')){b.classList.add('arm');b.textContent='اضغط مرة أخرى: سيُحذف كل شيء نهائياً';toast('سيُحذف كل ما يخص الرواية من كل أجهزتك. احفظ نسخة احتياطية أولاً إن أردت');setTimeout(()=>{if(b.classList.contains('arm')){b.classList.remove('arm');b.textContent=delLabel(curNovel)}},6000);return}
+  if(!b.classList.contains('arm')){b.classList.add('arm');b.textContent='اضغط مرة أخرى للتأكيد';toast('ستُنقل الرواية وكل فصولها إلى سلة المحذوفات 30 يوماً');setTimeout(()=>{if(b.classList.contains('arm')){b.classList.remove('arm');b.textContent=delLabel(curNovel)}},6000);return}
   const n=curNovel,m=meta.novels[n]||{};
   // everything that belongs to the novel; sync paused so a half-finished delete can't bring chapters back
   renameBusy=true;
   try{
     const ch=chapters.filter(c=>nv(c)===n),ids=new Set(ch.map(c=>c.id));
     const rw=raws.filter(r=>r.novel===n);
+    await toTrash([{type:'novel',id:uid(),data:{name:n,meta:JSON.parse(JSON.stringify(m))}},
+      ...(m.cover&&covers[m.cover]?[{type:'cover',id:m.cover,data:covers[m.cover]}]:[]),
+      ...ch.map(c=>({type:'chapter',id:c.id,data:stripDoc(c),name:c.title})),
+      ...rw.map(r=>({type:'raw',id:r.id,data:stripDoc(r),name:r.title}))],`رواية «${n}»`);
     const im=Object.keys(imgs).filter(k=>imgs[k]&&(imgs[k].novel===n||ids.has(imgs[k].ch)));
     const chats=Object.keys(chatStore).filter(k=>ids.has(k));
     for(let i=trQueue.length-1;i>=1;i--)if(trQueue[i].novel===n)trQueue.splice(i,1);
@@ -3239,7 +3321,7 @@ $('#eDelete').onclick=async()=>{
       const bad=res.filter(x=>x.status==='rejected').length;
       if(bad)toast(`لم يُحذف ${bad} عنصر من حسابك، حاول مرة أخرى لاحقاً`);
     }
-    toast(`حُذفت الرواية «${n}»`);
+    toast(`حُذفت الرواية «${n}». يمكنك استرجاعها من سلة المحذوفات`);
   }finally{setTimeout(()=>{renameBusy=false},1500)}
 };
 async function saveCoverFor(oldName){
@@ -3504,6 +3586,7 @@ function styleText(novel){
 function buildPrompt(r,partIdx,partCount,lines,gloss,prevTail,novel){
   const origTitle=r.title.replace(/^الفصل\s*[0-9٠-٩]+\s*:?\s*/,'').trim();
   let p=trRules()+'\n'+(novel?styleText(novel):'')+termsPrompt();
+  if(prefs.eco&&gloss.trim()){const tx=lines.join('\n');gloss=gloss.split('\n').filter(l=>{const k=l.split(/\s*[=:：]\s*/)[0].trim();return k&&tx.includes(k)}).join('\n')}
   if(gloss.trim())p+=`\nالتزم بهذه الترجمات الثابتة للأسماء:\n${gloss.trim()}\n`;
   if(partIdx===0)p+=`\nابدأ الترجمة بسطر العنوان بهذا الشكل تماماً: الفصل ${r.num}: [عنوان الفصل مترجماً]${origTitle?`\nعنوان الفصل الأصلي: ${origTitle}`:''}\n`;
   else p+=`\nهذا الجزء ${partIdx+1} من ${partCount} من نفس الفصل. لا تكتب عنواناً، تابع الترجمة مباشرة.${prevTail?`\nللسياق فقط (لا تكرره)، آخر ما تُرجم من الجزء السابق:\n${prevTail}`:''}\n`;
@@ -3582,7 +3665,7 @@ async function runQueue(){
     // read the glossary when the job starts, so names added while it waited in the queue are used too
     const gloss=((meta.novels[novel]||{}).glossary||job.gloss||'').slice(0,4000);
     const cl=prefs.trClean!==false?cleanRaw(r.lines):{lines:r.lines,removed:0};job.cleaned=cl.removed;
-    const chunks=chunkLines(cl.lines.length?cl.lines:r.lines,3200);let acc='';job.done=0;job.parts=chunks.length;
+    const chunks=chunkLines(cl.lines.length?cl.lines:r.lines,prefs.eco?7000:3200);let acc='';job.done=0;job.parts=chunks.length;
     trCtl=new AbortController();
     try{
       for(let pi=0;pi<chunks.length;pi++){
@@ -3824,6 +3907,7 @@ function removeDups(novel){
     list.sort((a,b)=>{const x=score(a),y=score(b);return (y[0]-x[0])||(y[1]-x[1])||(y[2]-x[2])});
     drop.push(...list.slice(1));});
   if(!drop.length)return 0;
+  toTrash(drop.map(c=>({type:'chapter',id:c.id,data:stripDoc(c),name:c.title})),`نسخ مكررة من «${novel}»`);
   const ids=new Set(drop.map(c=>c.id));chapters=chapters.filter(c=>!ids.has(c.id));persistLocal();
   drop.forEach(c=>{if(chatStore[c.id]){delete chatStore[c.id];saveChat(c.id)}imgsOfCh(c.id).forEach(im=>imgDel(im.id));if(col)col.doc(c.id).delete().catch(()=>{})});
   if(current&&ids.has(current.id))closeReader();
@@ -4133,7 +4217,7 @@ ${known.size?`تجاهل هذه الأسماء لأنها موجودة في ال
 الترجمة العربية:
 <<<${arT}
 >>>`;
-  const arr=await sample.json(prompt,{cache:false});trackUse('names',srcT.length);
+  const arr=await sample.json(prompt,{cache:false,...ecoTier()});trackUse('names',srcT.length);
   if(!Array.isArray(arr))return [];
   const seen=new Set();
   return arr.filter(x=>x&&typeof x.src==='string'&&typeof x.ar==='string'&&x.src.trim()&&x.ar.trim()).map(x=>({src:x.src.trim().slice(0,40),ar:x.ar.trim().slice(0,60),type:String(x.type||'').slice(0,10)}))
@@ -4549,7 +4633,7 @@ function renderTrOpts(){
   $('#trEngHint').textContent='المفتاح محفوظ في هذا الهاتف فقط. الجودة: سريعة = gemini-2.5-flash-lite، متوازنة = gemini-2.5-flash، دقيقة = gemini-2.5-pro، إلا إذا كتبت نموذجاً بنفسك. كل ميزات الذكاء في التطبيق تستخدم هذا المفتاح.';if(0)$('#trEngHint').textContent=en==='gemini'?(gemKey()?'الترجمة عبر '+gemModel()+' بمفتاحك، ولا تستهلك من حد Gemini. القاموس والطابع ومستوى اللغة والمصطلحات تُطبّق كما هي. المفتاح محفوظ في هذا الجهاز فقط. خيار «جودة الترجمة» خاص بـ Gemini.':'الصق مفتاحك من Google AI Studio، ثم اضغط «اختبر الاتصال».'):'الترجمة عبر Gemini ضمن حد استخدامك. باقي الميزات (الشخصيات، المسرد، المساعد) تبقى على Gemini دائماً.';
   document.querySelectorAll('#trTier button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.t===prefs.trTier)));
   $('#trTierHint').textContent=(TIERS[prefs.trTier]||TIERS.default)[1];
-  $('#trReview').checked=prefs.trReview!==false;$('#trClean').checked=prefs.trClean!==false;
+  $('#trReview').checked=prefs.trReview!==false;$('#trClean').checked=prefs.trClean!==false;$('#trEco').checked=!!prefs.eco;
   const lg=TR_LANG[prefs.trLang]?prefs.trLang:'easy';document.querySelectorAll('#trLang button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.l===lg)));$('#trLangHint').textContent=TR_LANG[lg][1];
   const m=meta.novels[novelVal()]||{};const st=STYLES[m.style]||STYLES.general;const gc=glossCount(novelVal());
   $('#trStyleInfo').innerHTML=`طابع الرواية: <b>${st[0]}</b>${m.styleNote?' + ملاحظات خاصة':''} · القاموس: <b>${gc}</b> اسم<br><span>تغيّرهما من صفحة الرواية ← زر التعديل وقاموس الأسماء</span>`;
@@ -4566,6 +4650,7 @@ $('#gemTest').onclick=async()=>{
   try{const r=await geminiSample('ترجم إلى العربية بكلمة واحدة فقط: 你好',{maxTokens:64});st.textContent='✓ يعمل ('+gemModel()+'): '+r.text.trim().slice(0,30)}
   catch(e){st.textContent='✗ '+(TR_ERR[e&&e.code]||'فشل الاتصال')+(e&&e.message&&e.code!=='gem_blocked'?' — '+String(e.message).slice(0,100):'')}
 };
+$('#trEco').onchange=e=>{prefs.eco=e.target.checked;LS.set('midad.prefs',prefs);queuePrefsSave();toast(e.target.checked?'وضع التوفير مفعّل':'وضع التوفير متوقف')};
 $('#trClean').onchange=e=>{prefs.trClean=e.target.checked;LS.set('midad.prefs',prefs);queuePrefsSave();toast(e.target.checked?'سيُنظَّف كل فصل خام قبل ترجمته':'لن يُنظَّف الفصل الخام')};
 $('#trReview').onchange=e=>{prefs.trReview=e.target.checked;LS.set('midad.prefs',prefs);queuePrefsSave()};
 $('#inNovel').addEventListener('input',()=>{if(addMode==='tr')renderTrOpts()});

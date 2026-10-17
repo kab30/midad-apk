@@ -40,10 +40,10 @@ jobs:
           done
           [ -n "$OPTIONAL" ] || echo "::warning::optional plugins skipped"
           npx cap add android
+          RUN=${{ github.run_number }} node tools/patch-android.cjs
           if [ -d assets ]; then
             npx --yes @capacitor/assets generate --android --iconBackgroundColor '#0b1020' --iconBackgroundColorDark '#0b1020' --splashBackgroundColor '#0b1020' --splashBackgroundColorDark '#0b1020' || echo "::warning::icon generation skipped"
           fi
-          if [ -f keystore/debug.keystore ]; then mkdir -p ~/.android && cp keystore/debug.keystore ~/.android/debug.keystore; else echo "::warning::لا يوجد keystore، كل نسخة ستحتاج حذف القديمة قبل التثبيت"; fi
           build(){ npx cap sync android && (cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon); }
           if ! build; then
             [ -n "$OPTIONAL" ] || exit 1
@@ -52,6 +52,11 @@ jobs:
             build
           fi
           cp android/app/build/outputs/apk/debug/app-debug.apk midad-${{ github.run_number }}.apk
+          # make sure the APK is signed with the fixed key, otherwise updates would need a reinstall
+          WANT=$(keytool -list -v -keystore keystore/debug.keystore -storepass android | grep -m1 "SHA256:" | awk '{print $2}')
+          GOT=$(keytool -printcert -jarfile midad-${{ github.run_number }}.apk | grep -m1 "SHA256:" | awk '{print $2}')
+          echo "signing key: $GOT" >> build-info.txt
+          [ "$WANT" = "$GOT" ] || { echo "::error::APK signed with a different key ($GOT)"; exit 1; }
           npm ls --depth=0 2>/dev/null | grep -E "capacitor" >> build-info.txt || true
 
       - uses: actions/upload-artifact@v4
