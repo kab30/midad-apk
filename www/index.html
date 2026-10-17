@@ -1582,6 +1582,16 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
       <span class="opt-t"><b>استرجاع من نسخة</b><small>يضيف الفصول غير الموجودة فقط، ولا يحذف أو يغيّر شيئاً عندك</small></span>
     </label>
     <input type="file" id="bkFile" accept=".json,application/json" hidden>
+    <div class="gdrive" id="sbCard">
+      <div class="gdh"><span class="gdi"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a5 5 0 1 1 1.2-9.86A6 6 0 0 1 19.5 10 4 4 0 0 1 18 18z"/><path d="m9.5 13.5 2.5 2.5 3.5-4"/></svg></span><span class="opt-t"><b>مكتبة مشتركة مع تطبيق الهاتف</b><small id="sbStatus">—</small></span></div>
+      <div id="sbForm">
+        <div class="pefld"><label for="sbEmail">بريد حسابك في Supabase</label><input id="sbEmail" type="email" dir="ltr" autocomplete="username" placeholder="you@example.com"></div>
+        <div class="pefld" id="sbPassRow" hidden><label for="sbPass">كلمة المرور</label><input id="sbPass" type="password" dir="ltr" autocomplete="current-password"></div>
+        <button class="btn primary" id="sbLink" type="button" style="margin-top:10px">اربط المكتبة</button>
+      </div>
+      <div id="sbOn" hidden style="display:flex;gap:8px"><button class="btn primary" id="sbNow" type="button" style="flex:1">زامن الآن</button><button class="redo" id="sbOff" type="button" style="padding:0 14px">افصل</button></div>
+      <small class="cpnote" id="sbNote">كل ما تترجمه أو تقرؤه هنا يظهر في تطبيق الهاتف، والعكس. أنشئ الحساب مرة واحدة من لوحة Supabase: Authentication ← Users ← Add user، وفعّل Auto Confirm.</small>
+    </div>
     <div class="gdrive" hidden>
       <div class="gdh"><span class="gdi"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8l6 10-4 7H6l-4-7z"/><path d="M8 3l6 10M16 3l-6 10H2M22 13H10"/></svg></span><span class="opt-t"><b>Google Drive</b><small id="gdStatus">—</small></span></div>
       <label class="tog" for="gdAuto" style="border:0;padding:0"><span>نسخة تلقائية كل 24 ساعة<small>عند فتح مداد، إذا مرّ يوم على آخر نسخة، تُرسل نسخة جديدة إلى Drive وحدها</small></span><input type="checkbox" id="gdAuto" class="cb"></label>
@@ -1798,7 +1808,7 @@ function applyTerms(text){
 const TIERS={quick:['سريعة','أسرع وتستهلك أقل من حدّك، مناسبة للفصول العادية.'],default:['متوازنة','توازن بين الجودة والسرعة، الخيار الأنسب لمعظم الفصول.'],complex:['دقيقة','أدق وأجمل صياغة، لكنها أبطأ وتستهلك أكثر. للفصول المهمة.']};
 let lastId=LS.get('midad.last',null);
 let meta=LS.get('midad.meta',{novels:{}});if(!meta.novels)meta.novels={};
-let renameBusy=false;
+let renameBusy=false,sbRaw=null;
 let col=null, current=null, wakeLock=null, curNovel=null;
 const META_ID='_meta';
 /* reading settings + light/dark mode are kept in the account too, so every device and every visit opens with them */
@@ -1897,7 +1907,7 @@ async function connectDb(){
      const rp=raws.filter(r=>r.pending);const rd=first.docs.filter(x=>isRawId(x.id)).map(x=>{const v=Object.assign({},x.data());delete v.kind;return Object.assign({id:x.id},v)});const rids=new Set(rd.map(r=>r.id));raws=rd.concat(rp.filter(r=>!rids.has(r.id)));
      persistLocal();persistRaw();setSyncState('ok');renderLibrary();if(curNovel)renderNovel()}
     const have=new Set(first.docs.map(x=>x.id));
-    col=ref;
+    sbRaw=ref;col=sbWrap(ref);
     for(const ch of chapters.filter(c=>c.pending&&!have.has(c.id))){await remoteSet(ch)}
     if(!have.has(META_ID)&&Object.keys(meta.novels).length)saveMeta();
     const ddoc=first.docs.find(x=>x.id===DISC_ID);
@@ -4970,6 +4980,131 @@ async function driveBackup(auto){
   }
 }
 $('#gdNow').onclick=()=>driveBackup(false);
+
+/* ---------- shared library: Supabase (same table the phone app syncs with) ----------
+   Every write to the account database is queued and sent to Supabase; changes made on the phone are pulled
+   every minute and written into the account database, so the library refreshes through the normal live view. */
+const SB_PROJECT='ieqepwxarioowtuooqqu',SB_SERVER='Supabase';
+const sb={q:new Map(),timer:null,busy:false,err:'',pushed:{},lastAt:0,pulling:false};
+// order-insensitive compare: Postgres stores JSON with its own key order, so our own changes come back reordered
+function deq(a,b){if(a===b)return true;if(typeof a!=='object'||typeof b!=='object'||!a||!b)return false;if(Array.isArray(a)!==Array.isArray(b))return false;
+  const ka=Object.keys(a),kb=Object.keys(b);if(ka.length!==kb.length)return false;return ka.every(k=>deq(a[k],b[k]))}
+const NC=window.midadCloud||null; // phone app: syncs natively with its own sign-in
+const sbUid=()=>NC?'':(prefs.sbUid||'');
+const sbLast=()=>LS.get('midad.sbLast:'+sbUid(),'');
+function sbTag(t){let g;do{g='$m'+Math.random().toString(36).slice(2,8)+'$'}while(t.includes(g));return g}
+const sbq=t=>{const g=sbTag(t);return g+t+g};
+async function sbSql(query){
+  const mcp=await getMcp();if(!mcp)throw {code:'unavailable'};
+  const r=await mcp.callTool(SB_SERVER,'execute_sql',{project_id:SB_PROJECT,query},{cache:false});
+  let t=r&&r.payload;if(t&&typeof t==='object'&&!Array.isArray(t))t=t.result!==undefined?t.result:JSON.stringify(t);
+  if(Array.isArray(t))return t;
+  t=String(t||'');const m=t.match(/<untrusted-data-[^>]*>\s*([\s\S]*?)\s*<\/untrusted-data-/);
+  const body=(m?m[1]:t).trim();if(!body)return [];
+  try{const v=JSON.parse(body);return Array.isArray(v)?v:[]}catch(e){throw {code:'bad_result',message:body.slice(0,160)}}
+}
+function sbWrap(ref){
+  return {get:(...a)=>ref.get(...a),onSnapshot:(...a)=>ref.onSnapshot(...a),
+    doc(id){const d=ref.doc(id);return {id,get:(...a)=>d.get(...a),
+      set:v=>{sbPush(id,'set',v);return d.set(v)},update:v=>{sbPush(id,'merge',v);return d.update(v)},delete:()=>{sbPush(id,'del');return d.delete()}}}};
+}
+function sbPush(id,op,data){
+  if(!sbUid())return;
+  const cur=sb.q.get(id);let n={op,data:data===undefined?null:JSON.parse(JSON.stringify(data))};
+  if(cur&&op==='merge'&&cur.op!=='del')n={op:cur.op,data:Object.assign({},cur.data||{},n.data)};
+  sb.q.set(id,n);clearTimeout(sb.timer);sb.timer=setTimeout(sbFlush,2500);renderSb();
+}
+async function sbFlush(){
+  if(sb.busy||!sb.q.size||!sbUid())return;
+  sb.busy=true;const uid=sbUid();
+  try{
+    while(sb.q.size){
+      let stm=[],size=0,ids=[];
+      for(const [id,o] of sb.q){
+        const k=sbq(id);let q;
+        if(o.op==='del')q=`insert into public.docs(user_id,id,data,deleted) values('${uid}',${k},null,true) on conflict(user_id,id) do update set data=null,deleted=true`;
+        else{const j=sbq(JSON.stringify(o.data||{}));
+          q=`insert into public.docs(user_id,id,data,deleted) values('${uid}',${k},${j}::jsonb,false) on conflict(user_id,id) do update set data=${o.op==='merge'?'coalesce(public.docs.data,\'{}\'::jsonb)||excluded.data':'excluded.data'},deleted=false`}
+        if(stm.length&&size+q.length>450000)break;
+        stm.push(q);size+=q.length;ids.push(id);
+      }
+      const snap=ids.map(id=>[id,sb.q.get(id)]);ids.forEach(id=>sb.q.delete(id));
+      try{await sbSql(stm.join(';\n')+';\nselect 1 as ok')}
+      catch(e){snap.forEach(([id,o])=>{if(!sb.q.has(id))sb.q.set(id,o)});throw e}
+      snap.forEach(([id,o])=>{sb.pushed[id]=o.op==='del'?'del':o.op==='set'?o.data:null});
+    }
+    sb.err='';sb.lastAt=Date.now();
+  }catch(e){sb.err=sbErrText(e);clearTimeout(sb.timer);sb.timer=setTimeout(sbFlush,30000)}
+  sb.busy=false;renderSb();
+}
+function sbErrText(e){const c=e&&e.code;return c==='unavailable'?'افتح مداد من داخل Gemini':c==='not_connected'||c==='server_not_connected'?'Supabase غير مربوط بحسابك في Gemini':c==='denied'||c==='not_granted'?'لم يُسمح لمداد باستخدام Supabase':'تعذّر الاتصال بـ Supabase'+(e&&e.message?': '+String(e.message).slice(0,80):'')}
+async function sbPull(){
+  if(sb.pulling||!sbUid()||!sbRaw)return;
+  sb.pulling=true;let got=0;
+  try{
+    for(let page=0;page<40;page++){
+      const last=sbLast();
+      const rows=await sbSql(`select id,data,deleted,updated_at::text as t from public.docs where user_id='${sbUid()}'${last?` and updated_at>${sbq(last)}::timestamptz`:''} order by updated_at limit 15`);
+      if(!rows.length)break;
+      for(const r of rows){
+        const pv=sb.pushed[r.id];const mine=pv!==undefined&&pv!==null&&(r.deleted?pv==='del':deq(pv,r.data));if(mine)delete sb.pushed[r.id];
+        if(!sb.q.has(r.id)&&!mine){
+          try{if(r.deleted)await sbRaw.doc(r.id).delete();else if(r.data)await sbRaw.doc(r.id).set(r.data);got++}catch(e){}
+        }
+        LS.set('midad.sbLast:'+sbUid(),r.t);
+      }
+      if(rows.length<15)break;
+    }
+    sb.err='';sb.lastAt=Date.now();
+    if(got)toast(`وصل ${got} ${got===1?'تحديث':'تحديثات'} من تطبيق الهاتف`);
+  }catch(e){sb.err=sbErrText(e)}
+  sb.pulling=false;renderSb();
+}
+async function sbLinkNow(){
+  const email=$('#sbEmail').value.trim().toLowerCase();if(!/^\S+@\S+\.\S+$/.test(email)){toast('اكتب البريد بشكل صحيح');return}
+  if(!sbRaw){toast('انتظر حتى يتصل مداد بحسابك');return}
+  const b=$('#sbLink');b.disabled=true;b.textContent='جارِ الربط…';
+  try{
+    const u=await sbSql(`select id::text as id,(email_confirmed_at is not null) as ok from auth.users where lower(email)=${sbq(email)} limit 1`);
+    if(!u.length){toast('لا يوجد حساب بهذا البريد في Supabase. أنشئه أولاً من Authentication ← Users');return}
+    if(!u[0].ok)await sbSql(`update auth.users set email_confirmed_at=now() where id='${u[0].id}' and email_confirmed_at is null;select 1 as ok`);
+    prefs.sbUid=u[0].id;prefs.sbEmail=email;LS.set('midad.prefs',prefs);queuePrefsSave();
+    // first link: send what Supabase doesn't have yet, then bring in what it has
+    const have=new Set((await sbSql(`select id from public.docs where user_id='${u[0].id}'`)).map(r=>r.id));
+    const all=await sbRaw.get();let n=0;
+    all.docs.forEach(d=>{if(!have.has(d.id)){sb.q.set(d.id,{op:'set',data:JSON.parse(JSON.stringify(d.data()))});n++}});
+    renderSb();toast(n?`يُرفع ${n} عنصر إلى Supabase…`:'تم الربط');
+    await sbFlush();await sbPull();
+    if(!sb.err)toast('اكتمل الربط. المكتبة صارت مشتركة مع تطبيق الهاتف');
+  }catch(e){sb.err=sbErrText(e);toast(sb.err)}
+  finally{b.disabled=false;b.textContent='اربط المكتبة';renderSb()}
+}
+function renderSb(){
+  const st=$('#sbStatus');if(!st)return;
+  if(NC){const c=NC.state();$('#sbPassRow').hidden=false;$('#sbForm').hidden=c.linked;$('#sbOn').hidden=!c.linked;
+    if(!$('#sbEmail').value)$('#sbEmail').value=c.email||prefs.sbEmail||'';st.classList.toggle('err',!!c.err);
+    $('#sbNote').textContent='سجّل الدخول بنفس الحساب الذي ربطته في مداد على Gemini، فتصير المكتبة واحدة في الاثنين.';
+    st.textContent=!c.linked?'غير مربوطة':c.err?c.err:c.pending?`يرفع ${c.pending} عنصر…`:c.pulling?'يجلب التحديثات…':c.lastAt?`مربوطة بـ ${c.email||''} · آخر مزامنة ${fmtAgo(c.lastAt)}`:`مربوطة بـ ${c.email||''}`;return}
+  const on=!!sbUid();$('#sbForm').hidden=on;$('#sbOn').hidden=!on;
+  if(!$('#sbEmail').value)$('#sbEmail').value=prefs.sbEmail||'';
+  st.classList.toggle('err',!!sb.err);
+  st.textContent=!on?'غير مربوطة':sb.err?sb.err:sb.q.size?`يرفع ${sb.q.size} عنصر…`:sb.pulling?'يجلب التحديثات…':sb.lastAt?`مربوطة بـ ${prefs.sbEmail||''} · آخر مزامنة ${fmtAgo(sb.lastAt)}`:`مربوطة بـ ${prefs.sbEmail||''}`;
+}
+$('#sbLink').onclick=async()=>{
+  if(!NC)return sbLinkNow();
+  const email=$('#sbEmail').value.trim(),pass=$('#sbPass').value;if(!email||!pass){toast('اكتب البريد وكلمة المرور');return}
+  const b=$('#sbLink');b.disabled=true;b.textContent='جارِ تسجيل الدخول…';
+  try{const r=await NC.link(email,pass);$('#sbPass').value='';toast(r.got?`اكتمل الربط ووصل ${r.got} عنصر من مكتبتك`:'اكتمل الربط')}
+  catch(e){toast(e&&e.message?String(e.message).slice(0,120):'تعذّر تسجيل الدخول')}
+  finally{b.disabled=false;b.textContent='اربط المكتبة';renderSb()}};
+if(NC)NC.onChange(()=>renderSb());
+$('#sbNow').onclick=async()=>{if(NC){await NC.flush();await NC.pull();return}await sbFlush();await sbPull()};
+$('#sbOff').onclick=()=>{const b=$('#sbOff');if(!b.classList.contains('arm')){b.classList.add('arm');b.textContent='تأكيد';setTimeout(()=>{b.classList.remove('arm');b.textContent='افصل'},4000);return}
+  if(NC){NC.unlink();renderSb();toast('فُصل التطبيق عن Supabase. لم يُحذف شيء');return}
+  prefs.sbUid='';LS.set('midad.prefs',prefs);queuePrefsSave();sb.q.clear();renderSb();toast('فُصلت المكتبة عن Supabase. لم يُحذف شيء')};
+setInterval(()=>{if(!document.hidden&&sbUid())sbPull()},60000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&sbUid())setTimeout(sbPull,1500)});
+setTimeout(()=>{renderSb();if(sbUid())sbPull()},6000);
 $('#gdAuto').onchange=e=>{prefs.gdAuto=e.target.checked;LS.set('midad.prefs',prefs);queuePrefsSave();renderGd();if(prefs.gdAuto)maybeDailyDrive()};
 let gdAutoTried=false;
 function maybeDailyDrive(){
