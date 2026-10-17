@@ -4,7 +4,7 @@
   "private": true,
   "description": "مداد: قارئ ومترجم الروايات، نسخة الهاتف",
   "scripts": {
-    "build:android": "bash scripts/build-apk.sh"
+    "sync": "npx cap sync android"
   },
   "dependencies": {
     "@capacitor/android": "^7.0.0",
