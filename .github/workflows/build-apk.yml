@@ -25,9 +25,13 @@ jobs:
 
       # Android SDK is already installed on GitHub's Ubuntu machines (ANDROID_HOME)
       - name: Build APK
+        env:
+          KEY_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
           set -e
           test -f www/index.html || { echo "::error::مجلد www غير موجود في المستودع، ارفعه"; exit 1; }
+          [ -n "$KEY_PASS" ] || { echo "::error::أضف القيمة السرية KEYSTORE_PASSWORD في Settings > Secrets and variables > Actions"; exit 1; }
+          echo "window.MIDAD_BUILD=${{ github.run_number }};" > www/build.js
           npm install --no-audit --no-fund
           CAPV=$(node -p "require('@capacitor/core/package.json').version")
           echo "Capacitor $CAPV" > build-info.txt
@@ -39,6 +43,11 @@ jobs:
             else echo "line ^$v failed: $(grep -m1 -E 'ERESOLVE|ETARGET|peer|notarget' npm-opt.log | cut -c1-160)" >> build-info.txt; fi
           done
           [ -n "$OPTIONAL" ] || echo "::warning::optional plugins skipped"
+          # opens the downloaded update in Android's installer
+          for v in 7 6; do
+            if npm install --no-audit --no-fund "@capacitor-community/file-opener@^$v" >npm-fo.log 2>&1; then OPTIONAL="$OPTIONAL @capacitor-community/file-opener"; echo "file-opener: line ^$v" >> build-info.txt; break
+            else echo "file-opener ^$v failed: $(grep -m1 -E 'ERESOLVE|ETARGET|peer|notarget' npm-fo.log | cut -c1-160)" >> build-info.txt; fi
+          done
           npx cap add android
           RUN=${{ github.run_number }} node tools/patch-android.cjs
           if [ -d assets ]; then
@@ -53,7 +62,7 @@ jobs:
           fi
           cp android/app/build/outputs/apk/debug/app-debug.apk midad-${{ github.run_number }}.apk
           # make sure the APK is signed with the fixed key, otherwise updates would need a reinstall
-          WANT=$(keytool -list -v -keystore keystore/debug.keystore -storepass android | grep -m1 "SHA256:" | awk '{print $2}')
+          WANT=$(keytool -list -v -keystore keystore/release.p12 -storetype PKCS12 -storepass "$KEY_PASS" | grep -m1 "SHA256:" | awk '{print $2}')
           GOT=$(keytool -printcert -jarfile midad-${{ github.run_number }}.apk | grep -m1 "SHA256:" | awk '{print $2}')
           echo "signing key: $GOT" >> build-info.txt
           [ "$WANT" = "$GOT" ] || { echo "::error::APK signed with a different key ($GOT)"; exit 1; }

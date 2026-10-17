@@ -183,3 +183,52 @@
     };
   }
 })();
+
+/* ---------- in-app updates: a new build on GitHub shows a bar; one tap downloads it and opens Android's installer ---------- */
+(function(){
+  const CAP=window.Capacitor&&window.Capacitor.Plugins||{};
+  if(!CAP.Filesystem||!window.MIDAD_BUILD)return;
+  const API='https://api.github.com/repos/kab30/midad-apk/releases/latest';
+  let shown=false,busy=false,lastCheck=0;
+  function bar(){
+    let b=document.getElementById('updBar');if(b)return b;
+    b=document.createElement('div');b.id='updBar';b.dir='rtl';
+    b.style.cssText='position:fixed;inset-inline:12px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:9999;display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:16px;background:#0f1a2e;color:#e7eefc;border:1px solid #2a3550;box-shadow:0 18px 40px -16px rgba(0,0,0,.7);font:600 14px "Readex Pro",system-ui,sans-serif';
+    b.innerHTML='<span style="flex:1"></span><button type="button" data-a="go" style="height:38px;padding:0 16px;border-radius:12px;border:0;background:#4fdcff;color:#04111c;font:inherit">حدّث</button><button type="button" data-a="x" style="height:38px;width:38px;border-radius:12px;border:1px solid #2a3550;background:transparent;color:#9fb0cc;font:inherit">✕</button>';
+    document.body.appendChild(b);return b;
+  }
+  const say=t=>{bar().querySelector('span').textContent=t};
+  async function check(force){
+    if(busy||(!force&&Date.now()-lastCheck<6*3600e3))return;lastCheck=Date.now();
+    try{
+      const r=await fetch(API,{headers:{Accept:'application/vnd.github+json'}});if(!r.ok)return;
+      const j=await r.json();const n=+(String(j.tag_name||'').match(/\d+/)||[0])[0];
+      const a=(j.assets||[]).find(x=>/\.apk$/i.test(x.name));
+      if(!a||!(n>window.MIDAD_BUILD)||shown)return;
+      shown=true;const b=bar();say(`تحديث جديد لمداد (الإصدار ${n})`);
+      b.querySelector('[data-a=x]').onclick=()=>{b.remove();shown=false};
+      b.querySelector('[data-a=go]').onclick=()=>install(a.browser_download_url,j.html_url);
+    }catch(e){}
+  }
+  async function install(url,page){
+    if(busy)return;busy=true;const b=bar();b.querySelector('[data-a=go]').disabled=true;say('جارِ تنزيل التحديث…');
+    try{
+      let h=null;
+      try{h=await CAP.Filesystem.addListener('progress',p=>{if(p&&p.contentLength)say(`جارِ تنزيل التحديث… ${Math.round(p.bytes/p.contentLength*100)}%`)})}catch(e){}
+      const res=await CAP.Filesystem.downloadFile({url,path:'midad-update.apk',directory:'CACHE',progress:true});
+      try{h&&h.remove()}catch(e){}
+      const path=res.path||(await CAP.Filesystem.getUri({path:'midad-update.apk',directory:'CACHE'})).uri;
+      say('افتح «تحديث» في نافذة Android');
+      if(CAP.FileOpener&&CAP.FileOpener.open)await CAP.FileOpener.open({filePath:path,contentType:'application/vnd.android.package-archive',openWithDefault:true});
+      else if(CAP.FileOpener&&CAP.FileOpener.openFile)await CAP.FileOpener.openFile({path,mimeType:'application/vnd.android.package-archive'});
+      else throw new Error('no opener');
+    }catch(e){
+      say('تعذّر التثبيت من داخل التطبيق، سيُفتح رابط التنزيل');
+      try{if(CAP.Browser)await CAP.Browser.open({url:page||url})}catch(x){}
+    }
+    busy=false;const g=b.querySelector('[data-a=go]');if(g)g.disabled=false;
+  }
+  window.midadCheckUpdate=()=>check(true);
+  setTimeout(()=>check(false),8000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)check(false)});
+})();

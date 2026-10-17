@@ -47,6 +47,7 @@ window.__midadBack=()=>{
 # head: runtime shim + phone meta
 rep("<title>مداد</title>","""<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b1020">
 <title>مداد</title>
+<script src="build.js"></script>
 <script src="native.js"></script>""")
 s=s+"""
 <script>
