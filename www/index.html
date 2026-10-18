@@ -3864,7 +3864,7 @@ function openReader(id,opt){
   hidePMenu();$('#article').classList.remove('leave-next','leave-prev');
   curWords=words(ch.text||'');autoAsked=null;
   readMark=(ch.progress||0)>.97?0:(ch.progress||0);wasDone=(ch.progress||0)>.97;lastReadAt=Date.now();
-  saveProgress(true);current=ch;lastId=id;LS.set('midad.last',id);
+  saveProgress(true);current=ch;lastId=id;LS.set('midad.last',id);widgetPush();
   if(!ch.sample){ch.lastAt=Date.now();persistLocal();if(col&&!ch.pending)col.doc(ch.id).update({lastAt:ch.lastAt}).catch(()=>{})}
   $('#rT').textContent=ch.title;$('#rN').textContent=ch.novel||'';
   const paras=(ch.text||'').split('\n').filter(Boolean);
@@ -4076,6 +4076,33 @@ ${batch.map(r=>`${r.num}: ${rawOrigTitle(r)}`).join('\n')}`;
 $('#rwTitles').onclick=()=>translateRawTitles(curNovel,true);
 $('#rwAuto').onchange=e=>{meta.novels[curNovel]=Object.assign({},meta.novels[curNovel]||{},{rawAuto:e.target.checked});saveMeta()};
 $('#rwClose').onclick=hideSheet;
+/* ---------- phone app: text shared from other apps, and the home-screen widget ---------- */
+// Android hands shared text / widget taps to the page through window.__midadIn (see MainActivity in the phone app)
+window.__midadIn=ev=>{
+  if(!ev)return;
+  if(ev.type==='share'&&ev.text){
+    if(current)closeReader();
+    openAdd(curNovel||LS.get('midad.novel',''));setMode('tr');$('#trStore').checked=true;
+    $('#trIn').value=String(ev.text);try{updateTrInfo()}catch(e){}
+    toast('وصل النص. اختر الرواية ثم احفظه في المخزن الخام');
+  }else if(ev.type==='continue'){
+    const last=chapters.find(c=>c.id===lastId)||sorted(chapters.filter(c=>(c.progress||0)<.97)).slice(-1)[0];
+    if(last){hideSheet();openReader(last.id)}else toast('لا يوجد فصل للمتابعة بعد');
+  }
+};
+// keep the widget showing the chapter you're reading
+let widgetT=null;
+function widgetPush(){
+  const W=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.MidadWidget;if(!W)return;
+  clearTimeout(widgetT);widgetT=setTimeout(()=>{
+    const c=chapters.find(x=>x.id===lastId);
+    if(!c){W.update({title:'',novel:'مداد',pct:0,sub:''}).catch(()=>{});return}
+    const pct=Math.round((c.progress||0)*100);
+    const left=chapters.filter(x=>nv(x)===nv(c)&&x.num!=null&&c.num!=null&&x.num>c.num).length;
+    W.update({title:c.title||('الفصل '+(c.num??'')),novel:nv(c),pct,sub:pct>=97?(left?`انتهيت منه · ${left} فصل بعده`:'انتهيت منه'):`قرأت ${pct}%`+(left?` · ${left} فصل بعده`:'')}).catch(()=>{});
+  },800);
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)widgetPush()});
 $('#rwAdd').onclick=()=>{openAdd(curNovel);setMode('tr');$('#trStore').checked=true;updateTrInfo()};
 
 /* ---------- import a whole novel from a .txt file ---------- */
