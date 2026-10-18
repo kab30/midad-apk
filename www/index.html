@@ -761,6 +761,19 @@ body.selmode .card.sel::after{background:var(--danger);border-color:var(--danger
 .ttsbar button.main{background:var(--ra);color:var(--rb)}
 .ttsbar .tl{font-family:var(--mono);font-size:11px;opacity:.75;padding:0 4px;font-variant-numeric:tabular-nums}
 .tool.wide{grid-column:1/-1}
+.ttsbar.asbar{right:auto;left:50%;transform:translateX(-50%)}
+#reader.asmode .askfab{display:none!important}
+.ttsbar #ttsSleep.on,.ttsbar #asSleep.on{color:var(--ra)}
+.ttsbar .tl.sl{min-width:0}
+#rscroll.autoscroll{scroll-behavior:auto!important}
+#autoBtn.on,#listenBtn.on{color:var(--ra)}
+.wordpop{position:fixed;z-index:26;width:min(340px,calc(100vw - 24px));padding:12px 14px;border-radius:14px;background:var(--panel);border:1px solid var(--line);
+  box-shadow:0 14px 34px -12px rgba(0,0,0,.6);font-family:var(--ui);color:var(--ink);font-size:13.5px;line-height:1.75}
+.wordpop[hidden]{display:none!important}
+.wordpop b.w{font-family:var(--read,inherit);font-size:17px;color:var(--plasma);display:block;margin-bottom:2px}
+.wordpop .wm{white-space:pre-wrap}
+.wordpop .wl{opacity:.7;font-size:12px}
+.wordpop .wx{position:absolute;top:6px;left:8px;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:var(--ink);opacity:.7}
 .markrow{display:flex;gap:12px;align-items:flex-start;padding:12px;border-radius:14px;background:var(--deck);border:1px solid var(--line);text-align:start;width:100%}
 .markrow .mi{flex:none;width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:var(--panel);color:var(--plasma);border:1px solid var(--line)}
 .markrow .mb{flex:1;min-width:0}
@@ -1128,6 +1141,9 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
     <button class="ib" id="listenBtn" type="button" aria-label="القراءة الصوتية">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14v-2a9 9 0 0 1 18 0v2"/><path d="M21 15a2 2 0 0 1-2 2h-1v-6h1a2 2 0 0 1 2 2zM3 15a2 2 0 0 0 2 2h1v-6H5a2 2 0 0 0-2 2z"/></svg>
     </button>
+    <button class="ib" id="autoBtn" type="button" aria-label="التمرير التلقائي">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v13M7 12l5 5 5-5"/><path d="M5 20h14"/></svg>
+    </button>
     <button class="ib" id="setBtn" type="button" aria-label="إعدادات القراءة">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
     </button>
@@ -1139,7 +1155,16 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
     <button type="button" class="main" id="ttsPlay" aria-label="إيقاف مؤقت"></button>
     <span class="tl" id="ttsPos"></span>
     <button type="button" id="ttsRate" aria-label="سرعة القراءة">1×</button>
+    <button type="button" id="ttsSleep" aria-label="مؤقت النوم"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button>
     <button type="button" id="ttsStop" aria-label="إنهاء القراءة الصوتية"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
+  </div>
+  <div class="ttsbar asbar" id="asBar" hidden>
+    <button type="button" class="main" id="asPlay" aria-label="إيقاف مؤقت"></button>
+    <button type="button" id="asSlow" aria-label="أبطأ">−</button>
+    <span class="tl" id="asSpd"></span>
+    <button type="button" id="asFast" aria-label="أسرع">+</button>
+    <button type="button" id="asSleep" aria-label="مؤقت النوم"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button>
+    <button type="button" id="asStop" aria-label="إنهاء التمرير التلقائي"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
   </div>
   <button class="askfab" id="askBtn" type="button" aria-label="اسأل مساعد الفصل" hidden>
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 1 3.1 6.3L4 19.5l1.2-3A7.9 7.9 0 0 1 4 12z"/><path d="m12 7.5 1.1 2.4 2.4 1.1-2.4 1.1L12 14.5l-1.1-2.4-2.4-1.1 2.4-1.1z" fill="currentColor"/></svg>
@@ -1584,6 +1609,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 </section>
 
 <div class="pmenu" id="pMenu" dir="rtl" hidden>
+  <button type="button" data-act="word" id="pmWord" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/><path d="M9 8h7M9 12h5"/></svg><span>معنى</span></button>
   <button type="button" data-act="ask" id="pmAsk"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 1 3.1 6.3L4 19.5l1.2-3A7.9 7.9 0 0 1 4 12z"/><path d="M10 10a2 2 0 1 1 2.5 1.9c-.3.1-.5.4-.5.7V13M12 15.5h.01"/></svg><span>اسأل</span></button>
   <button type="button" data-act="hl" id="pmHl"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11-6 6v3h3l6-6"/><path d="m22 5-3-3-9 9 3 3z"/></svg><span>تظليل</span></button>
   <button type="button" data-act="bm" id="pmBm"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg><span>علامة</span></button>
@@ -1595,6 +1621,8 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
   <button type="button" data-act="copy"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M5 16H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h11a1 1 0 0 1 1 1v1"/></svg><span>نسخ</span></button>
   <button type="button" data-act="src" id="pmSrc"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h8M8 3v2M6 5c0 4 3 7 6 8M11 5c-1 4-4 7-7 8M13 21l4-9 4 9M14.5 18h5"/></svg><span>الأصل</span></button>
 </div>
+
+<div class="wordpop" id="wordPop" dir="rtl" hidden role="dialog" aria-label="معنى الكلمة"><button type="button" class="wx" id="wpX" aria-label="إغلاق">✕</button><b class="w" id="wpW"></b><div class="wm" id="wpM"></div></div>
 
 <section class="sheet" id="backupSheet" dir="rtl" aria-label="النسخ الاحتياطي">
   <div class="grab"></div>
@@ -4301,12 +4329,24 @@ async function autoSuggestNames(novel){
 }
 
 /* ---------- paragraph long-press: re-translate / copy / source ---------- */
-let lpT=null,lpXY=null,lpP=null,suppressClick=false,pBusy=false;
+let lpT=null,lpXY=null,lpP=null,lpWord='',suppressClick=false,pBusy=false;
+/* the word under the finger, for «معنى» */
+function wordAt(x,y,p){
+  try{
+    let node,off;
+    if(document.caretRangeFromPoint){const r=document.caretRangeFromPoint(x,y);if(!r)return '';node=r.startContainer;off=r.startOffset}
+    else if(document.caretPositionFromPoint){const c=document.caretPositionFromPoint(x,y);if(!c)return '';node=c.offsetNode;off=c.offset}
+    if(!node||node.nodeType!==3||!p.contains(node))return '';
+    const t=node.textContent,W=/[\p{L}\p{M}\u0640]/u;let a=off,b=off;
+    while(a>0&&W.test(t[a-1]))a--;while(b<t.length&&W.test(t[b]))b++;
+    const w=t.slice(a,b).replace(/\u0640/g,'').trim();return w.length>=2&&w.length<=30?w:'';
+  }catch(e){return ''}
+}
 const art=$('#article');
 art.addEventListener('pointerdown',e=>{
   const p=e.target.closest('#article p');if(!p||pBusy||!current)return;
   lpXY=[e.clientX,e.clientY];clearTimeout(lpT);
-  lpT=setTimeout(()=>{lpP=p;suppressClick=true;showPMenu(p);if(navigator.vibrate)try{navigator.vibrate(12)}catch(_){}},480);
+  lpT=setTimeout(()=>{lpP=p;lpWord=wordAt(lpXY[0],lpXY[1],p);suppressClick=true;showPMenu(p);if(navigator.vibrate)try{navigator.vibrate(12)}catch(_){}},480);
 });
 ['pointerup','pointercancel','pointerleave'].forEach(ev=>art.addEventListener(ev,()=>clearTimeout(lpT)));
 art.addEventListener('pointermove',e=>{if(lpXY&&Math.hypot(e.clientX-lpXY[0],e.clientY-lpXY[1])>10)clearTimeout(lpT)});
@@ -4314,6 +4354,7 @@ art.addEventListener('contextmenu',e=>{if(e.target.closest('#article p'))e.preve
 function showPMenu(p){
   document.querySelectorAll('#article p.held').forEach(x=>x.classList.remove('held'));p.classList.add('held');
   const m=$('#pMenu');$('#pmSrc').hidden=!current.src;
+  $('#pmWord').hidden=!lpWord;$('#pmWord').querySelector('span').textContent=lpWord?'معنى «'+(lpWord.length>7?lpWord.slice(0,7)+'…':lpWord)+'»':'معنى';
   const i=+p.dataset.i,h=hasMark(current,i,'hl'),b=hasMark(current,i,'bm');
   $('#pmHl').classList.toggle('on',h);$('#pmHl').querySelector('span').textContent=h?'إزالة التظليل':'تظليل';
   $('#pmBm').classList.toggle('on',b);$('#pmBm').querySelector('span').textContent=b?'إزالة العلامة':'علامة';
@@ -4337,6 +4378,7 @@ $('#pMenu').addEventListener('click',async e=>{
   if(act==='hl'||act==='bm'){toggleMark(current,i,act);return}
   if(act==='edit'){editParagraph(p,i);return}
   if(act==='speak'){ttsStart(i);return}
+  if(act==='word'){wordMeaning(lpWord,lines[i],p);return}
   if(act==='redo')redoParagraph(p,i,lines);
 });
 function srcWindow(i,n){const src=(current.src||'').split('\n').filter(Boolean);if(!src.length)return '';const c=Math.round(i*(src.length-1)/Math.max(1,n-1));return src.slice(Math.max(0,c-1),c+2).join('\n')}
@@ -4559,11 +4601,51 @@ const tts={on:false,i:0,paused:false,token:0,rate:LS.get('midad.rate',1)};
 const RATES=[0.8,1,1.2,1.5,1.8];
 const PLAY='<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17 5v14L6 12z"/></svg>';
 const PAUSE='<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
-$('#listenBtn').hidden=!TTS_OK;$('#pmSpeak').hidden=!TTS_OK;
 if(TTS_OK){try{speechSynthesis.getVoices();speechSynthesis.addEventListener('voiceschanged',()=>{})}catch(e){}}
 function arVoice(){try{const vs=speechSynthesis.getVoices();return vs.find(v=>/^ar([-_]|$)/i.test(v.lang)&&v.localService)||vs.find(v=>/^ar/i.test(v.lang))||null}catch(e){return null}}
 function firstVisibleIdx(){for(const p of document.querySelectorAll('#article p')){if(p.getBoundingClientRect().bottom>90)return +p.dataset.i}return 0}
+/* phone app: a native foreground service keeps reading with the screen off */
+const NSP=()=>{try{const C=window.Capacitor;return C&&C.isNativePlatform&&C.isNativePlatform()&&C.Plugins&&C.Plugins.MidadSpeech||null}catch(e){return null}};
+let nspHooked=false,nspLastCh=null;
+function chLines(c){return (c.text||'').split('\n').filter(Boolean)}
+function nspItems(ch,from){return chLines(ch).map((t,i)=>({ch:ch.id,i,t:t.replace(/[*_#>`]/g,''),title:(ch.novel?ch.novel+' · ':'')+(ch.title||'')})).slice(from||0)}
+function nspNextAfter(id){const c=all().find(x=>x.id===id);if(!c)return null;const s=sorted(all()).filter(x=>(x.novel||'')===(c.novel||''));const k=s.findIndex(x=>x.id===id);return s[k+1]||null}
+function nspHook(sp){
+  if(nspHooked)return;nspHooked=true;
+  sp.addListener('progress',d=>{
+    if(!tts.on)return;tts.i=d.i;
+    if(current&&d.ch!==current.id&&$('#reader').classList.contains('show')&&document.visibilityState==='visible'){openReader(d.ch,{keepTts:true});setTimeout(()=>ttsMark(d.i),350);return}
+    if(current&&d.ch===current.id)ttsMark(d.i);
+    renderTts();
+  });
+  sp.addListener('state',d=>{
+    if(d.state==='stopped'){tts.on=false;tts.paused=false;sleepClear();document.querySelectorAll('#article p.speaking').forEach(x=>x.classList.remove('speaking'));renderTts();if(d.reason==='sleep')toast('انتهى مؤقت النوم');else if(d.reason==='end')toast('انتهت القراءة الصوتية');else if(d.reason==='error')toast('تعذّرت القراءة الصوتية. تأكد من وجود صوت عربي في إعدادات «تحويل النص إلى كلام»')}
+    else{tts.paused=d.state==='paused';renderTts()}
+  });
+  sp.addListener('more',()=>{ // queue running low: hand over the next chapter
+    const nx=nspNextAfter(nspLastCh);if(!nx)return;nspLastCh=nx.id;sp.append({items:nspItems(nx)}).catch(()=>{});
+  });
+  document.addEventListener('visibilitychange',()=>{ // back from the lock screen: show where the voice is
+    if(document.visibilityState!=='visible'||!tts.on)return;
+    sp.status().then(d=>{if(!d||!d.ch)return;if(current&&d.ch!==current.id&&$('#reader').classList.contains('show')){openReader(d.ch,{keepTts:true});setTimeout(()=>ttsMark(d.i),350)}else ttsMark(d.i);tts.i=d.i;renderTts()}).catch(()=>{});
+  });
+}
+function ttsMark(i){
+  document.querySelectorAll('#article p.speaking').forEach(x=>x.classList.remove('speaking'));
+  const p=document.querySelector(`#article p[data-i="${i}"]`);if(p){p.classList.add('speaking');if(document.visibilityState==='visible')p.scrollIntoView({block:'center',behavior:'smooth'})}
+}
 function ttsStart(i){
+  if(as.on)asStop();
+  const sp=NSP();
+  if(sp&&current){
+    nspHook(sp);tts.on=true;tts.paused=false;tts.i=i==null?firstVisibleIdx():i;
+    let items=nspItems(current,tts.i);nspLastCh=current.id;
+    for(let k=0;k<2;k++){const nx=nspNextAfter(nspLastCh);if(!nx)break;items=items.concat(nspItems(nx));nspLastCh=nx.id} // two chapters ahead, so it keeps going with the screen off
+    sp.start({items,rate:tts.rate,sleepMin:sleep.mode==='end'?0:(sleep.until?Math.max(1,Math.round((sleep.until-Date.now())/60000)):0),sleepEnd:sleep.mode==='end'})
+      .then(()=>{ttsMark(tts.i);renderTts()})
+      .catch(e=>{tts.on=false;renderTts();toast('تعذّر تشغيل القراءة الصوتية: '+((e&&e.message)||e))});
+    renderTts();return;
+  }
   if(!TTS_OK){toast('القراءة الصوتية غير مدعومة في هذا المتصفح');return}
   let vs=[];try{vs=speechSynthesis.getVoices()}catch(e){}
   if(vs.length&&!arVoice())toast('لا يوجد صوت عربي في جهازك. ثبّته من إعدادات «تحويل النص إلى كلام» في أندرويد');
@@ -4582,20 +4664,140 @@ function speakCur(){
   renderTts();
 }
 function ttsChapterEnd(){
+  if(sleep.mode==='end'){ttsStop();sleepClear();toast('انتهى مؤقت النوم مع نهاية الفصل');return}
   const {next}=neighbors();
   if(next){tts.i=0;openReader(next.id,{keepTts:true});toast('القراءة مستمرة في الفصل التالي');setTimeout(()=>{if(tts.on)speakCur()},500)}
   else{ttsStop();toast('انتهت القراءة الصوتية')}
 }
-function ttsStop(){tts.on=false;tts.paused=false;tts.token++;try{speechSynthesis.cancel()}catch(e){}document.querySelectorAll('#article p.speaking').forEach(x=>x.classList.remove('speaking'));renderTts()}
+function ttsStop(){
+  const sp=NSP();if(sp&&tts.on)sp.stop().catch(()=>{});
+  tts.on=false;tts.paused=false;tts.token++;try{speechSynthesis.cancel()}catch(e){}document.querySelectorAll('#article p.speaking').forEach(x=>x.classList.remove('speaking'));
+  if(!as.on)sleepClear();renderTts();
+}
 function renderTts(){
-  $('#ttsBar').hidden=!tts.on;if(!tts.on)return;
+  $('#ttsBar').hidden=!tts.on;renderSleep();if(!tts.on)return;
   $('#ttsPlay').innerHTML=tts.paused?PLAY:PAUSE;$('#ttsPlay').setAttribute('aria-label',tts.paused?'متابعة':'إيقاف مؤقت');
   const n=document.querySelectorAll('#article p').length;$('#ttsPos').textContent=`${Math.min(tts.i+1,n)}/${n}`;$('#ttsRate').textContent=tts.rate+'×';
 }
+$('#listenBtn').hidden=!(TTS_OK||NSP());$('#pmSpeak').hidden=!(TTS_OK||NSP());
 $('#listenBtn').onclick=()=>tts.on?ttsStop():ttsStart();
-$('#ttsPlay').onclick=()=>{tts.paused=!tts.paused;if(tts.paused){tts.token++;try{speechSynthesis.cancel()}catch(e){}renderTts()}else speakCur()};
+$('#ttsPlay').onclick=()=>{
+  const sp=NSP();
+  if(sp){tts.paused=!tts.paused;(tts.paused?sp.pause():sp.resume()).catch(()=>{});renderTts();return}
+  tts.paused=!tts.paused;if(tts.paused){tts.token++;try{speechSynthesis.cancel()}catch(e){}renderTts()}else speakCur()};
 $('#ttsStop').onclick=ttsStop;
-$('#ttsRate').onclick=()=>{tts.rate=RATES[(RATES.indexOf(tts.rate)+1)%RATES.length];LS.set('midad.rate',tts.rate);if(tts.on&&!tts.paused)speakCur();else renderTts()};
+$('#ttsRate').onclick=()=>{
+  tts.rate=RATES[(RATES.indexOf(tts.rate)+1)%RATES.length];LS.set('midad.rate',tts.rate);
+  const sp=NSP();if(sp){sp.setRate({rate:tts.rate}).catch(()=>{});renderTts();return}
+  if(tts.on&&!tts.paused)speakCur();else renderTts()};
+
+/* ---------- sleep timer (read-aloud and auto-scroll) ---------- */
+const SLEEPS=[0,15,30,45,60,'end'];
+const sleep={mode:0,until:0,t:null};
+function sleepClear(){sleep.mode=0;sleep.until=0;clearInterval(sleep.t);sleep.t=null;renderSleep()}
+function sleepTick(){
+  if(!sleep.until)return;
+  if(Date.now()>=sleep.until){const was=tts.on||as.on;if(tts.on)ttsStop();if(as.on)asStop();sleepClear();if(was)toast('انتهى مؤقت النوم');return}
+  renderSleep();
+}
+function sleepCycle(){
+  const k=(SLEEPS.indexOf(sleep.mode)+1)%SLEEPS.length;sleep.mode=SLEEPS[k];clearInterval(sleep.t);sleep.t=null;
+  sleep.until=typeof sleep.mode==='number'&&sleep.mode?Date.now()+sleep.mode*60000:0;
+  if(sleep.until)sleep.t=setInterval(sleepTick,15000);
+  const sp=NSP();if(sp&&tts.on)sp.setSleep({min:typeof sleep.mode==='number'?sleep.mode:0,endOfChapter:sleep.mode==='end'}).catch(()=>{});
+  toast(!sleep.mode?'مؤقت النوم متوقف':sleep.mode==='end'?'سيتوقف مع نهاية هذا الفصل':`سيتوقف بعد ${sleep.mode} دقيقة`);
+  renderSleep();
+}
+function sleepLabel(){
+  if(!sleep.mode)return '';
+  if(sleep.mode==='end')return 'الفصل';
+  const m=Math.max(0,Math.ceil((sleep.until-Date.now())/60000));return m+'د';
+}
+function renderSleep(){
+  for(const id of ['#ttsSleep','#asSleep']){const b=$(id);if(!b)continue;b.classList.toggle('on',!!sleep.mode);
+    const svg=b.querySelector('svg');let sp=b.querySelector('.sl');const lb=sleepLabel();
+    if(lb){if(!sp){sp=document.createElement('span');sp.className='tl sl';b.append(sp)}sp.textContent=lb;b.style.display='flex';b.style.gap='3px';b.style.alignItems='center'}
+    else if(sp)sp.remove();
+    b.setAttribute('aria-label','مؤقت النوم'+(lb?': '+lb:''));if(!svg)continue}
+}
+$('#ttsSleep').onclick=sleepCycle;$('#asSleep').onclick=sleepCycle;
+
+/* ---------- auto-scroll ---------- */
+const AS_SPEEDS=[10,15,22,30,40,52,66,85];
+const as={on:false,paused:false,hold:false,lvl:LS.get('midad.asLvl',2),raf:0,last:0,acc:0,endT:null,holdT:null};
+function asStart(){
+  if(tts.on)ttsStop();
+  as.on=true;as.paused=false;as.hold=false;as.last=0;as.acc=0;$('#rscroll').classList.add('autoscroll');lockWake();
+  cancelAnimationFrame(as.raf);as.raf=requestAnimationFrame(asFrame);renderAs();
+}
+function asStop(){as.on=false;cancelAnimationFrame(as.raf);clearTimeout(as.endT);clearTimeout(as.holdT);as.endT=null;$('#rscroll').classList.remove('autoscroll');if(!prefs.wake)releaseWake();if(!tts.on)sleepClear();renderAs()}
+function asFrame(ts){
+  if(!as.on)return;
+  if(!$('#reader').classList.contains('show')){asStop();return}
+  const sc=$('#rscroll'),dt=as.last?Math.min(100,ts-as.last):0;as.last=ts;
+  if(!as.paused&&!as.hold&&!as.endT){
+    as.acc+=AS_SPEEDS[as.lvl]*dt/1000;
+    if(as.acc>=1){const px=Math.floor(as.acc);as.acc-=px;sc.scrollTop+=px}
+    if(sc.scrollTop+sc.clientHeight>=sc.scrollHeight-2){
+      as.endT=setTimeout(()=>{as.endT=null;if(!as.on)return;
+        if(sleep.mode==='end'){asStop();sleepClear();toast('انتهى مؤقت النوم مع نهاية الفصل');return}
+        const {next}=neighbors();if(!next){asStop();toast('وصلت إلى آخر فصل');return}
+        openReader(next.id,{keepTts:true});requestAnimationFrame(()=>{$('#rscroll').scrollTop=0});as.hold=true;clearTimeout(as.holdT);as.holdT=setTimeout(()=>{as.hold=false},1800);
+      },2200);
+    }
+  }
+  as.raf=requestAnimationFrame(asFrame);
+}
+function renderAs(){
+  $('#asBar').hidden=!as.on;$('#autoBtn').classList.toggle('on',as.on);$('#reader').classList.toggle('asmode',as.on);renderSleep();if(!as.on)return;
+  $('#asPlay').innerHTML=as.paused?PLAY:PAUSE;$('#asPlay').setAttribute('aria-label',as.paused?'متابعة':'إيقاف مؤقت');
+  $('#asSpd').textContent=(as.lvl+1)+'/'+AS_SPEEDS.length;
+}
+$('#autoBtn').onclick=()=>as.on?asStop():asStart();
+$('#asPlay').onclick=()=>{as.paused=!as.paused;as.last=0;renderAs()};
+$('#asStop').onclick=asStop;
+$('#asSlow').onclick=()=>{as.lvl=Math.max(0,as.lvl-1);LS.set('midad.asLvl',as.lvl);renderAs()};
+$('#asFast').onclick=()=>{as.lvl=Math.min(AS_SPEEDS.length-1,as.lvl+1);LS.set('midad.asLvl',as.lvl);renderAs()};
+// a finger on the page holds the scroll; it picks up again shortly after
+$('#rscroll').addEventListener('touchstart',()=>{if(as.on){as.hold=true;clearTimeout(as.holdT)}},{passive:true});
+$('#rscroll').addEventListener('touchend',()=>{if(as.on){clearTimeout(as.holdT);as.holdT=setTimeout(()=>{as.hold=false;as.last=0},1400)}},{passive:true});
+$('#rscroll').addEventListener('wheel',()=>{if(as.on){as.hold=true;clearTimeout(as.holdT);as.holdT=setTimeout(()=>{as.hold=false;as.last=0},1400)}},{passive:true});
+
+/* ---------- word meaning (long-press → معنى) ---------- */
+const wordCache=new Map();
+function hideWordPop(){$('#wordPop').hidden=true}
+$('#wpX').onclick=hideWordPop;
+document.addEventListener('pointerdown',e=>{if(!$('#wordPop').hidden&&!e.target.closest('#wordPop'))hideWordPop()});
+$('#rscroll').addEventListener('scroll',()=>{if(!$('#wordPop').hidden)hideWordPop()},{passive:true});
+async function wordMeaning(w,para,p){
+  if(!w)return;
+  const pop=$('#wordPop');$('#wpW').textContent=w;const out=$('#wpM');
+  pop.hidden=false;const r=p.getBoundingClientRect(),h=pop.offsetHeight;
+  let top=r.top-h-10;if(top<70)top=Math.min(r.bottom+10,innerHeight-h-90);
+  pop.style.top=Math.max(8,top)+'px';pop.style.left=Math.max(12,(innerWidth-pop.offsetWidth)/2)+'px';
+  const key=(current&&nv(current))+'|'+w;
+  if(wordCache.has(key)){out.textContent=wordCache.get(key);return}
+  const sample=await getSample();if(!sample){out.innerHTML='<span class="wl">معنى الكلمة غير متاح في هذا العرض</span>';return}
+  out.innerHTML='<span class="wl">جارٍ البحث عن المعنى…</span>';
+  const gloss=(current&&(meta.novels[nv(current)]||{}).glossary)||'';
+  const gl=gloss.split('\n').filter(l=>l.includes(w)).slice(0,4).join('\n');
+  const prompt=`أنت معجم عربي مختصر لقارئ روايات مترجمة.
+الكلمة: «${w}»
+وردت في هذه الجملة: «${para.slice(0,600)}»
+${gl?`من مسرد الرواية:\n${gl}\n`:''}
+اكتب المعنى بعربية سهلة في سطرين أو ثلاثة على الأكثر:
+- السطر الأول: معناها في هذا السياق تحديداً.
+- ثم مرادف أو مرادفان إن وُجدا، وجذر الكلمة إن كان مفيداً.
+- إن كانت اسم شخص أو مكان أو مصطلحاً خاصاً بالرواية فقل ذلك واشرح دوره باختصار مما في الجملة والمسرد فقط.
+لا تستعمل كلمة «إله» ولا مشتقاتها؛ استعمل بدلها «الكائن السامي» أو «سماوي».
+لا مقدمات ولا تنسيق، النص فقط.`;
+  try{
+    const res=await sample(prompt,{modelTier:'quick'});
+    const txt=String((res&&res.text)!=null?res.text:res||'').trim();
+    if(!txt)throw new Error('empty');
+    wordCache.set(key,txt);if($('#wpW').textContent===w)out.textContent=txt;trackUse&&trackUse('word',0);
+  }catch(e){if($('#wpW').textContent===w)out.innerHTML='<span class="wl">تعذّر جلب المعنى. حاول مرة أخرى.</span>'}
+}
 
 /* ---------- swipe between chapters ---------- */
 function neighbors(){const s=siblings();const k=s.findIndex(c=>c.id===current.id);return {prev:s[k-1],next:s[k+1]}}

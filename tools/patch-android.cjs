@@ -34,7 +34,7 @@ if(!m.includes('POST_NOTIFICATIONS'))m=m.replace(/<manifest([^>]*)>/,'<manifest$
 const appMain=path.join(root,'android','app','src','main');
 const javaDir=path.join(appMain,'java','app','midad','reader');
 fs.mkdirSync(javaDir,{recursive:true});
-for(const f of ['MainActivity.java','WidgetBridge.java','ContinueWidget.java'])fs.copyFileSync(path.join(__dirname,'android','java',f),path.join(javaDir,f));
+for(const f of ['MainActivity.java','WidgetBridge.java','ContinueWidget.java','SpeechService.java','SpeechPlugin.java'])fs.copyFileSync(path.join(__dirname,'android','java',f),path.join(javaDir,f));
 for(const [d,f] of [['layout','widget_continue.xml'],['xml','widget_continue_info.xml'],['drawable','widget_bg.xml']]){
   fs.mkdirSync(path.join(appMain,'res',d),{recursive:true});fs.copyFileSync(path.join(__dirname,'android','res',d,f),path.join(appMain,'res',d,f));
 }
@@ -49,5 +49,10 @@ if(!m.includes('android.intent.action.SEND')){
 if(!m.includes('.ContinueWidget')){
   m=m.replace('</application>','    <receiver android:name=".ContinueWidget" android:exported="false" android:label="مداد: تابع القراءة">\n            <intent-filter>\n                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />\n            </intent-filter>\n            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_continue_info" />\n        </receiver>\n    </application>');
 }
+// read-aloud with the screen off: a media foreground service
+for(const p of ['FOREGROUND_SERVICE','FOREGROUND_SERVICE_MEDIA_PLAYBACK','WAKE_LOCK'])
+  if(!m.includes('android.permission.'+p+'"'))m=m.replace(/<manifest([^>]*)>/,'<manifest$1>\n    <uses-permission android:name="android.permission.'+p+'" />');
+if(!m.includes('.SpeechService'))
+  m=m.replace('</application>','    <service android:name=".SpeechService" android:exported="false" android:foregroundServiceType="mediaPlayback" />\n    </application>');
 fs.writeFileSync(mf,m);
 console.log('runner libs:',g.includes('background-runner/android'));console.log('patched',(g.match(/versionCode \d+/)||[])[0],(g.match(/versionName "[^"]*"/)||[])[0]);

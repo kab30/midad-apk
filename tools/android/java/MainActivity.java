@@ -12,6 +12,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(WidgetBridge.class);
+        registerPlugin(SpeechPlugin.class);
         super.onCreate(savedInstanceState);
         handle(getIntent());
     }
