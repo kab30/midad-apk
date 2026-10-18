@@ -114,7 +114,6 @@ button{cursor:pointer;border:0;background:none;touch-action:manipulation}
 .shelf .novel .nmeta{font-size:10.5px;gap:4px}
 .shelf .novel .nmeta span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .shelf .novel .bar{height:2px}
-[hidden]{display:none!important}
 .novel{display:flex;flex-direction:column;gap:8px;text-align:start;min-width:0}
 #trashSheet{height:85%;max-height:85%}
 .tritem{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:14px;background:var(--deck);border:1px solid var(--line);margin-bottom:8px}
@@ -719,6 +718,13 @@ body.selmode .card.sel::after{background:var(--danger);border-color:var(--danger
 .pmenu{position:fixed;z-index:25;display:flex;gap:2px;padding:4px;border-radius:14px;background:var(--panel);border:1px solid var(--line);box-shadow:0 12px 30px -10px rgba(0,0,0,.6);font-family:var(--ui)}
 .pmenu{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));width:min(340px,calc(100vw - 16px))}
 .pmenu[hidden]{display:none!important}
+[hidden]{display:none!important}
+/* reading light: dim + warm layers over the chapter (sheets stay bright) */
+#dimLayer{position:fixed;inset:0;pointer-events:none;z-index:40;background:rgba(0,0,0,var(--dim,0));transition:background .15s}
+#dimLayer::before{content:"";position:absolute;inset:0;background:rgb(255,150,40);opacity:var(--warm,0);mix-blend-mode:multiply}
+#dimEdge{position:fixed;left:0;top:90px;bottom:110px;width:22px;z-index:41;touch-action:none}
+#dimTip{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);z-index:42;padding:10px 18px;border-radius:14px;background:rgba(10,14,24,.82);color:#fff;font:600 15px var(--ui,system-ui);pointer-events:none}
+.dimout{font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-inline-start:6px}
 .pmenu button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;height:56px;padding:0 4px;border-radius:10px;font-size:11px;color:var(--ink);min-width:0}
 .pmenu button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .pmenu button svg{color:var(--plasma)}
@@ -1113,7 +1119,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
   </button>
 </div>
 
-<div id="reader" class="view" dir="rtl">
+<div id="reader" class="view" dir="rtl"><div id="dimLayer" aria-hidden="true"></div><div id="dimEdge" aria-hidden="true"></div><div id="dimTip" aria-hidden="true" hidden></div>
   <div class="rbar rtop">
     <button class="ib" id="backBtn" type="button" aria-label="رجوع إلى المكتبة">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
@@ -1651,6 +1657,11 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
   <h3>إعدادات القراءة</h3>
   <div class="scroll">
     <div class="opt"><h4>الخلفية</h4><div class="swatches" id="swatches"></div></div>
+    <div class="pair">
+      <div class="opt"><h4>الإضاءة <output id="dimOut" class="dimout"></output></h4><input type="range" id="dimR" min="25" max="100" step="1" aria-label="الإضاءة"></div>
+      <div class="opt"><h4>دفء الضوء <output id="warmOut" class="dimout"></output></h4><input type="range" id="warmR" min="0" max="100" step="1" aria-label="دفء الضوء"></div>
+    </div>
+    <small class="cpnote" style="margin-top:-6px">تخفيف الإضاءة يعمل فوق إضاءة الهاتف، ويمكنك أيضاً سحب إصبعك للأعلى أو للأسفل على الحافة اليسرى للشاشة أثناء القراءة. الدفء يقلل الضوء الأزرق للقراءة ليلاً.</small>
     <div class="opt"><h4>نوع الخط</h4><div class="seg" id="fonts"></div></div>
     <div class="pair">
       <div class="opt"><h4>حجم النص</h4>
@@ -3743,6 +3754,7 @@ function applyPrefs(){
   r.style.setProperty('--rfont',FONTS[prefs.font][1]);r.style.setProperty('--ralign',prefs.align);
   r.style.setProperty('--rpad',prefs.pad+'px');r.style.setProperty('--rweight',prefs.bold?(prefs.font==='cairo'?800:700):(prefs.font==='cairo'?600:400));
   r.classList.toggle('dlg',prefs.dialog);r.classList.toggle('noent',prefs.ents===false);
+  applyLight();
   LS.set('midad.prefs',prefs);renderSettings();queuePrefsSave();
 }
 function seg(el,opts,key,cast){el.innerHTML='';opts.forEach(([v,l])=>{const b=document.createElement('button');b.type='button';b.textContent=l;b.setAttribute('aria-pressed',String(prefs[key]===v));b.onclick=()=>{prefs[key]=v;applyPrefs()};el.appendChild(b)})}
@@ -3757,6 +3769,21 @@ function renderSettings(){
 $('#szDown').onclick=()=>{prefs.size=Math.max(10,prefs.size-1);applyPrefs()};
 $('#szUp').onclick=()=>{prefs.size=Math.min(40,prefs.size+1);applyPrefs()};
 $('#lh').oninput=e=>{prefs.lh=+e.target.value;applyPrefs()};
+/* reading light */
+const lightPct=()=>Math.round(prefs.light==null?100:prefs.light),warmPct=()=>Math.round(prefs.warm||0);
+function applyLight(){const L=$('#dimLayer');if(!L)return;L.style.setProperty('--dim',((100-lightPct())/100*0.82).toFixed(3));L.style.setProperty('--warm',(warmPct()/100*0.55).toFixed(3));
+  const o=$('#dimOut'),w=$('#warmOut');if(o)o.textContent=lightPct()+'%';if(w)w.textContent=warmPct()+'%';
+  const a=$('#dimR'),b=$('#warmR');if(a&&document.activeElement!==a)a.value=lightPct();if(b&&document.activeElement!==b)b.value=warmPct()}
+let lightSaveT=null;const lightSave=()=>{clearTimeout(lightSaveT);lightSaveT=setTimeout(()=>{LS.set('midad.prefs',prefs);queuePrefsSave()},400)};
+$('#dimR').oninput=e=>{prefs.light=+e.target.value;applyLight();lightSave()};
+$('#warmR').oninput=e=>{prefs.warm=+e.target.value;applyLight();lightSave()};
+// drag up/down on the left edge while reading
+(()=>{const E=$('#dimEdge'),T=$('#dimTip');let y0=null,v0=0,tt=null;
+  E.addEventListener('pointerdown',e=>{y0=e.clientY;v0=lightPct();E.setPointerCapture(e.pointerId)});
+  E.addEventListener('pointermove',e=>{if(y0==null)return;const v=Math.max(25,Math.min(100,Math.round(v0+(y0-e.clientY)/3)));if(v!==prefs.light){prefs.light=v;applyLight()}
+    T.hidden=false;T.textContent='☀ '+v+'%';clearTimeout(tt)});
+  const end=()=>{if(y0==null)return;y0=null;lightSave();tt=setTimeout(()=>T.hidden=true,700)};
+  E.addEventListener('pointerup',end);E.addEventListener('pointercancel',end);})();
 $('#tGrp').onclick=()=>{prefs.groupSpeech=prefs.groupSpeech===false;applyPrefs();if(current){const sc=$('#rscroll'),t=sc.scrollTop;openReader(current.id);requestAnimationFrame(()=>{sc.scrollTop=t})}};
 $('#tDlg').onclick=()=>{prefs.dialog=!prefs.dialog;applyPrefs()};
 $('#tBold').onclick=()=>{prefs.bold=!prefs.bold;applyPrefs()};
