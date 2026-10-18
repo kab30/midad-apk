@@ -29,6 +29,9 @@ jobs:
           KEY_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
           set -e
+          # on failure, show the important lines as annotations (readable without opening the log)
+          exec > >(tee build.log) 2>&1
+          trap 'grep -E "error:|ERROR|FAILURE|What went wrong|e: |\\.java:[0-9]+|Execution failed|Cannot find|not found" build.log | grep -v "^\\s*$" | tail -25 | while IFS= read -r l; do echo "::error::$l"; done' ERR
           test -f www/index.html || { echo "::error::مجلد www غير موجود في المستودع، ارفعه"; exit 1; }
           [ -n "$KEY_PASS" ] || { echo "::error::أضف القيمة السرية KEYSTORE_PASSWORD في Settings > Secrets and variables > Actions"; exit 1; }
           echo "window.MIDAD_BUILD=${{ github.run_number }};" > www/build.js
