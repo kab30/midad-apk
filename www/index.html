@@ -1208,6 +1208,11 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
       <input id="inNovel" list="novels" placeholder="مثال: إمبراطورية التقنية">
       <datalist id="novels"></datalist>
     </div>
+    <div class="fld">
+      <label for="inNum">رقم الفصل <small style="opacity:.7;font-weight:400">(اختياري)</small></label>
+      <input id="inNum" type="text" inputmode="decimal" dir="ltr" autocomplete="off" placeholder="تلقائي من النص">
+      <small class="cpnote" id="inNumHint">اتركه فارغاً ليأخذ مداد الرقم من النص، أو اكتب الرقم الذي تريد حفظ الفصل به.</small>
+    </div>
     <div class="seg modeseg" id="modeSeg" hidden>
       <button type="button" data-mode="paste" aria-pressed="true">لصق ترجمة جاهزة</button>
       <button type="button" data-mode="tr" aria-pressed="false">ترجمة من الصيني</button>
@@ -3541,12 +3546,31 @@ $('#scrim').onclick=hideSheet;
 function openAdd(novel){
   hideSheet();
   $('#inText').value='';$('#trIn').value='';$('#trOut').textContent='';$('#trBox').hidden=true;$('#trStore').checked=false;
-  $('#inNovel').value=novel||LS.get('midad.novel','');
+  $('#inNovel').value=novel||LS.get('midad.novel','');$('#inNum').value='';
   loadGloss();setMode(addMode);updateDetect();showSheet($('#addSheet'));
 }
 $('#addBtn').onclick=()=>openAdd();
 $('#cancelAdd').onclick=hideSheet;
 const novelVal=()=>$('#inNovel').value.trim()||'بدون اسم';
+/* chapter number chosen by hand: one chapter takes it, several are numbered from it upwards */
+function manualNum(){const v=($('#inNum').value||'').trim();if(!v)return null;const n=toNum(v.replace(/[^\d٠-٩.]/g,''));return isNaN(n)||n<0?NaN:n}
+function addParts(raw){
+  const parts=splitChapters(raw,novelVal()),n=manualNum();
+  if(n!=null&&!isNaN(n))parts.forEach((r,i)=>{const k=+(n+i).toFixed(2);
+    r.title=/^الفصل\s*[0-9٠-٩.]+/.test(r.title)?r.title.replace(/^الفصل\s*[0-9٠-٩.]+/,'الفصل '+k):(r.title&&r.title!=='الفصل '+r.num?r.title:'الفصل '+k);
+    r.num=k;r.auto=false});
+  return parts;
+}
+function numHint(parts){
+  const h=$('#inNumHint'),n=manualNum(),have=existingNums(novelVal());
+  if(n==null){h.textContent='اتركه فارغاً ليأخذ مداد الرقم من النص، أو اكتب الرقم الذي تريد حفظ الفصل به.';h.style.color='';return}
+  if(isNaN(n)){h.textContent='اكتب رقماً صحيحاً';h.style.color='var(--danger)';return}
+  if(!parts||!parts.length){h.textContent=`سيُحفظ باسم الفصل ${n}`;h.style.color='';return}
+  const nums=parts.map(r=>r.num),taken=nums.filter(x=>have.has(x));
+  h.textContent=(parts.length>1?`ستُرقّم الفصول من ${nums[0]} إلى ${nums[nums.length-1]}`:`سيُحفظ باسم الفصل ${n}`)+(taken.length?` · موجود مسبقاً: ${taken.join('، ')}`:'');
+  h.style.color=taken.length?'var(--warn)':'';
+}
+$('#inNum').addEventListener('input',()=>{if(addMode==='tr')updateTrInfo();else updateDetect()});
 function existingNums(novel){const s=new Set(chapters.filter(c=>nv(c)===novel&&c.num!=null).map(c=>c.num));queuedNums(novel).forEach(n=>s.add(n));return s}
 function queuedNums(novel){return new Set(trQueue.filter(j=>j.novel===novel).map(j=>j.r.num))}
 function updateDetect(){
@@ -3555,7 +3579,7 @@ function updateDetect(){
   const d=$('#detect'),bt=$('#batch'),sv=$('#saveAdd');
   if(!raw.trim()){$('#detT').textContent='الصق الفصل ليظهر العنوان والرقم هنا';$('#detN').innerHTML='—<small>فصل</small>';d.classList.remove('auto');d.hidden=false;bt.hidden=true;$('#detW').textContent=0;sv.disabled=true;sv.textContent='تم، اقرأ الفصل';return}
   const novel=novelVal();
-  const parts=splitChapters(raw,novel);
+  const parts=addParts(raw);numHint(parts);
   const have=existingNums(novel);
   $('#detW').textContent=words(parts.map(r=>r.lines.join(' ')).join(' '));
   if(parts.length<=1){
@@ -3578,7 +3602,8 @@ $('#inText').addEventListener('paste',()=>setTimeout(updateDetect,0));
 $('#saveAdd').onclick=async()=>{
   if(addMode==='tr'){if(!translating)startTranslate();return}
   const novel=novelVal();
-  const parts=splitChapters($('#inText').value,novel);if(!parts.length)return;
+  if(isNaN(manualNum())){toast('رقم الفصل غير صحيح');return}
+  const parts=addParts($('#inText').value);if(!parts.length)return;
   LS.set('midad.novel',novel);
   const now=Date.now();
   if(parts.length===1){
@@ -3657,14 +3682,14 @@ function setMode(m){
 document.querySelectorAll('#modeSeg button').forEach(b=>b.onclick=()=>{if(!translating)setMode(b.dataset.mode)});
 function loadGloss(){$('#trGloss').value=(meta.novels[novelVal()]||{}).glossary||''}
 $('#inNovel').addEventListener('change',()=>{if(!translating)loadGloss()});
-function trParts(){return splitChapters($('#trIn').value,novelVal())}
+function trParts(){return addParts($('#trIn').value)}
 function updateTrInfo(){
   if(addMode!=='tr')return;
   const sv=$('#saveAdd');
   if(translating)return;
   const raw=$('#trIn').value.trim();
   if(!raw){$('#trInfo').textContent='الصق النص الأصلي';sv.disabled=true;sv.textContent='ترجم واحفظ';return}
-  const parts=trParts(),have=existingNums(novelVal());
+  const parts=trParts(),have=existingNums(novelVal());numHint(parts);
   const fresh=parts.filter(r=>!have.has(r.num));
   const chars=parts.reduce((s,r)=>s+r.lines.join('').length,0);
   $('#trInfo').textContent=parts.length>1?`وُجد ${parts.length} فصول (${parts.map(r=>r.num).join('، ')}) · ${chars.toLocaleString('ar')} حرف`+(parts.length-fresh.length?` · ${parts.length-fresh.length} موجود سيُتخطى`:''):`الفصل ${parts[0]?parts[0].num:'?'} · ${chars.toLocaleString('ar')} حرف`+(parts[0]&&have.has(parts[0].num)?' · موجود مسبقاً':'');
