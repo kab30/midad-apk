@@ -713,6 +713,19 @@ body.selmode .card.sel::after{background:var(--danger);border-color:var(--danger
 .rawrow button{flex:none;height:34px;padding:0 10px;border-radius:9px;font-size:12px;border:1px solid var(--line)}
 .rawrow button.go{color:var(--plasma);border-color:rgba(79,220,255,.45)}
 .rawrow button.rm{color:var(--danger)}
+.rwsel{margin:4px 0 8px}
+.rwsel>button{width:100%;height:38px;border-radius:10px;border:1px dashed var(--line);font-size:13px;color:var(--ink)}
+.rwsel-in{display:grid;gap:8px;padding:10px;border-radius:12px;background:var(--deck);border:1px solid var(--line)}
+.rwsel-r{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12.5px}
+.rwsel-r b{flex:1;font-size:13px}
+.rwsel-r button{height:34px;padding:0 10px;border-radius:9px;border:1px solid var(--line);font-size:12px;color:var(--ink)}
+.rwsel-r button.dang{flex:1;color:var(--danger);border-color:color-mix(in srgb,var(--danger) 45%,transparent)}
+.rwsel-r button.pri{flex:1;color:var(--plasma);border-color:rgba(79,220,255,.45)}
+.rwsel-r button:disabled{opacity:.4}
+.rwsel-r input{width:68px;height:34px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);text-align:center;font:inherit}
+.rawrow .ck{flex:none;width:24px;height:24px;border-radius:7px;border:2px solid var(--line);display:grid;place-items:center;font-size:14px;color:var(--bg,#000)}
+.rawrow.sel{border-color:var(--plasma);background:color-mix(in srgb,var(--plasma) 10%,var(--deck))}
+.rawrow.sel .ck{background:var(--plasma);border-color:var(--plasma)}
 
 /* paragraph long-press menu + re-translation */
 .pmenu{position:fixed;z-index:25;display:flex;gap:2px;padding:4px;border-radius:14px;background:var(--panel);border:1px solid var(--line);box-shadow:0 12px 30px -10px rgba(0,0,0,.6);font-family:var(--ui)}
@@ -1603,6 +1616,14 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
       <span class="opi"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5h8M8 3v2M6 5c0 4 3 7 6 8M11 5c-1 4-4 7-7 8M13 21l4-9 4 9M14.5 18h5"/></svg></span>
       <span class="opt-t"><b id="rwTitlesT">ترجم العناوين</b><small id="rwTitlesS"></small></span>
     </button>
+    <div class="rwsel" id="rwSelBar">
+      <button type="button" id="rwSelOn">تحديد عدة فصول</button>
+      <div class="rwsel-in" id="rwSelIn" hidden>
+        <div class="rwsel-r"><b id="rwSelN">0 محدد</b><button type="button" id="rwSelAll">الكل</button><button type="button" id="rwSelNone">لا شيء</button><button type="button" id="rwSelOff">إلغاء</button></div>
+        <div class="rwsel-r"><span>من</span><input type="number" id="rwFrom" inputmode="numeric"><span>إلى</span><input type="number" id="rwTo" inputmode="numeric"><button type="button" id="rwRange">حدد النطاق</button></div>
+        <div class="rwsel-r"><button type="button" class="dang" id="rwSelDel">احذف المحدد</button><button type="button" class="pri" id="rwSelTr">ترجم المحدد</button></div>
+      </div>
+    </div>
     <div class="list" id="rwList"></div>
     <div class="row"><button class="btn" id="rwClose" type="button">إغلاق</button><button class="btn primary" id="rwAdd" type="button">لصق فصول خام</button></div>
   </div>
@@ -4041,21 +4062,66 @@ function renderRawSheet(){
   $('#rwTitlesT').textContent=titlesBusy?'Gemini يترجم العناوين…':'ترجم العناوين';
   $('#rwTitlesS').textContent=`${need} عنوان غير مترجم · ترجمة سريعة لكل العناوين دفعة واحدة`;
   const L=$('#rwList');L.innerHTML='';
+  const ids=new Set(list.map(r=>r.id));[...rwSel].forEach(id=>{if(!ids.has(id))rwSel.delete(id)});
+  $('#rwSelBar').hidden=list.length<2;if(list.length<2)rwSelMode=false;renderRwSel();
   if(!list.length){L.innerHTML='<div class="empty">الصق فصولاً صينية في المخزن، وسيترجم مداد كل فصل عندما تقترب من نهاية الفصل الذي قبله.</div>';return}
   list.forEach(r=>{
     const q=trQueue.some(j=>j.novel===r.novel&&j.r.num===r.num);
     const row=document.createElement('div');row.className='rawrow';
     const orig=rawOrigTitle(r);
-    row.innerHTML=`<div class="num">${r.num}</div><button type="button" class="rt"><b></b><small></small></button><button type="button" class="go"${q?' disabled':''}>ترجم الآن</button><button type="button" class="rm" aria-label="حذف">حذف</button>`;
+    row.innerHTML=rwSelMode
+      ?`<span class="ck" aria-hidden="true">${rwSel.has(r.id)?'✓':''}</span><div class="num">${r.num}</div><button type="button" class="rt"><b></b><small></small></button>`
+      :`<div class="num">${r.num}</div><button type="button" class="rt"><b></b><small></small></button><button type="button" class="go"${q?' disabled':''}>ترجم الآن</button><button type="button" class="rm" aria-label="حذف">حذف</button>`;
     row.querySelector('.rt b').textContent=r.titleAr||orig||('الفصل '+r.num);
     row.querySelector('.rt small').textContent=(r.titleAr&&orig?orig+' · ':'')+r.text.length.toLocaleString('ar')+' حرف'+(q?' · قيد الترجمة':'');
+    if(rwSelMode){
+      row.classList.toggle('sel',rwSel.has(r.id));row.setAttribute('role','checkbox');row.setAttribute('aria-checked',String(rwSel.has(r.id)));
+      row.onclick=()=>{rwSel.has(r.id)?rwSel.delete(r.id):rwSel.add(r.id);const on=rwSel.has(r.id);row.classList.toggle('sel',on);row.setAttribute('aria-checked',String(on));row.querySelector('.ck').textContent=on?'✓':'';renderRwSel()};
+      L.appendChild(row);return;
+    }
     row.querySelector('.rt').onclick=()=>openRawPreview(r);row.querySelector('.num').onclick=()=>openRawPreview(r);
     row.querySelector('.go').onclick=async()=>{if(!(await getTr())){toast('الترجمة غير متاحة في هذا العرض');return}queueRaw(r);renderRawSheet()};
     const rm=row.querySelector('.rm');rm.onclick=()=>{if(!rm.classList.contains('arm')){rm.classList.add('arm');rm.textContent='تأكيد';return}rawDel(r.id);renderRawSheet();renderNovel()};
     L.appendChild(row);
   });
 }
-$('#nRaw').onclick=()=>{renderRawSheet();showSheet($('#rawSheet'))};
+$('#nRaw').onclick=()=>{rwSelMode=false;rwSel.clear();renderRawSheet();showSheet($('#rawSheet'))};
+/* raw store: select several chapters to delete (to the recycle bin) or translate */
+let rwSelMode=false;const rwSel=new Set();
+function renderRwSel(){
+  $('#rwSelOn').hidden=rwSelMode;$('#rwSelIn').hidden=!rwSelMode;
+  const n=rwSel.size;$('#rwSelN').textContent=n?`${n} محدد`:'اضغط على الفصول لتحديدها';
+  $('#rwSelDel').disabled=!n;$('#rwSelTr').disabled=!n;
+  $('#rwSelDel').textContent=$('#rwSelDel').classList.contains('arm')?`تأكيد حذف ${n}`:'احذف المحدد';
+}
+$('#rwSelOn').onclick=()=>{rwSelMode=true;rwSel.clear();const l=rawsOf(curNovel);if(l.length){$('#rwFrom').value=l[0].num;$('#rwTo').value=l[l.length-1].num}renderRawSheet()};
+$('#rwSelOff').onclick=()=>{rwSelMode=false;rwSel.clear();$('#rwSelDel').classList.remove('arm');renderRawSheet()};
+$('#rwSelAll').onclick=()=>{rawsOf(curNovel).forEach(r=>rwSel.add(r.id));renderRawSheet()};
+$('#rwSelNone').onclick=()=>{rwSel.clear();$('#rwSelDel').classList.remove('arm');renderRawSheet()};
+$('#rwRange').onclick=()=>{
+  let a=parseFloat($('#rwFrom').value),b=parseFloat($('#rwTo').value);
+  if(isNaN(a)&&isNaN(b)){toast('اكتب رقم البداية والنهاية');return}
+  if(isNaN(a))a=-Infinity;if(isNaN(b))b=Infinity;if(a>b)[a,b]=[b,a];
+  let k=0;rawsOf(curNovel).forEach(r=>{if(r.num>=a&&r.num<=b){rwSel.add(r.id);k++}});
+  toast(k?`حُدّد ${k} فصل`:'لا فصول في هذا النطاق');renderRawSheet();
+};
+$('#rwSelDel').onclick=async()=>{
+  const b=$('#rwSelDel'),list=rawsOf(curNovel).filter(r=>rwSel.has(r.id));if(!list.length)return;
+  if(!b.classList.contains('arm')){b.classList.add('arm');renderRwSel();setTimeout(()=>{b.classList.remove('arm');renderRwSel()},4000);return}
+  b.classList.remove('arm');
+  const busy=new Set(trQueue.map(j=>j.rawId).filter(Boolean));
+  const go=list.filter(r=>!busy.has(r.id));
+  if(!go.length){toast('الفصول المحددة قيد الترجمة الآن');return}
+  await toTrash(go.map(r=>({type:'raw',id:r.id,data:stripDoc(r),name:r.title})),`${go.length} فصل خام من «${curNovel}»`);
+  go.forEach(r=>rawDel(r.id));rwSel.clear();rwSelMode=false;
+  toast(`نُقل ${go.length} فصل إلى سلة المحذوفات`+(go.length<list.length?` · ${list.length-go.length} قيد الترجمة لم تُحذف`:''));
+  renderRawSheet();renderNovel();
+};
+$('#rwSelTr').onclick=async()=>{
+  if(!(await getTr())){toast('الترجمة غير متاحة في هذا العرض');return}
+  const list=rawsOf(curNovel).filter(r=>rwSel.has(r.id)&&!trQueue.some(j=>j.novel===r.novel&&j.r.num===r.num));
+  list.forEach(r=>queueRaw(r));rwSel.clear();rwSelMode=false;toast(list.length?`أُضيف ${list.length} فصل إلى قائمة الترجمة`:'المحدد في القائمة أصلاً');renderRawSheet();
+};
 const rawOrigTitle=r=>(r.title||'').replace(/^الفصل\s*[0-9٠-٩]+\s*:?\s*/,'').trim();
 
 /* preview a stored raw chapter */
