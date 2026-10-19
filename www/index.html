@@ -2417,9 +2417,10 @@ function renderNovel(){
   }
   /* unread chapters (with missing / queued numbers in place), then a collapsible list of read ones */
   const showGaps=s.gaps.length&&s.gaps.length<=40;
+  const hidG=hiddenGaps(curNovel);
   const rowsU=[],rowsR=[];let prevNum=null;
   for(const c of list){
-    if(showGaps&&c.num!=null&&prevNum!=null&&c.num-prevNum>1)for(let n=prevNum+1;n<c.num;n++)rowsU.push({n,gap:true});
+    if(showGaps&&c.num!=null&&prevNum!=null&&c.num-prevNum>1)for(let n=prevNum+1;n<c.num;n++)if(!hidG.has(n))rowsU.push({n,gap:true});
     if(c.num!=null)prevNum=c.num;
     (isRead(c)?rowsR:rowsU).push({c,n:c.num});
   }
