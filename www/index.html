@@ -713,6 +713,11 @@ body.selmode .card.sel::after{background:var(--danger);border-color:var(--danger
 .rawrow button{flex:none;height:34px;padding:0 10px;border-radius:9px;font-size:12px;border:1px solid var(--line)}
 .rawrow button.go{color:var(--plasma);border-color:rgba(79,220,255,.45)}
 .rawrow button.rm{color:var(--danger)}
+.gapact{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:14px;border-radius:16px;border:1px dashed var(--warn);background:color-mix(in srgb,var(--warn) 8%,transparent);font-family:var(--ui);font-size:13px}
+.gapact span{flex:1 1 100%}
+.gapact button{height:36px;padding:0 12px;border-radius:10px;border:1px solid var(--line);font-size:12.5px;color:var(--ink)}
+.gapact button[data-a="one"]{color:var(--warn);border-color:var(--warn)}
+.gapshow{font:inherit;color:var(--plasma);text-decoration:underline;padding:0}
 .rwsel{margin:4px 0 8px}
 .rwsel>button{width:100%;height:38px;border-radius:10px;border:1px dashed var(--line);font-size:13px;color:var(--ink)}
 .rwsel-in{display:grid;gap:8px;padding:10px;border-radius:12px;background:var(--deck);border:1px solid var(--line)}
@@ -1958,7 +1963,34 @@ async function rawSet(r){if(!col){r.pending=true;persistRaw();return}try{const {
 function rawDel(id){raws=raws.filter(r=>r.id!==id);persistRaw();if(col)col.doc(id).delete().catch(()=>{})}
 const rawsOf=novel=>raws.filter(r=>r.novel===novel).sort((a,b)=>a.num-b.num);
 function saveCoversLocal(){LS.set('midad.covers',covers)}
-function saveMeta(){LS.set('midad.meta',meta);if(col)col.doc(META_ID).set({kind:'meta',novels:meta.novels}).catch(()=>{})}
+function saveMeta(){LS.set('midad.meta',meta);if(col)col.doc(META_ID).set({kind:'meta',novels:meta.novels,renames:meta.renames||{}}).catch(()=>{})}
+/* renamed novels: chapters that arrive later under the old name (another device, a translation already running) follow the new name */
+function resolveNovel(n){
+  const R=meta.renames||{};let k=0;
+  while(n&&R[n]&&R[n]!==n&&!meta.novels[n]&&k++<12)n=R[n];
+  return n;
+}
+let healT=null;
+function healRenames(){
+  clearTimeout(healT);
+  healT=setTimeout(async()=>{
+    if(renameBusy||!meta.renames||!Object.keys(meta.renames).length)return;
+    const moved=[];
+    chapters.forEach(c=>{const t=resolveNovel(c.novel);if(c.novel&&t!==c.novel){c.novel=t;moved.push(c)}});
+    const mr=[];raws.forEach(r=>{const t=resolveNovel(r.novel);if(r.novel&&t!==r.novel){r.novel=t;mr.push(r)}});
+    const mi=[];Object.entries(imgs).forEach(([k,v])=>{if(!v)return;const t=resolveNovel(v.novel);if(v.novel&&t!==v.novel){v.novel=t;mi.push(k)}});
+    Object.values(chatStore).forEach(c=>{if(c&&c.novel){const t=resolveNovel(c.novel);if(t!==c.novel)c.novel=t}});
+    if(!moved.length&&!mr.length&&!mi.length)return;
+    persistLocal();persistRaw();persistImgs();
+    if(col){
+      await Promise.allSettled([...moved.filter(c=>!c.pending).map(c=>col.doc(c.id).update({novel:c.novel})),
+        ...mr.filter(r=>!r.pending).map(r=>col.doc(r.id).update({novel:r.novel})),
+        ...mi.filter(k=>!imgs[k].pending).map(k=>col.doc(k).update({novel:imgs[k].novel}))]);
+    }
+    renderLibrary();if(curNovel)renderNovel();
+    if(moved.length)toast(`نُقل ${moved.length} فصل إلى «${moved[0].novel}» بعد تغيير اسم الرواية`);
+  },600);
+}
 
 /* ---------- storage ---------- */
 function persistLocal(){LS.set('midad.ch',chapters);idbSave('ch',chapters)}
@@ -1988,10 +2020,10 @@ async function connectDb(){
     // the account is the source of truth: show its chapters right away, before the live snapshot arrives
     {const pend=chapters.filter(x=>x.pending);const docs=first.docs.filter(x=>{const k=x.id;return k!==META_ID&&k!==PREFS_ID&&k!==USAGE_ID&&k!==STATS_ID&&k!==DISC_ID&&!isCoverId(k)&&!isRawId(k)&&!isChatId(k)&&!isImgId(k)&&!isTrashId(k)});
      const ids=new Set(docs.map(x=>x.id));chapters=docs.map(x=>Object.assign({id:x.id},x.data())).concat(pend.filter(p=>!ids.has(p.id)));
-     const m=first.docs.find(x=>x.id===META_ID);if(m&&m.data().novels){meta={novels:Object.assign({},m.data().novels)};LS.set('midad.meta',meta)}
+     const m=first.docs.find(x=>x.id===META_ID);if(m&&m.data().novels){meta={novels:Object.assign({},m.data().novels),renames:Object.assign({},m.data().renames||{})};LS.set('midad.meta',meta)}
      const rp=raws.filter(r=>r.pending);const rd=first.docs.filter(x=>isRawId(x.id)).map(x=>{const v=Object.assign({},x.data());delete v.kind;return Object.assign({id:x.id},v)});const rids=new Set(rd.map(r=>r.id));raws=rd.concat(rp.filter(r=>!rids.has(r.id)));
      {const t={};first.docs.filter(x=>isTrashId(x.id)).forEach(x=>t[x.id]=x.data());trash=t;renderTrashInfo()}
-     persistLocal();persistRaw();setSyncState('ok');renderLibrary();if(curNovel)renderNovel()}
+     persistLocal();persistRaw();setSyncState('ok');renderLibrary();if(curNovel)renderNovel();healRenames()}
     const have=new Set(first.docs.map(x=>x.id));
     sbRaw=ref;col=sbWrap(ref);
     for(const ch of chapters.filter(c=>c.pending&&!have.has(c.id))){await remoteSet(ch)}
@@ -2036,10 +2068,11 @@ async function connectDb(){
       const docs=s.docs.filter(x=>x.id!==META_ID&&x.id!==PREFS_ID&&x.id!==USAGE_ID&&x.id!==STATS_ID&&x.id!==DISC_ID&&!isCoverId(x.id)&&!isRawId(x.id)&&!isChatId(x.id)&&!isImgId(x.id)&&!isTrashId(x.id));
       {const t={};s.docs.filter(x=>isTrashId(x.id)).forEach(x=>t[x.id]=x.data());trash=t;trashExpire();renderTrashInfo()}
       const m=s.docs.find(x=>x.id===META_ID);
-      if(m&&m.data().novels){meta={novels:Object.assign({},m.data().novels)};LS.set('midad.meta',meta)}
+      if(m&&m.data().novels){meta={novels:Object.assign({},m.data().novels),renames:Object.assign({},m.data().renames||{})};LS.set('midad.meta',meta)}
       const ids=new Set(docs.map(x=>x.id));
       chapters=docs.map(x=>Object.assign({id:x.id},x.data())).concat(pend.filter(p=>!ids.has(p.id)));
       persistLocal();setSync(true);renderLibrary();if(curNovel)renderNovel();if(current){updateNav();maybeAutoNext()}
+      healRenames();
     },()=>{setSyncState('failed')});
     setSync(true);
   }catch(e){
@@ -2147,6 +2180,8 @@ function splitChapters(raw,novel){
   return out;
 }
 /* missing chapter numbers between the lowest and highest saved */
+function hiddenGaps(name){const m=meta.novels[name];return new Set(m&&Array.isArray(m.hideGaps)?m.hideGaps:[])}
+function setHiddenGaps(name,arr){const m=meta.novels[name]=meta.novels[name]||{};m.hideGaps=[...new Set(arr)].sort((a,b)=>a-b);if(!m.hideGaps.length)delete m.hideGaps;saveMeta()}
 function gapsOf(nums){const s=[...new Set(nums)].sort((a,b)=>a-b);const g=[];for(let i=1;i<s.length;i++)for(let n=s[i-1]+1;n<s[i];n++)g.push(n);return g}
 function dupsOf(nums){const seen=new Set(),d=new Set();nums.forEach(n=>{seen.has(n)?d.add(n):seen.add(n)});return [...d].sort((a,b)=>a-b)}
 function ranges(arr){const out=[];for(let i=0;i<arr.length;i++){let j=i;while(arr[j+1]===arr[j]+1)j++;out.push(j>i?arr[i]+'–'+arr[j]:String(arr[i]));i=j}return out.join('، ')}
@@ -2228,7 +2263,7 @@ function novelStats(name){
   const w=list.reduce((s,c)=>s+words(c.text||''),0);
   const read=list.length?list.reduce((s,c)=>s+(c.progress||0),0)/list.length:0;
   return {list,count:list.length,words:w,done:list.filter(c=>(c.progress||0)>.97).length,read,
-    min:nums.length?Math.min(...nums):null,max:nums.length?Math.max(...nums):null,gaps:gapsOf(nums),dups:dupsOf(nums),
+    min:nums.length?Math.min(...nums):null,max:nums.length?Math.max(...nums):null,gaps:gapsOf(nums).filter(n=>!hiddenGaps(name).has(n)),hiddenGaps:gapsOf(nums).filter(n=>hiddenGaps(name).has(n)),dups:dupsOf(nums),
     last:Math.max((meta.novels[name]||{}).created||0,...list.map(c=>c.createdAt||0))};
 }
 const kfmt=n=>n>999?(n/1000).toFixed(n>99999?0:1)+'k':String(n);
@@ -2344,12 +2379,27 @@ function renderNovel(){
   const gapRow=n=>{
     if(qd.has(n))return queuedRow(n);
     const g=document.createElement('button');g.type='button';g.className='card gap';
-    g.innerHTML=`<div class="num">${n}<small>ناقص</small></div><div class="body"><div class="ttl">الفصل ${n} غير موجود</div><div class="sub"><span>اضغط لإضافته</span></div></div>`;
-    g.onclick=()=>openAdd(curNovel);return g;
+    g.innerHTML=`<div class="num">${n}<small>ناقص</small></div><div class="body"><div class="ttl">الفصل ${n} غير موجود</div><div class="sub"><span>اضغط لإضافته · اضغط مطوّلاً لإخفائه</span></div></div>`;
+    let lt=null,held=false;
+    const arm=()=>{held=true;if(navigator.vibrate)try{navigator.vibrate(12)}catch(e){}
+      const box=document.createElement('div');box.className='gapact';box.setAttribute('dir','rtl');
+      box.innerHTML=`<span>إخفاء الفصل ${n} من القائمة؟</span><button type="button" data-a="one">إخفاء</button>${s.gaps.length>1?`<button type="button" data-a="all">إخفاء كل الناقص (${s.gaps.length})</button>`:''}<button type="button" data-a="no">إلغاء</button>`;
+      box.onclick=e=>{e.stopPropagation();const a=e.target.closest('button');if(!a)return;
+        if(a.dataset.a==='one'){setHiddenGaps(curNovel,[...hiddenGaps(curNovel),n]);toast(`أُخفي الفصل ${n}`)}
+        else if(a.dataset.a==='all'){setHiddenGaps(curNovel,[...hiddenGaps(curNovel),...s.gaps]);toast(`أُخفيت ${s.gaps.length} فصول ناقصة`)}
+        renderNovel();renderLibrary()};
+      g.replaceWith(box);
+    };
+    g.addEventListener('pointerdown',()=>{held=false;clearTimeout(lt);lt=setTimeout(arm,500)});
+    ['pointerup','pointercancel','pointerleave','pointermove'].forEach(ev=>g.addEventListener(ev,e=>{if(ev==='pointermove'&&(Math.abs(e.movementX)+Math.abs(e.movementY))<3)return;clearTimeout(lt)}));
+    g.addEventListener('contextmenu',e=>{e.preventDefault();clearTimeout(lt);if(!held)arm()});
+    g.onclick=()=>{if(held)return;openAdd(curNovel)};return g;
   };
   const q=$('#nSearch').value.trim();
   const readCount=list.filter(isRead).length;
   $('#nListInfo').textContent=list.length?`${list.length-readCount} لم يُقرأ · ${readCount} مقروء`:'حسب رقم الفصل';
+  if(s.hiddenGaps.length){const u=document.createElement('button');u.type='button';u.className='gapshow';u.textContent=`إظهار الناقص (${s.hiddenGaps.length})`;
+    u.onclick=()=>{setHiddenGaps(curNovel,[]);renderNovel();renderLibrary();toast('ظهرت الفصول الناقصة من جديد')};$('#nListInfo').append(' · ',u)}
   if(q){
     /* search mode: one flat list, read and unread together */
     const qn=toNum(q.replace(/[^\d٠-٩]/g,''));
@@ -3425,16 +3475,24 @@ $('#eSave').onclick=async()=>{
     if(allNovelNames().has(name)){toast('يوجد رواية بهذا الاسم، اختر اسماً آخر');return}
     const coverId=await saveCoverFor('\u0000');
     meta.novels[name]=Object.assign({color:edit.color,icon:edit.icon,desc:$('#eDesc').value.trim(),style:edit.style,styleNote:$('#eStyleNote').value.trim().slice(0,1500),created:Date.now()},coverId?{cover:coverId}:{});
+    if(meta.renames)delete meta.renames[name];
     saveMeta();LS.set('midad.novel',name);hideSheet();renderLibrary();openNovel(name);toast('تم إنشاء الرواية');return;
   }
   const newName=$('#eName').value.trim()||NONAME;const old=curNovel;
   // a name that only holds novel info (no chapters, no raws) can be merged into: this recovers info left behind by an earlier rename
-  let target=null;
+  let target=null,mergeInto=false;
   if(newName!==old&&allNovelNames().has(newName)){
     const empty=!chapters.some(c=>nv(c)===newName)&&!raws.some(r=>r.novel===newName);
-    if(!empty){toast('يوجد رواية بهذا الاسم، اختر اسماً آخر');return}
     const sb=$('#eSave');
-    if(!sb.classList.contains('arm')){sb.classList.add('arm');sb.textContent='اضغط مرة أخرى للدمج';toast('توجد رواية بهذا الاسم بلا فصول. ستُدمج معلوماتها (القاموس، الشخصيات، سلّم القوة، الوصف، الغلاف) مع هذه الرواية');setTimeout(()=>{sb.classList.remove('arm');sb.textContent='حفظ'},6000);return}
+    if(!empty){
+      // both have chapters: move this novel's chapters into the other one (fixes chapters left under an old name)
+      if(!sb.classList.contains('arm')){sb.classList.add('arm');sb.textContent='اضغط مرة أخرى للدمج';
+        const n=chapters.filter(c=>nv(c)===old).length;
+        toast(`توجد رواية بهذا الاسم. سيُنقل ${n} فصل من هذه الرواية إليها، وتبقى معلوماتها كما هي`);
+        setTimeout(()=>{sb.classList.remove('arm');sb.textContent='حفظ'},6000);return}
+      sb.classList.remove('arm');sb.textContent='حفظ';
+      mergeInto=true;target=meta.novels[newName]||{};
+    }else if(!sb.classList.contains('arm')){sb.classList.add('arm');sb.textContent='اضغط مرة أخرى للدمج';toast('توجد رواية بهذا الاسم بلا فصول. ستُدمج معلوماتها (القاموس، الشخصيات، سلّم القوة، الوصف، الغلاف) مع هذه الرواية');setTimeout(()=>{sb.classList.remove('arm');sb.textContent='حفظ'},6000);return}
     sb.classList.remove('arm');sb.textContent='حفظ';
     target=meta.novels[newName]||{};
   }
@@ -3443,12 +3501,14 @@ $('#eSave').onclick=async()=>{
   const keepCover=target&&target.cover&&!coverId?target.cover:null;
   meta.novels[newName]=Object.assign(base,{color:edit.color,icon:edit.icon,desc:$('#eDesc').value.trim()||(target&&target.desc)||'',style:edit.style,styleNote:$('#eStyleNote').value.trim().slice(0,1500)||(target&&target.styleNote)||''});delete meta.novels[newName].cover;
   if(coverId)meta.novels[newName].cover=coverId;else if(keepCover)meta.novels[newName].cover=keepCover;
+  if(mergeInto)meta.novels[newName]=Object.assign({},meta.novels[old]||{},target); // the novel merged into keeps its own look and info
   if(newName!==old){
     // rename everything that belongs to the novel, locally first, then in the account in one go.
     // Snapshots are ignored meanwhile, so a half-finished sync can't bring the old name (and an empty novel) back.
     renameBusy=true;
     try{
       delete meta.novels[old];
+      if(old!==NONAME){meta.renames=meta.renames||{};Object.keys(meta.renames).forEach(k=>{if(meta.renames[k]===old)meta.renames[k]=newName});meta.renames[old]=newName;delete meta.renames[newName]}
       const affected=chapters.filter(c=>nv(c)===old);affected.forEach(c=>c.novel=newName);persistLocal();
       const rw=raws.filter(r=>r.novel===old);rw.forEach(r=>r.novel=newName);persistRaw();
       const im=Object.entries(imgs).filter(([k,v])=>v&&v.novel===old);im.forEach(([k,v])=>v.novel=newName);persistImgs();
