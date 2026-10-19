@@ -1968,7 +1968,43 @@ async function rawSet(r){if(!col){r.pending=true;persistRaw();return}try{const {
 function rawDel(id){raws=raws.filter(r=>r.id!==id);persistRaw();if(col)col.doc(id).delete().catch(()=>{})}
 const rawsOf=novel=>raws.filter(r=>r.novel===novel).sort((a,b)=>a.num-b.num);
 function saveCoversLocal(){LS.set('midad.covers',covers)}
-function saveMeta(){LS.set('midad.meta',meta);if(col)col.doc(META_ID).set({kind:'meta',novels:meta.novels,renames:meta.renames||{}}).catch(()=>{})}
+/* novel info is one shared document. Each novel carries the time it was last changed (_u) and deleted names leave a
+   tombstone (gone), so a phone holding an older copy merges instead of overwriting (no lost edits, no novels coming back). */
+const hstr=t=>{let h=5381;for(let i=0;i<t.length;i++)h=(h*33+t.charCodeAt(i))|0;return (h>>>0).toString(36)+t.length};
+const metaSigOf=o=>{const {_u,...r}=o||{};return hstr(JSON.stringify(r))};
+let metaSig=LS.get('midad.metaSig',null);
+if(!metaSig){metaSig={};Object.entries(meta.novels).forEach(([n,o])=>metaSig[n]=metaSigOf(o));LS.set('midad.metaSig',metaSig)}
+function stampMeta(){
+  const now=Date.now();let ch=false;meta.gone=meta.gone||{};
+  for(const [n,o] of Object.entries(meta.novels)){if(!o)continue;const h=metaSigOf(o);if(metaSig[n]!==h){o._u=now;metaSig[n]=h;ch=true;if(meta.gone[n])delete meta.gone[n]}}
+  for(const n of Object.keys(metaSig)){if(!meta.novels[n]){meta.gone[n]=now;delete metaSig[n];ch=true}}
+  for(const [n,t] of Object.entries(meta.gone))if(now-t>60*864e5)delete meta.gone[n];
+  if(ch)LS.set('midad.metaSig',metaSig);
+}
+function pushMeta(){LS.set('midad.meta',meta);if(col)col.doc(META_ID).set({kind:'meta',novels:meta.novels,renames:meta.renames||{},gone:meta.gone||{}}).catch(()=>{})}
+function saveMeta(){stampMeta();pushMeta()}
+let metaPushT=null;
+function applyRemoteMeta(d){
+  stampMeta(); // local edits not yet sent get their time first
+  const RN=d.novels||{},LN=meta.novels||{},gone=Object.assign({},d.gone||{});
+  Object.entries(meta.gone||{}).forEach(([n,t])=>{if(!(gone[n]>=t))gone[n]=t});
+  const out={};
+  for(const n of new Set([...Object.keys(LN),...Object.keys(RN)])){
+    const a=LN[n],b=RN[n];let pick;
+    if(!a)pick=b;else if(!b)pick=a._u?a:null; // a legacy entry missing remotely was deleted elsewhere
+    else pick=(b._u||0)>=(a._u||0)?b:a;
+    if(!pick)continue;
+    if(gone[n]&&gone[n]>=(pick._u||0))continue;
+    out[n]=pick;
+  }
+  const merged={novels:out,renames:Object.assign({},meta.renames||{},d.renames||{}),gone};
+  Object.keys(merged.renames).forEach(k=>{if(out[k]&&(out[k]._u||0)>(gone[k]||0)&&merged.renames[k]&&!out[merged.renames[k]])delete merged.renames[k]});
+  meta=merged;metaSig={};Object.entries(out).forEach(([n,o])=>metaSig[n]=metaSigOf(o));LS.set('midad.metaSig',metaSig);LS.set('midad.meta',meta);
+  // the account copy is missing something this device knows: send the merged copy back
+  const sameKeys=Object.keys(out).length===Object.keys(RN).length&&Object.keys(out).every(n=>RN[n]&&(RN[n]._u||0)===(out[n]._u||0));
+  const sameGone=JSON.stringify(Object.keys(gone).sort())===JSON.stringify(Object.keys(d.gone||{}).sort());
+  if(!sameKeys||!sameGone||JSON.stringify(merged.renames)!==JSON.stringify(d.renames||{})){clearTimeout(metaPushT);metaPushT=setTimeout(pushMeta,1200)}
+}
 /* renamed novels: chapters that arrive later under the old name (another device, a translation already running) follow the new name */
 function resolveNovel(n){
   const R=meta.renames||{};let k=0;
@@ -2025,7 +2061,7 @@ async function connectDb(){
     // the account is the source of truth: show its chapters right away, before the live snapshot arrives
     {const pend=chapters.filter(x=>x.pending);const docs=first.docs.filter(x=>{const k=x.id;return k!==META_ID&&k!==PREFS_ID&&k!==USAGE_ID&&k!==STATS_ID&&k!==DISC_ID&&!isCoverId(k)&&!isRawId(k)&&!isChatId(k)&&!isImgId(k)&&!isTrashId(k)});
      const ids=new Set(docs.map(x=>x.id));chapters=docs.map(x=>Object.assign({id:x.id},x.data())).concat(pend.filter(p=>!ids.has(p.id)));
-     const m=first.docs.find(x=>x.id===META_ID);if(m&&m.data().novels){meta={novels:Object.assign({},m.data().novels),renames:Object.assign({},m.data().renames||{})};LS.set('midad.meta',meta)}
+     const m=first.docs.find(x=>x.id===META_ID);if(m&&m.data().novels)applyRemoteMeta(m.data())
      const rp=raws.filter(r=>r.pending);const rd=first.docs.filter(x=>isRawId(x.id)).map(x=>{const v=Object.assign({},x.data());delete v.kind;return Object.assign({id:x.id},v)});const rids=new Set(rd.map(r=>r.id));raws=rd.concat(rp.filter(r=>!rids.has(r.id)));
      {const t={};first.docs.filter(x=>isTrashId(x.id)).forEach(x=>t[x.id]=x.data());trash=t;renderTrashInfo()}
      persistLocal();persistRaw();setSyncState('ok');renderLibrary();if(curNovel)renderNovel();healRenames()}
@@ -2073,7 +2109,7 @@ async function connectDb(){
       const docs=s.docs.filter(x=>x.id!==META_ID&&x.id!==PREFS_ID&&x.id!==USAGE_ID&&x.id!==STATS_ID&&x.id!==DISC_ID&&!isCoverId(x.id)&&!isRawId(x.id)&&!isChatId(x.id)&&!isImgId(x.id)&&!isTrashId(x.id));
       {const t={};s.docs.filter(x=>isTrashId(x.id)).forEach(x=>t[x.id]=x.data());trash=t;trashExpire();renderTrashInfo()}
       const m=s.docs.find(x=>x.id===META_ID);
-      if(m&&m.data().novels){meta={novels:Object.assign({},m.data().novels),renames:Object.assign({},m.data().renames||{})};LS.set('midad.meta',meta)}
+      if(m&&m.data().novels)applyRemoteMeta(m.data())
       const ids=new Set(docs.map(x=>x.id));
       chapters=docs.map(x=>Object.assign({id:x.id},x.data())).concat(pend.filter(p=>!ids.has(p.id)));
       persistLocal();setSync(true);renderLibrary();if(curNovel)renderNovel();if(current){updateNav();maybeAutoNext()}
@@ -3484,7 +3520,7 @@ $('#eSave').onclick=async()=>{
     if(meta.renames)delete meta.renames[name];
     saveMeta();LS.set('midad.novel',name);hideSheet();renderLibrary();openNovel(name);toast('تم إنشاء الرواية');return;
   }
-  const newName=$('#eName').value.trim()||NONAME;const old=curNovel;
+  const newName=$('#eName').value.replace(/[\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g,'').replace(/\s+/g,' ').trim()||NONAME;const old=curNovel;
   // a name that only holds novel info (no chapters, no raws) can be merged into: this recovers info left behind by an earlier rename
   let target=null,mergeInto=false;
   if(newName!==old&&allNovelNames().has(newName)){
