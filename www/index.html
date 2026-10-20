@@ -782,6 +782,7 @@ body.selmode .card.sel::after{background:var(--danger);border-color:var(--danger
 .ttsbar.asbar{right:auto;left:50%;transform:translateX(-50%)}
 #reader.asmode .askfab{display:none!important}
 .ttsbar #ttsSleep.on,.ttsbar #asSleep.on{color:var(--ra)}
+.ttsbar #ttsMulti{font-size:16px;opacity:.45}.ttsbar #ttsMulti.on{opacity:1;background:color-mix(in srgb,var(--ra) 18%,transparent)}
 .ttsbar .tl.sl{min-width:0}
 #rscroll.autoscroll{scroll-behavior:auto!important}
 #autoBtn.on,#listenBtn.on{color:var(--ra)}
@@ -1327,6 +1328,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
     <button type="button" class="main" id="ttsPlay" aria-label="إيقاف مؤقت"></button>
     <span class="tl" id="ttsPos"></span>
     <button type="button" id="ttsRate" aria-label="سرعة القراءة">1×</button>
+    <button type="button" id="ttsMulti" aria-label="صوت مختلف للحوار">🎭</button>
     <button type="button" id="ttsSleep" aria-label="مؤقت النوم"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button>
     <button type="button" id="ttsStop" aria-label="إنهاء القراءة الصوتية"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
   </div>
@@ -5301,13 +5303,25 @@ const RATES=[0.8,1,1.2,1.5,1.8];
 const PLAY='<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17 5v14L6 12z"/></svg>';
 const PAUSE='<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
 if(TTS_OK){try{speechSynthesis.getVoices();speechSynthesis.addEventListener('voiceschanged',()=>{})}catch(e){}}
+function dlgVoice(v0){if(!ttsMultiOn())return null;try{const vs=speechSynthesis.getVoices().filter(v=>/^ar/i.test(v.lang)&&(!v0||v.name!==v0.name));return vs.find(v=>v.localService)||vs[0]||null}catch(e){return null}}
 function arVoice(){try{const vs=speechSynthesis.getVoices();return vs.find(v=>/^ar([-_]|$)/i.test(v.lang)&&v.localService)||vs.find(v=>/^ar/i.test(v.lang))||null}catch(e){return null}}
 function firstVisibleIdx(){for(const p of document.querySelectorAll('#article p')){if(p.getBoundingClientRect().bottom>90)return +p.dataset.i}return 0}
 /* phone app: a native foreground service keeps reading with the screen off */
 const NSP=()=>{try{const C=window.Capacitor;return C&&C.isNativePlatform&&C.isNativePlatform()&&C.Plugins&&C.Plugins.MidadSpeech||null}catch(e){return null}};
 let nspHooked=false,nspLastCh=null;
 function chLines(c){return (c.text||'').split('\n').filter(Boolean)}
-function nspItems(ch,from){return chLines(ch).map((t,i)=>({ch:ch.id,i,t:t.replace(/[*_#>`]/g,''),title:(ch.novel?ch.novel+' · ':'')+(ch.title||'')})).slice(from||0)}
+/* narration and dialogue as separate pieces, so each can have its own voice */
+const ttsMultiOn=()=>prefs.ttsMulti!==false;
+function splitDialog(t){
+  t=String(t).replace(/[*_#>`]/g,'');
+  if(!ttsMultiOn())return [{t,v:0}];
+  const out=[],re=/"[^"\n]{1,600}"|«[^»\n]{1,600}»|“[^”\n]{1,600}”/g;let last=0,m;
+  while((m=re.exec(t))){const pre=t.slice(last,m.index);if(pre.trim())out.push({t:pre,v:0});out.push({t:m[0].slice(1,-1),v:1});last=m.index+m[0].length}
+  const tail=t.slice(last);if(tail.trim())out.push({t:tail,v:0});
+  // punctuation left on its own joins the piece before it
+  return out.filter((x,i)=>{if(/[\p{L}\p{N}]/u.test(x.t))return true;if(i>0)out[i-1].t+=x.t;return false}).map(x=>({t:x.t.trim(),v:x.v})).filter(x=>x.t);
+}
+function nspItems(ch,from){const title=(ch.novel?ch.novel+' · ':'')+(ch.title||'');return chLines(ch).flatMap((t,i)=>i<(from||0)?[]:splitDialog(t).map(x=>({ch:ch.id,i,t:x.t,v:x.v,title})))}
 function nspNextAfter(id){const c=all().find(x=>x.id===id);if(!c)return null;const s=sorted(all()).filter(x=>(x.novel||'')===(c.novel||''));const k=s.findIndex(x=>x.id===id);return s[k+1]||null}
 function nspHook(sp){
   if(nspHooked)return;nspHooked=true;
@@ -5340,7 +5354,7 @@ function ttsStart(i){
     nspHook(sp);tts.on=true;tts.paused=false;tts.i=i==null?firstVisibleIdx():i;
     let items=nspItems(current,tts.i);nspLastCh=current.id;
     for(let k=0;k<2;k++){const nx=nspNextAfter(nspLastCh);if(!nx)break;items=items.concat(nspItems(nx));nspLastCh=nx.id} // two chapters ahead, so it keeps going with the screen off
-    sp.start({items,rate:tts.rate,sleepMin:sleep.mode==='end'?0:(sleep.until?Math.max(1,Math.round((sleep.until-Date.now())/60000)):0),sleepEnd:sleep.mode==='end'})
+    sp.start({items,rate:tts.rate,multi:ttsMultiOn(),sleepMin:sleep.mode==='end'?0:(sleep.until?Math.max(1,Math.round((sleep.until-Date.now())/60000)):0),sleepEnd:sleep.mode==='end'})
       .then(()=>{ttsMark(tts.i);renderTts()})
       .catch(e=>{tts.on=false;renderTts();toast('تعذّر تشغيل القراءة الصوتية: '+((e&&e.message)||e))});
     renderTts();return;
@@ -5356,10 +5370,16 @@ function speakCur(){
   const p=document.querySelector(`#article p[data-i="${tts.i}"]`);
   if(!p){ttsChapterEnd();return}
   p.classList.add('speaking');p.scrollIntoView({block:'center',behavior:'smooth'});
-  const u=new SpeechSynthesisUtterance(p.textContent);u.lang='ar-SA';const v=arVoice();if(v){u.voice=v;u.lang=v.lang}u.rate=tts.rate;
-  u.onend=()=>{if(!tts.on||tts.paused||token!==tts.token)return;tts.i++;speakCur()};
-  u.onerror=e=>{if(token!==tts.token||e.error==='interrupted'||e.error==='canceled')return;ttsStop();toast('تعذّرت القراءة الصوتية على هذا الجهاز')};
-  setTimeout(()=>{if(token===tts.token&&tts.on&&!tts.paused)try{speechSynthesis.speak(u)}catch(e){}},60);
+  const segs=splitDialog(p.textContent),v0=arVoice(),v1=dlgVoice(v0);
+  const say=k=>{
+    if(!tts.on||tts.paused||token!==tts.token)return;
+    if(k>=segs.length){tts.i++;speakCur();return}
+    const sg=segs[k],u=new SpeechSynthesisUtterance(sg.t);u.lang='ar-SA';const vv=sg.v&&v1?v1:v0;if(vv){u.voice=vv;u.lang=vv.lang}u.rate=tts.rate;u.pitch=sg.v&&!v1?1.25:1;
+    u.onend=()=>say(k+1);
+    u.onerror=e=>{if(token!==tts.token||e.error==='interrupted'||e.error==='canceled')return;ttsStop();toast('تعذّرت القراءة الصوتية على هذا الجهاز')};
+    try{speechSynthesis.speak(u)}catch(e){}
+  };
+  setTimeout(()=>{if(token===tts.token&&tts.on&&!tts.paused)say(0)},60);
   renderTts();
 }
 function ttsChapterEnd(){
@@ -5375,6 +5395,7 @@ function ttsStop(){
 }
 function renderTts(){
   $('#ttsBar').hidden=!tts.on;renderSleep();if(!tts.on)return;
+  $('#ttsMulti').classList.toggle('on',ttsMultiOn());$('#ttsMulti').setAttribute('aria-pressed',String(ttsMultiOn()));
   $('#ttsPlay').innerHTML=tts.paused?PLAY:PAUSE;$('#ttsPlay').setAttribute('aria-label',tts.paused?'متابعة':'إيقاف مؤقت');
   const n=document.querySelectorAll('#article p').length;$('#ttsPos').textContent=`${Math.min(tts.i+1,n)}/${n}`;$('#ttsRate').textContent=tts.rate+'×';
 }
@@ -5385,6 +5406,9 @@ $('#ttsPlay').onclick=()=>{
   if(sp){tts.paused=!tts.paused;(tts.paused?sp.pause():sp.resume()).catch(()=>{});renderTts();return}
   tts.paused=!tts.paused;if(tts.paused){tts.token++;try{speechSynthesis.cancel()}catch(e){}renderTts()}else speakCur()};
 $('#ttsStop').onclick=ttsStop;
+$('#ttsMulti').onclick=()=>{prefs.ttsMulti=!ttsMultiOn();LS.set('midad.prefs',prefs);queuePrefsSave();renderTts();
+  toast(ttsMultiOn()?'🎭 الحوار بصوت مختلف عن السرد':'صوت واحد للسرد والحوار');
+  const sp=NSP();if(sp&&tts.on){ttsStart(tts.i)}else if(tts.on&&!tts.paused)speakCur()};
 $('#ttsRate').onclick=()=>{
   tts.rate=RATES[(RATES.indexOf(tts.rate)+1)%RATES.length];LS.set('midad.rate',tts.rate);
   const sp=NSP();if(sp){sp.setRate({rate:tts.rate}).catch(()=>{});renderTts();return}

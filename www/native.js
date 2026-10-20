@@ -195,7 +195,7 @@
     window.speechSynthesis={
       getVoices:()=>[{lang:'ar-SA',name:'العربية',localService:true}],
       addEventListener(){},
-      speak(u){const g=++gen;TTS.speak({text:u.text,lang:'ar-SA',rate:u.rate||1,category:'playback'}).then(()=>{if(g===gen&&u.onend)u.onend({})}).catch(e=>{if(g===gen&&u.onerror)u.onerror({error:'synthesis-failed'})})},
+      speak(u){const g=++gen;TTS.speak({text:u.text,lang:'ar-SA',rate:u.rate||1,pitch:u.pitch||1,category:'playback'}).then(()=>{if(g===gen&&u.onend)u.onend({})}).catch(e=>{if(g===gen&&u.onerror)u.onerror({error:'synthesis-failed'})})},
       cancel(){gen++;try{TTS.stop()}catch(e){}}
     };
   }

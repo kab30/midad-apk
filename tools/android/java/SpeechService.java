@@ -35,8 +35,9 @@ public class SpeechService extends Service {
     private static final int NOTE_ID = 7711;
 
     public static class Item {
-        public String ch, text, title; public int i;
-        public Item(String ch, int i, String text, String title) { this.ch = ch; this.i = i; this.text = text; this.title = title; }
+        public String ch, text, title; public int i; public int v; // v=1: a character speaking (dialogue)
+        public Item(String ch, int i, String text, String title) { this(ch, i, text, title, 0); }
+        public Item(String ch, int i, String text, String title, int v) { this.ch = ch; this.i = i; this.text = text; this.title = title; this.v = v; }
     }
 
     public interface Listener {
@@ -49,6 +50,8 @@ public class SpeechService extends Service {
     static final List<Item> queue = new ArrayList<>();
     static int pos = 0;
     static float rate = 1f;
+    static boolean multi = true; // narration and dialogue in different voices
+    private Voice narrVoice, dlgVoice;
     static long sleepAt = 0;
     static boolean sleepEndOfChapter = false;
     static String state = "stopped";
@@ -100,6 +103,16 @@ public class SpeechService extends Service {
                 @Override public void onDone(String id) { main.post(() -> advance(id)); }
                 @Override public void onError(String id) { main.post(() -> advance(id)); }
             });
+            // a second Arabic voice for dialogue when the phone has one; otherwise the same voice, pitched up
+            try {
+                narrVoice = tts.getVoice();
+                for (Voice v : tts.getVoices()) {
+                    if (v.getLocale() == null || !"ar".equals(v.getLocale().getLanguage())) continue;
+                    if (narrVoice != null && v.getName().equals(narrVoice.getName())) continue;
+                    if (v.getFeatures() != null && v.getFeatures().contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED)) continue;
+                    if (dlgVoice == null || (dlgVoice.isNetworkConnectionRequired() && !v.isNetworkConnectionRequired())) dlgVoice = v;
+                }
+            } catch (Exception ignored) {}
             ready = true;
             if (pendingSpeak) { pendingSpeak = false; speakCurrent(); }
         });
@@ -164,6 +177,14 @@ public class SpeechService extends Service {
             Item it = queue.get(pos);
             token++;
             tts.setSpeechRate(rate);
+            try {
+                if (multi && it.v == 1) {
+                    if (dlgVoice != null) { tts.setVoice(dlgVoice); tts.setPitch(1.0f); } else tts.setPitch(1.25f);
+                } else {
+                    if (narrVoice != null && dlgVoice != null) tts.setVoice(narrVoice);
+                    tts.setPitch(1.0f);
+                }
+            } catch (Exception ignored) {}
             Bundle b = new Bundle();
             tts.speak(it.text, TextToSpeech.QUEUE_FLUSH, b, token + ":" + pos);
             if (listener != null) listener.onProgress(it.ch, it.i);

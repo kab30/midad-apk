@@ -25,7 +25,7 @@ public class SpeechPlugin extends Plugin implements SpeechService.Listener {
                 JSONObject o = arr.getJSONObject(k);
                 String t = o.optString("t", "").trim();
                 if (t.isEmpty()) continue;
-                SpeechService.queue.add(new SpeechService.Item(o.optString("ch"), o.optInt("i"), t, o.optString("title", "")));
+                SpeechService.queue.add(new SpeechService.Item(o.optString("ch"), o.optInt("i"), t, o.optString("title", ""), o.optInt("v", 0)));
                 n++;
             }
         }
@@ -46,6 +46,7 @@ public class SpeechPlugin extends Plugin implements SpeechService.Listener {
             synchronized (SpeechService.queue) { SpeechService.queue.clear(); SpeechService.pos = 0; }
             if (addItems(items) == 0) { call.reject("empty"); return; }
             SpeechService.rate = call.getFloat("rate", 1f);
+            SpeechService.multi = Boolean.TRUE.equals(call.getBoolean("multi", true));
             int min = call.getInt("sleepMin", 0);
             SpeechService.sleepAt = min > 0 ? System.currentTimeMillis() + min * 60000L : 0;
             SpeechService.sleepEndOfChapter = Boolean.TRUE.equals(call.getBoolean("sleepEnd", false));
@@ -80,6 +81,9 @@ public class SpeechPlugin extends Plugin implements SpeechService.Listener {
         if (s != null) s.setRate(r); else SpeechService.rate = r;
         call.resolve();
     }
+
+    @PluginMethod
+    public void setMulti(PluginCall call) { SpeechService.multi = Boolean.TRUE.equals(call.getBoolean("on", true)); call.resolve(); }
 
     @PluginMethod
     public void setSleep(PluginCall call) {
