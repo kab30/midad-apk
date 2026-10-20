@@ -986,6 +986,15 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 .donecard .dt{flex:1;min-width:0}.donecard .dt b{display:block;font-size:14px}.donecard .dt small{display:block;font-size:12px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .donecard .dg{flex:none;height:40px;padding:0 14px;border-radius:12px;background:var(--ra);color:var(--rb);font-weight:700;font-size:13px}
 .donecard .dx{flex:none;width:30px;height:30px;border-radius:9px;opacity:.6;color:var(--rf)}
+.donecard{flex-wrap:wrap}
+.donecard .dstats{flex:1 1 100%;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:2px}
+.donecard .dstats div{padding:8px 4px;border-radius:12px;background:color-mix(in srgb,var(--ra) 9%,transparent);text-align:center;opacity:0;transform:translateY(8px)}
+.donecard.in .dstats div{animation:dsIn .4s both cubic-bezier(.2,1.3,.3,1)}
+.donecard.in .dstats div:nth-child(2){animation-delay:.08s}.donecard.in .dstats div:nth-child(3){animation-delay:.16s}.donecard.in .dstats div:nth-child(4){animation-delay:.24s}
+@keyframes dsIn{to{opacity:1;transform:none}}
+.donecard .dstats b{display:block;font-size:15px;font-variant-numeric:tabular-nums;color:var(--ra)}
+.donecard .dstats small{display:block;font-size:10.5px;opacity:.75;margin-top:2px;white-space:nowrap}
+#confetti{position:absolute;inset:0;z-index:7;pointer-events:none;width:100%;height:100%}
 /* promotion moment */
 .powev{position:relative;overflow:hidden;font-family:var(--ui);margin:1.6em 0 0;padding:22px 16px 18px;border-radius:20px;text-align:center;
   border:1px solid color-mix(in srgb,var(--ra) 55%,transparent);background:radial-gradient(120% 90% at 50% 0%,color-mix(in srgb,var(--ra) 22%,transparent),color-mix(in srgb,var(--ra) 5%,transparent) 70%);
@@ -1217,7 +1226,8 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
     <button type="button" id="ttsSleep" aria-label="مؤقت النوم"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button>
     <button type="button" id="ttsStop" aria-label="إنهاء القراءة الصوتية"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
   </div>
-  <div class="donecard" id="doneCard" role="status" aria-live="polite"><span class="dk">✓</span><span class="dt"><b id="dcT"></b><small id="dcS"></small></span><button type="button" class="dg" id="dcGo">التالي</button><button type="button" class="dx" id="dcX" aria-label="إغلاق">✕</button></div>
+  <div class="donecard" id="doneCard" role="status" aria-live="polite"><span class="dk">✓</span><span class="dt"><b id="dcT"></b><small id="dcS"></small></span><button type="button" class="dg" id="dcGo">التالي</button><button type="button" class="dx" id="dcX" aria-label="إغلاق">✕</button><div class="dstats" id="dcStats"></div></div>
+  <canvas id="confetti" aria-hidden="true"></canvas>
   <div class="ttsbar asbar" id="asBar" hidden>
     <button type="button" class="main" id="asPlay" aria-label="إيقاف مؤقت"></button>
     <button type="button" id="asSlow" aria-label="أبطأ">−</button>
@@ -4189,7 +4199,7 @@ function openReader(id,opt){
   if(tts.on&&!opt.keepTts)ttsStop();
   hidePMenu();hideDone();$('#article').classList.remove('leave-next','leave-prev');
   curWords=words(ch.text||'');autoAsked=null;
-  readMark=(ch.progress||0)>.97?0:(ch.progress||0);wasDone=(ch.progress||0)>.97;lastReadAt=Date.now();
+  readMark=(ch.progress||0)>.97?0:(ch.progress||0);wasDone=(ch.progress||0)>.97;lastReadAt=Date.now();chSecs=0;
   saveProgress(true);current=ch;lastId=id;LS.set('midad.last',id);widgetPush();
   if(!ch.sample){ch.lastAt=Date.now();persistLocal();if(col&&!ch.pending)col.doc(ch.id).update({lastAt:ch.lastAt}).catch(()=>{})}
   $('#rT').textContent=ch.title;$('#rN').textContent=ch.novel||'';
@@ -4210,7 +4220,7 @@ function openReader(id,opt){
   if(prefs.wake)lockWake();
 }
 /* finishing a chapter: the bar shines, the phone taps, and the next chapter slides up */
-let dcT=null;
+let dcT=null,chSecs=0;
 function hideDone(){clearTimeout(dcT);$('#doneCard').classList.remove('in')}
 function chapterDone(){
   const p=$('.prog');if(p){p.classList.remove('done');void p.offsetWidth;p.classList.add('done')}
@@ -4220,7 +4230,28 @@ function chapterDone(){
   $('#dcT').textContent=`أنهيت ${current.num!=null?'الفصل '+current.num:'الفصل'}`;
   $('#dcS').textContent=next?('التالي: '+(next.title||'الفصل '+next.num)):(big?big.textContent.trim():'');
   $('#dcGo').hidden=!big;$('#dcGo').textContent=next?'التالي':'متابعة';
-  $('#doneCard').classList.add('in');clearTimeout(dcT);dcT=setTimeout(hideDone,8000);
+  // what this chapter added up to
+  const mins=Math.max(1,Math.round(chSecs/60)),sib=siblings(),doneN=sib.filter(c=>(c.progress||0)>.97||c.id===current.id).length;
+  const streak=readStreak(),today=(stats.days[dayKey()]||{}).rc||0;
+  const items=[[mins,'دقيقة'],[curWords,'كلمة'],[`${doneN}/${sib.length}`,'من الرواية'],streak>1?[streak,'يوم متتالي 🔥']:[today,today===1?'فصل اليوم':'فصول اليوم']];
+  $('#dcStats').innerHTML=items.map(([v,l])=>`<div><b>${typeof v==='number'?v.toLocaleString('en'):v}</b><small>${l}</small></div>`).join('');
+  $('#doneCard').classList.add('in');clearTimeout(dcT);dcT=setTimeout(hideDone,10000);
+  $('#dcStats').querySelectorAll('b').forEach((b,i)=>{if(i!==2)countUp(b,0,900)});
+  confetti();
+}
+function readStreak(){let n=0;const d=new Date();for(let i=0;i<400;i++){const k=dayKey(new Date(d.getTime()-i*864e5)),x=stats.days[k];if(x&&(x.rc||x.rw)){n++}else if(i>0)break}return n}
+/* a short burst of paper in the novel's accent colour */
+function confetti(){
+  if(RM())return;const cv=$('#confetti'),r=$('#reader');if(!cv||!r)return;
+  const W=cv.width=r.clientWidth*devicePixelRatio,H=cv.height=r.clientHeight*devicePixelRatio,ctx=cv.getContext('2d');
+  const acc=getComputedStyle(r).getPropertyValue('--ra').trim()||'#4fdcff',cols=[acc,'#ffd166','#ff6b9a','#7cf29c','#ffffff'];
+  const ps=Array.from({length:90},()=>({x:W/2+(Math.random()-.5)*W*.3,y:H*.82,vx:(Math.random()-.5)*W*.018,vy:-(H*.012+Math.random()*H*.016),g:H*.00045,s:(4+Math.random()*6)*devicePixelRatio,a:Math.random()*6,va:(Math.random()-.5)*.3,c:cols[Math.random()*cols.length|0]}));
+  const t0=performance.now();
+  const step=t=>{const k=(t-t0)/1600;ctx.clearRect(0,0,W,H);if(k>=1)return;
+    ctx.globalAlpha=Math.min(1,(1-k)*2);
+    ps.forEach(p=>{p.vy+=p.g;p.vx*=.99;p.x+=p.vx;p.y+=p.vy;p.a+=p.va;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.a);ctx.fillStyle=p.c;ctx.fillRect(-p.s/2,-p.s/4,p.s,p.s/2);ctx.restore()});
+    requestAnimationFrame(step)};
+  requestAnimationFrame(step);
 }
 $('#dcGo').onclick=()=>{hideDone();const b=$('#nextBig');if(b)b.click()};
 $('#dcX').onclick=hideDone;
@@ -4236,7 +4267,7 @@ function onScroll(){
   $('#pct').textContent=Math.round(f*100)+'% · '+(f>.985?'انتهى':rem<=1?'أقل من دقيقة':rem+' د متبقية');
   if(current&&Math.abs(f-(current.progress||0))>.005){current.progress=f;dirty=true;clearTimeout(progT);progT=setTimeout(()=>saveProgress(),1500)}
   if(current&&!current.sample&&f>readMark+.02){
-    const now=Date.now();if(lastReadAt){const dt=Math.min(60,(now-lastReadAt)/1000);if(dt>0)bumpStat('rs',Math.round(dt))}lastReadAt=now;
+    const now=Date.now();if(lastReadAt){const dt=Math.min(60,(now-lastReadAt)/1000);if(dt>0){bumpStat('rs',Math.round(dt));chSecs+=dt}}lastReadAt=now;
     bumpStat('rw',Math.round((f-readMark)*curWords));readMark=f;
   }
   if(current&&!current.sample&&f>.97&&!wasDone){wasDone=true;bumpStat('rc',1);autoKnowledge(nv(current));chapterDone()}
