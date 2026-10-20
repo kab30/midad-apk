@@ -961,7 +961,48 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
   padding:10px 18px;border-radius:12px;font-size:14px;font-weight:500;opacity:0;pointer-events:none;transition:.25s;z-index:40;max-width:calc(100% - 32px);text-align:center}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 
-@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ---------- motion ---------- */
+#nCover{view-transition-name:ncover}
+::view-transition-group(ncover){animation-duration:.42s;animation-timing-function:cubic-bezier(.2,.8,.2,1)}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.26s}
+@keyframes vin{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes rin{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+.novt #novelView.show{animation:vin .3s cubic-bezier(.2,.8,.2,1)}
+#reader.show{animation:rin .3s cubic-bezier(.2,.8,.2,1)}
+#statsView.show,#discView.show{animation:vin .28s cubic-bezier(.2,.8,.2,1)}
+/* chapter finished */
+@keyframes progdone{0%{box-shadow:0 0 0 0 var(--ra)}40%{box-shadow:0 0 14px 3px var(--ra)}100%{box-shadow:0 0 0 0 transparent}}
+.prog.done{animation:progdone 1.1s ease-out}
+.prog.done i{background:linear-gradient(90deg,var(--ra),#fff,var(--ra));background-size:200% 100%;animation:shine 1.1s ease-out}
+@keyframes shine{from{background-position:100% 0}to{background-position:-100% 0}}
+.donecard{position:absolute;z-index:6;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:12px;padding:12px 12px 12px 14px;border-radius:18px;
+  background:color-mix(in srgb,var(--rb) 88%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid color-mix(in srgb,var(--ra) 55%,transparent);
+  box-shadow:0 18px 40px -16px rgba(0,0,0,.6);font-family:var(--ui);color:var(--rf);transform:translateY(140%);opacity:0;transition:transform .45s cubic-bezier(.2,1.3,.3,1),opacity .25s;pointer-events:none}
+.donecard.in{transform:none;opacity:1;pointer-events:auto}
+.donecard .dk{width:40px;height:40px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--ra);color:var(--rb);font-size:20px;font-weight:700}
+.donecard.in .dk{animation:pop .5s .15s both cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{from{transform:scale(.3)}to{transform:scale(1)}}
+.donecard .dt{flex:1;min-width:0}.donecard .dt b{display:block;font-size:14px}.donecard .dt small{display:block;font-size:12px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.donecard .dg{flex:none;height:40px;padding:0 14px;border-radius:12px;background:var(--ra);color:var(--rb);font-weight:700;font-size:13px}
+.donecard .dx{flex:none;width:30px;height:30px;border-radius:9px;opacity:.6;color:var(--rf)}
+/* promotion moment */
+.powev{position:relative;overflow:hidden;font-family:var(--ui);margin:1.6em 0 0;padding:22px 16px 18px;border-radius:20px;text-align:center;
+  border:1px solid color-mix(in srgb,var(--ra) 55%,transparent);background:radial-gradient(120% 90% at 50% 0%,color-mix(in srgb,var(--ra) 22%,transparent),color-mix(in srgb,var(--ra) 5%,transparent) 70%);
+  opacity:0;transform:translateY(20px) scale(.94);transition:opacity .5s,transform .6s cubic-bezier(.2,1.4,.3,1)}
+.powev.in{opacity:1;transform:none}
+.powev .pe-ico{display:block;font-size:44px;line-height:1;margin-bottom:8px;filter:drop-shadow(0 0 14px color-mix(in srgb,var(--ra) 70%,transparent))}
+.powev.in .pe-ico{animation:peBounce .9s .2s both cubic-bezier(.2,1.6,.4,1)}
+@keyframes peBounce{0%{transform:scale(.2) rotate(-20deg)}60%{transform:scale(1.2) rotate(6deg)}100%{transform:none}}
+.powev small{display:block;font-size:11.5px;letter-spacing:.04em;opacity:.7;margin-bottom:4px}
+.powev b{display:block;font-size:18px;line-height:1.6;color:var(--ra);font-variant-numeric:tabular-nums}
+.powev .pe-rays{position:absolute;inset:-60%;pointer-events:none;background:conic-gradient(from 0deg,transparent 0 12deg,color-mix(in srgb,var(--ra) 14%,transparent) 12deg 18deg,transparent 18deg 42deg);opacity:0}
+.powev.in .pe-rays{animation:rays 2.4s ease-out both}
+@keyframes rays{0%{opacity:0;transform:rotate(0)}30%{opacity:1}100%{opacity:0;transform:rotate(40deg)}}
+.powev i.spark{position:absolute;width:6px;height:6px;border-radius:50%;background:var(--ra);top:50%;left:50%;opacity:0}
+.powev.in i.spark{animation:spark 1.1s var(--d,0s) ease-out both}
+@keyframes spark{0%{opacity:1;transform:translate(-50%,-50%) scale(.6)}100%{opacity:0;transform:translate(calc(-50% + var(--x)),calc(-50% + var(--y))) scale(.2)}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}.powev,.donecard.in{opacity:1;transform:none}}
 </style>
 
 <div id="library" class="view" dir="rtl">
@@ -1176,6 +1217,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
     <button type="button" id="ttsSleep" aria-label="مؤقت النوم"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button>
     <button type="button" id="ttsStop" aria-label="إنهاء القراءة الصوتية"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
   </div>
+  <div class="donecard" id="doneCard" role="status" aria-live="polite"><span class="dk">✓</span><span class="dt"><b id="dcT"></b><small id="dcS"></small></span><button type="button" class="dg" id="dcGo">التالي</button><button type="button" class="dx" id="dcX" aria-label="إغلاق">✕</button></div>
   <div class="ttsbar asbar" id="asBar" hidden>
     <button type="button" class="main" id="asPlay" aria-label="إيقاف مؤقت"></button>
     <button type="button" id="asSlow" aria-label="أبطأ">−</button>
@@ -2333,8 +2375,9 @@ function renderLibrary(){
       <div class="nmeta"><span><b>${s.count}</b> فصل</span><span><b>${kfmt(s.words)}</b> كلمة</span></div>
       <div class="bar"><i style="width:${Math.round(s.read*100)}%"></i></div>`;
     b.querySelector('.cn').textContent=name;paintCover(b.querySelector('.cover'),name,m);
-    b.onclick=()=>openNovel(name);shelf.appendChild(b);
+    b.dataset.novel=name;b.onclick=()=>openNovel(name);shelf.appendChild(b);
   }
+  if(!libCounted&&stats.length){libCounted=true;shelf.querySelectorAll('.nmeta b').forEach(b=>countUp(b,0,800))}
 
   renderNewSlider(novels);
   const last=list.find(c=>c.id===lastId);
@@ -2366,8 +2409,35 @@ function chapterCard(c,showNovel,dupSet){
 }
 
 /* ---------- novel page ---------- */
-function openNovel(name){if(curNovel!==name){$('#nSearch').value='';$('#nReadSec').open=false}curNovel=name;$('#novelView').classList.add('show');$('#novelView').scrollTop=0;renderNovel();saveView()}
-function closeNovel(){if(selMode)endSel();curNovel=null;$('#novelView').classList.remove('show');renderLibrary();saveView()}
+/* ---------- motion helpers ---------- */
+const RM=()=>{try{return matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}};
+if(!document.startViewTransition)document.documentElement.classList.add('novt');
+function vt(fn){if(RM()||!document.startViewTransition){fn();return}try{document.startViewTransition(fn)}catch(e){fn()}}
+const buzz=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}};
+/* numbers count up: works on "1,234", "12.5k", "3.2 مليار"… keeps whatever text surrounds the number */
+function countUp(el,from,dur){
+  if(!el||RM())return;const txt=el.textContent,m=txt.match(/\d[\d,]*(\.\d+)?/);if(!m)return;
+  const to=parseFloat(m[0].replace(/,/g,''));if(!isFinite(to)||to===0)return;
+  const dec=(m[1]||'').length-1>0?(m[1]||'').length-1:0,comma=m[0].includes(',')||to>=1e4;
+  const f0=from!=null&&isFinite(from)?from:0;if(f0===to)return;
+  const pre=txt.slice(0,m.index),post=txt.slice(m.index+m[0].length),t0=performance.now(),D=dur||700;
+  const fmt=v=>{let s=v.toFixed(dec);if(comma){const [a,b]=s.split('.');s=a.replace(/\B(?=(\d{3})+(?!\d))/g,',')+(b?'.'+b:'')}return s};
+  const step=t=>{const k=Math.min(1,(t-t0)/D),e=1-Math.pow(1-k,3);el.textContent=pre+fmt(f0+(to-f0)*e)+post;if(k<1)requestAnimationFrame(step);else el.textContent=txt};
+  requestAnimationFrame(step);
+}
+let nStatsAnim=null,libCounted=false;
+function openNovelNow(name){if(curNovel!==name){$('#nSearch').value='';$('#nReadSec').open=false;nStatsAnim=null}curNovel=name;$('#novelView').classList.add('show');$('#novelView').scrollTop=0;renderNovel();saveView()}
+function coverOf(name){return [...document.querySelectorAll('#library [data-novel]')].find(b=>b.dataset.novel===name&&b.offsetParent)?.querySelector('.cover')||null}
+function openNovel(name){
+  if($('#novelView').classList.contains('show')){openNovelNow(name);return}
+  const c=coverOf(name);if(c)c.style.viewTransitionName='ncover';
+  vt(()=>{if(c)c.style.viewTransitionName='';openNovelNow(name)});
+}
+function closeNovelNow(){if(selMode)endSel();curNovel=null;nStatsAnim=null;$('#novelView').classList.remove('show');renderLibrary();saveView()}
+function closeNovel(){
+  const n=curNovel;
+  vt(()=>{closeNovelNow();const c=coverOf(n);if(c){c.style.viewTransitionName='ncover';setTimeout(()=>{c.style.viewTransitionName=''},600)}});
+}
 $('#nBack').onclick=closeNovel;
 $('#nAdd').onclick=()=>openAdd(curNovel===SAMPLE.novel&&!chapters.length?'':curNovel);
 function renderNovel(){
@@ -2379,6 +2449,7 @@ function renderNovel(){
   $('#nName').textContent=curNovel;
   const d=$('#nDesc');d.textContent=m.desc||'لا يوجد وصف بعد. اضغط زر التعديل لإضافة وصف وتغيير الغلاف.';d.classList.toggle('none',!m.desc);
   $('#nStats').innerHTML=`<div><b>${s.count}</b>فصل</div><div><b>${kfmt(s.words)}</b>كلمة</div><div><b>${s.done}</b>مكتمل</div><div><b>${s.min!=null?s.min+'–'+s.max:'—'}</b>المدى</div>`;
+  if(nStatsAnim!==curNovel){nStatsAnim=curNovel;[...$('#nStats').querySelectorAll('b')].slice(0,3).forEach(b=>countUp(b,0,650))}
   const al=$('#nAlert');
   const warnIco='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3 2 20h20zM12 10v4M12 17h.01"/></svg>';
   let msg='';
@@ -3157,9 +3228,20 @@ function renderPowChip(){
   const pw=(meta.novels[nv(current)]||{}).power||{};
   const ev=(pw.history||[]).filter(x=>x.ch===current.num);
   const old=document.querySelector('#article .powev');if(old)old.remove();
-  if(ev.length){const d=document.createElement('div');d.className='powev';const k=pkind(powLadders(pw)[0]);
-    d.innerHTML=k==='wealth'?'حدث في هذا الفصل: صارت ثروة <b></b>':k==='company'?'حدث في هذا الفصل: صارت <b></b>':'حدث في هذا الفصل: ترقّى <b></b>';
-    const e=ev[ev.length-1].stage;d.querySelector('b').textContent=k==='wealth'?fmtMoney(`${(pw.hero||{}).name||'البطل'} ${e.split(' – ')[1]||e}`):k==='company'?`${(pw.hero||{}).name||'الشركة'} ${e}`:`${(pw.hero||{}).name||'البطل'} إلى ${e}`;const em=document.querySelector('#article .endmark');if(em)em.before(d)}
+  if(ev.length){const d=document.createElement('div');const k=pkind(powLadders(pw)[0]);d.className='powev k-'+k;
+    const e=ev[ev.length-1].stage,who=(pw.hero||{}).name||(k==='company'?'الشركة':'البطل');
+    const prevEv=(pw.history||[]).filter(x=>x.ch!=null&&x.ch<current.num).pop();
+    const ico=k==='wealth'?'💰':k==='company'?'🏢':'⚡';
+    const head=k==='wealth'?`ثروة ${who} الآن`:k==='company'?`${who} صارت`:`ترقّى ${who} إلى`;
+    const val=k==='wealth'?fmtMoney(e.split(' – ')[1]||e):e;
+    d.innerHTML=`<span class="pe-rays"></span><span class="pe-ico">${ico}</span><small>حدث في هذا الفصل</small><small style="opacity:.9;font-size:13px"></small><b></b>`;
+    d.querySelectorAll('small')[1].textContent=head;d.querySelector('b').textContent=val;
+    for(let q=0;q<10;q++){const sp=document.createElement('i');sp.className='spark';const a=q/10*Math.PI*2,r=70+Math.random()*50;sp.style.cssText=`--x:${Math.cos(a)*r}px;--y:${Math.sin(a)*r*.6}px;--d:${.25+Math.random()*.2}s`;d.appendChild(sp)}
+    const em=document.querySelector('#article .endmark');if(em)em.before(d);
+    const from=k==='wealth'&&prevEv?parseFloat(((fmtMoney(prevEv.stage.split(' – ')[1]||'').match(/\d[\d,]*(\.\d+)?/)||[''])[0]).replace(/,/g,'')):0;
+    const show=()=>{if(d.classList.contains('in'))return;d.classList.add('in');buzz([20,60,30,60,40]);if(k==='wealth')countUp(d.querySelector('b'),isFinite(from)?from:0,1200)};
+    if('IntersectionObserver' in window){const io=new IntersectionObserver(es=>{if(es.some(x=>x.isIntersecting)){io.disconnect();show()}},{threshold:.5});io.observe(d)}else show();
+  }
 }
 let pmTab=0;
 function heroOf(l,li,n){if(li===0)return heroAt(n,current.num);const x=l.hero;return x&&x.stage&&!(x.ch&&current.num!=null&&x.ch>current.num)?Object.assign({label:x.stage+(x.sub?' – '+x.sub:'')},x):null}
@@ -4105,7 +4187,7 @@ function openReader(id,opt){
   opt=opt||{};
   const ch=all().find(c=>c.id===id);if(!ch)return;
   if(tts.on&&!opt.keepTts)ttsStop();
-  hidePMenu();$('#article').classList.remove('leave-next','leave-prev');
+  hidePMenu();hideDone();$('#article').classList.remove('leave-next','leave-prev');
   curWords=words(ch.text||'');autoAsked=null;
   readMark=(ch.progress||0)>.97?0:(ch.progress||0);wasDone=(ch.progress||0)>.97;lastReadAt=Date.now();
   saveProgress(true);current=ch;lastId=id;LS.set('midad.last',id);widgetPush();
@@ -4127,8 +4209,23 @@ function openReader(id,opt){
   });
   if(prefs.wake)lockWake();
 }
-function closeReader(){if(tts.on)ttsStop();hidePMenu();saveProgress(true);hideSheet();$('#reader').classList.remove('show');current=null;releaseWake();renderLibrary();if(curNovel)renderNovel();saveView()}
-$('#backBtn').onclick=closeReader;
+/* finishing a chapter: the bar shines, the phone taps, and the next chapter slides up */
+let dcT=null;
+function hideDone(){clearTimeout(dcT);$('#doneCard').classList.remove('in')}
+function chapterDone(){
+  const p=$('.prog');if(p){p.classList.remove('done');void p.offsetWidth;p.classList.add('done')}
+  buzz([14,50,22]);
+  if((typeof as!=='undefined'&&as.on)||tts.on)return; // auto-scroll and read-aloud move on by themselves
+  const {next}=neighbors(),big=$('#nextBig');
+  $('#dcT').textContent=`أنهيت ${current.num!=null?'الفصل '+current.num:'الفصل'}`;
+  $('#dcS').textContent=next?('التالي: '+(next.title||'الفصل '+next.num)):(big?big.textContent.trim():'');
+  $('#dcGo').hidden=!big;$('#dcGo').textContent=next?'التالي':'متابعة';
+  $('#doneCard').classList.add('in');clearTimeout(dcT);dcT=setTimeout(hideDone,8000);
+}
+$('#dcGo').onclick=()=>{hideDone();const b=$('#nextBig');if(b)b.click()};
+$('#dcX').onclick=hideDone;
+function closeReader(){hideDone();if(tts.on)ttsStop();hidePMenu();saveProgress(true);hideSheet();$('#reader').classList.remove('show');current=null;releaseWake();renderLibrary();if(curNovel)renderNovel();saveView()}
+$('#backBtn').onclick=()=>vt(closeReader);
 
 let lastTop=0,progT=null,dirty=false,autoAsked=null;
 function onScroll(){
@@ -4142,7 +4239,7 @@ function onScroll(){
     const now=Date.now();if(lastReadAt){const dt=Math.min(60,(now-lastReadAt)/1000);if(dt>0)bumpStat('rs',Math.round(dt))}lastReadAt=now;
     bumpStat('rw',Math.round((f-readMark)*curWords));readMark=f;
   }
-  if(current&&!current.sample&&f>.97&&!wasDone){wasDone=true;bumpStat('rc',1);autoKnowledge(nv(current))}
+  if(current&&!current.sample&&f>.97&&!wasDone){wasDone=true;bumpStat('rc',1);autoKnowledge(nv(current));chapterDone()}
   const r=$('#reader');
   if(sc.scrollTop>lastTop+8&&sc.scrollTop>80)r.classList.add('immersive');
   else if(sc.scrollTop<lastTop-8||f>.98)r.classList.remove('immersive');
@@ -5385,7 +5482,7 @@ function renderWeek(){
   wkCap(cur.find(d=>d.k===wkSel));
 }
 function renderStatDot(){const {streak}=weekData();const d=$('#statDot');d.hidden=!streak;d.textContent=streak}
-function openStats(){$('#statsView').classList.add('show');$('#statsView').scrollTop=0;renderWeek();saveView()}
+function openStats(){$('#statsView').classList.add('show');$('#statsView').scrollTop=0;renderWeek();saveView();requestAnimationFrame(()=>$('#statsView').querySelectorAll('b').forEach(b=>{if(b.children.length===0&&/^\s*[\d,.]+/.test(b.textContent))countUp(b,0,800)}))}
 $('#statBtn').onclick=openStats;
 $('#stBack').onclick=()=>{$('#statsView').classList.remove('show');saveView()};
 function wkCap(d){if(!d)return;$('#wkCap').innerHTML=`${d.k===dayKey()?'اليوم':WD[d.t.getDay()]}: <b>${d.rw.toLocaleString('ar')}</b> <span>كلمة قرأتها</span> · <b>${d.rc}</b> <span>فصل أنهيته</span> · <b>${d.tc}</b> <span>فصل أضفته</span>`}
