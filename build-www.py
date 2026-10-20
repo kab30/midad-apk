@@ -38,6 +38,7 @@ window.__midadBack=()=>{
   if(!$('#entPop').hidden){hideEnt();return true}
   if(openSheet){hideSheet();return true}
   const lb=$('#lbox');if(lb&&!lb.hidden){lb.hidden=true;return true}
+  const rv=$('#relView');if(rv&&rv.classList.contains('show')){if(!$('#relCard').hidden){relSelect(null)}else closeRels();return true}
   if(current){closeReader();return true}
   const dv=$('#discView');if(dv&&dv.classList.contains('show')){const b=dv.querySelector('[data-back],.back,#dsBack');if(b){b.click();return true}}
   if(curNovel){closeNovel();return true}
