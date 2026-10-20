@@ -2631,7 +2631,8 @@ function autoKnowledge(novel){
     const due=cur=>!prefs.eco||kbTodo(novel,cur||{upTo:0}).filter(it=>it.f>=1).length>=5;
     if(m.chars&&m.chars.list&&m.chars.list.length&&due(m.chars))await updateChars(novel,true);
     if(m.lex&&m.lex.list&&m.lex.list.length&&due(m.lex))await updateLex(novel,true);
-    if(m.power&&(m.power.upTo||m.power.part)&&due(m.power))await updatePower(novel,true);
+    // the power / wealth ladder follows every chapter, even in economy mode (only the new chapter, quick model)
+    if(m.power&&(m.power.upTo||m.power.part)&&kbTodo(novel,m.power).some(it=>it.f>=1))await updatePower(novel,true);
   },1500);
 }
 
@@ -2863,6 +2864,14 @@ const CUR_RATE={CNY:1,RMB:1,USD:7.2,EUR:7.8,GBP:9.1,JPY:0.048,KRW:0.0053,HKD:0.9
 const tierStages=T=>T.map(x=>({name:x[0],src:'',desc:x[1]||'',subs:[],chars:[],sure:true}));
 function wealthTier(v,cur){if(v==null||isNaN(v))return null;const y=v*(CUR_RATE[String(cur||'CNY').toUpperCase()]||1);if(y<=0)return WEALTH_TIERS[0][0];return (WEALTH_TIERS.slice(1).find(t=>y<t[2])||WEALTH_TIERS[WEALTH_TIERS.length-1])[0]}
 const isMoneyGenre=g=>g==='wealth'||g==='mixed';
+/* 3200000000 → 3,200,000,000 ; Arabic digits and separators normalised first */
+function fmtMoney(t){
+  if(!t)return t;
+  t=String(t).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/٫/g,'.').replace(/٬/g,',');
+  return t.replace(/\d[\d,]*(\.\d+)?/g,m=>{const [a,b]=m.replace(/,/g,'').split('.');if(a.length<4)return m;return a.replace(/\B(?=(\d{3})+(?!\d))/g,',')+(b?'.'+b:'')});
+}
+function moneyWords(v){const a=Math.abs(v),f=x=>(+x.toFixed(x<10?2:1)).toString();
+  return a>=1e12?f(v/1e12)+' تريليون':a>=1e9?f(v/1e9)+' مليار':a>=1e6?f(v/1e6)+' مليون':a>=1e3?f(v/1e3)+' ألف':String(v)}
 const pkind=l=>PKINDS[l&&l.kind]?l.kind:'people';
 const KIND_PROMPT=`صنّف كل سلّم في kind واحد: people (مراحل تدريب البشر أو المحترفين أو الزراعة، وإذا كان للبشر العاديين نظام تدريب مختلف عن المحترفين فاجعله سلّماً منفصلاً)، beast (رتب الوحوش أو المخلوقات أو الأرواح المستدعاة)، item (درجات الكنوز أو الأسلحة أو الحبوب أو الموارد)، skill (درجات التقنيات أو المهارات أو الفنون القتالية)، wealth (ثروة البطل وأمواله في روايات الأعمال والاستثمار والتكنولوجيا)، company (حجم شركة البطل ونموها)، org (مراتب المناصب أو المنظمات أو الشركات)، other. لا تخلط نوعين في سلّم واحد.`;
 function powSortL(L,genre){const O=genre==='wealth'?['wealth','company'].concat(PKORDER.filter(k=>k!=='wealth'&&k!=='company')):PKORDER;return L.map((l,i)=>[l,i]).sort((a,b)=>(O.indexOf(pkind(a[0]))-O.indexOf(pkind(b[0])))||a[1]-b[1]).map(x=>x[0])}
@@ -2914,7 +2923,7 @@ function renderPow(){
   const hereIdx=h.stage?st.findIndex(x=>x.name===h.stage):-1;
   const hb=$('#pwHero');hb.hidden=!(h.name&&h.stage);
   if(!hb.hidden){hb.innerHTML='<span class="hb"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/></svg></span><span class="ht"><small></small><b></b><span></span></span>';hb.querySelector('small').textContent=PKINDS[pkind(lad)][2];
-    hb.querySelector('b').textContent=pkind(lad)==='wealth'?`${h.name}: ${h.sub||h.stage}${h.title?' · '+h.title:''}`:`${h.name}: ${h.stage}${h.sub?' – '+h.sub:''}`;
+    hb.querySelector('b').textContent=pkind(lad)==='wealth'?fmtMoney(`${h.name}: ${h.sub||h.stage}${h.title?' · '+h.title:''}`):`${h.name}: ${h.stage}${h.sub?' – '+h.sub:''}`;
     hb.querySelector('.ht span').textContent=(hereIdx>-1?`المرحلة ${hereIdx+1} من ${st.length} معروفة`:'')+(h.ch?` · منذ الفصل ${h.ch}`:'');}
   const L=$('#pwLadder');L.innerHTML='';
   if(!st.length){L.innerHTML=`<div class="empty">${cur.upTo||cur.part||LS2.length?'لم تُذكر مراحل قوة أو رتب واضحة في الفصول التي قرأتها حتى الآن.':'لم يُبنَ بعد.'}</div>`}
@@ -2934,7 +2943,7 @@ function renderPow(){
   const kL=pkind(lad);
   const hist=kL==='wealth'?(full.whist||[]).map(x=>({ch:x.ch,stage:x.sub+(x.title?' · '+x.title:'')})):(cur.history||[]);
   if(hist.length){const b=document.createElement('div');b.className='phist';b.innerHTML=`<h4>${kL==='wealth'?'نمو الثروة':kL==='company'?'نمو الشركة':'ترقّيات البطل'}</h4>`;
-    hist.forEach(x=>{const r=document.createElement('div');r.innerHTML='<b></b><span></span>';r.querySelector('b').textContent='الفصل '+(x.ch??'?');r.querySelector('span').textContent=x.stage;b.appendChild(r)});H.appendChild(b)}
+    hist.forEach(x=>{const r=document.createElement('div');r.innerHTML='<b></b><span></span>';r.querySelector('b').textContent='الفصل '+(x.ch??'?');r.querySelector('span').textContent=fmtMoney(x.stage);b.appendChild(r)});H.appendChild(b)}
 }
 $('#nPow').onclick=()=>{renderPow();showSheet($('#powSheet'))};
 /* manual editor */
@@ -3064,8 +3073,11 @@ ${batch.map(it=>`${batchHead(it)}\n${kbText(it)}`).join('\n\n')}`;
       const cleanHero=h=>{
         if(!h)return null;
         const v=h.value==null||h.value===''?null:+String(h.value).replace(/[^\d.\-e]/g,'');
-        const o={name:S(h.name).slice(0,60),stage:S(h.stage||'').slice(0,60),sub:S(h.sub||'').slice(0,50),ch:+h.ch||null};
+        const o={name:S(h.name).slice(0,60),stage:S(h.stage||'').slice(0,60),sub:S(h.sub||'').slice(0,60),ch:+h.ch||null};
         if(v!=null&&!isNaN(v)){o.value=v;o.cur=String(h.cur||'CNY').slice(0,4).toUpperCase()}
+        if(o.sub)o.sub=fmtMoney(o.sub);
+        // a bare long number gets the words next to it: 3,200,000,000 يوان (3.2 مليار)
+        if(o.value!=null&&Math.abs(o.value)>=1e4&&o.sub&&!/(ألف|آلاف|مليون|ملايين|مليار|مليارات|تريليون)/.test(o.sub))o.sub=(o.sub+' ('+moneyWords(o.value)+')').slice(0,60);
         if(h.title)o.title=S(h.title).slice(0,60);
         return o.stage||o.value!=null?o:null;
       };
@@ -3103,7 +3115,7 @@ ${batch.map(it=>`${batchHead(it)}\n${kbText(it)}`).join('\n\n')}`;
     if(opt.recent){toast(cur.hero&&cur.hero.stage?`${cur.hero.name||'البطل'} الآن: ${cur.hero.stage}${cur.hero.sub?' – '+cur.hero.sub:''}`:'جاهز. لم أجد موقع البطل بوضوح في آخر فصلين، يمكنك تحديده يدوياً');powBusy=false;powMsg='';if(openSheet&&openSheet.id==='powSheet')renderPow();return}
     const after=cur.hero&&cur.hero.stage?`${cur.hero.stage}|${cur.hero.sub||''}`:'';
     const k0=pkind(powLadders(cur)[0]);
-    if(before&&after&&before!==after)toast(k0==='wealth'?`💰 ثروة ${cur.hero.name||'البطل'} الآن: ${cur.hero.sub||cur.hero.stage}${cur.hero.ch?' (الفصل '+cur.hero.ch+')':''}`:k0==='company'?`🏢 ${cur.hero.name||'الشركة'} صارت: ${cur.hero.stage}`:`ترقّى ${cur.hero.name||'البطل'} إلى ${cur.hero.stage}${cur.hero.sub?' – '+cur.hero.sub:''}${cur.hero.ch?' في الفصل '+cur.hero.ch:''}`);
+    if(before&&after&&before!==after)toast(k0==='wealth'?fmtMoney(`💰 ثروة ${cur.hero.name||'البطل'} الآن: ${cur.hero.sub||cur.hero.stage}${cur.hero.ch?' (الفصل '+cur.hero.ch+')':''}`):k0==='company'?`🏢 ${cur.hero.name||'الشركة'} صارت: ${cur.hero.stage}`:`ترقّى ${cur.hero.name||'البطل'} إلى ${cur.hero.stage}${cur.hero.sub?' – '+cur.hero.sub:''}${cur.hero.ch?' في الفصل '+cur.hero.ch:''}`);
     else if(!quiet)toast('تم تحديث سلّم القوة');
   }catch(e){if(!quiet)toast(TR_ERR[e&&e.code]||'تعذّر تحديث سلّم القوة، حاول مرة أخرى')}
   powBusy=false;powMsg='';if(openSheet&&openSheet.id==='powSheet')renderPow();
@@ -3140,13 +3152,14 @@ function renderPowChip(){
   b.textContent=k0==='wealth'?(wAt()||(h&&(h.label.split(' – ')[1]||h.label))?'💰 '+(wAt()||h.label.split(' – ')[1]||h.label):'💰 سلّم الثروة')
     :k0==='company'?(h?'🏢 '+h.label:'🏢 شركة البطل')
     :h&&k0==='people'?'⚡ '+h.label:'⚡ سلّم القوة';
+  if(k0==='wealth')b.textContent=fmtMoney(b.textContent);
   // a promotion that happens in this chapter is shown at its end, not up front
   const pw=(meta.novels[nv(current)]||{}).power||{};
   const ev=(pw.history||[]).filter(x=>x.ch===current.num);
   const old=document.querySelector('#article .powev');if(old)old.remove();
   if(ev.length){const d=document.createElement('div');d.className='powev';const k=pkind(powLadders(pw)[0]);
     d.innerHTML=k==='wealth'?'حدث في هذا الفصل: صارت ثروة <b></b>':k==='company'?'حدث في هذا الفصل: صارت <b></b>':'حدث في هذا الفصل: ترقّى <b></b>';
-    const e=ev[ev.length-1].stage;d.querySelector('b').textContent=k==='wealth'?`${(pw.hero||{}).name||'البطل'} ${e.split(' – ')[1]||e}`:k==='company'?`${(pw.hero||{}).name||'الشركة'} ${e}`:`${(pw.hero||{}).name||'البطل'} إلى ${e}`;const em=document.querySelector('#article .endmark');if(em)em.before(d)}
+    const e=ev[ev.length-1].stage;d.querySelector('b').textContent=k==='wealth'?fmtMoney(`${(pw.hero||{}).name||'البطل'} ${e.split(' – ')[1]||e}`):k==='company'?`${(pw.hero||{}).name||'الشركة'} ${e}`:`${(pw.hero||{}).name||'البطل'} إلى ${e}`;const em=document.querySelector('#article .endmark');if(em)em.before(d)}
 }
 let pmTab=0;
 function heroOf(l,li,n){if(li===0)return heroAt(n,current.num);const x=l.hero;return x&&x.stage&&!(x.ch&&current.num!=null&&x.ch>current.num)?Object.assign({label:x.stage+(x.sub?' – '+x.sub:'')},x):null}
@@ -3159,10 +3172,10 @@ function renderPowMini(){
   $('#pmTitle').textContent=pkind(l)==='wealth'?'سلّم الثروة':pkind(l)==='company'?'شركة البطل':pw.system?`سلّم القوة: ${pw.system}`:'سلّم القوة';
   const PH=$('#pmHist');PH.innerHTML='';
   if(pkind(l)==='wealth'){const wl=(pw.whist||[]).filter(x=>x.ch==null||current.num==null||x.ch<=current.num).slice(-8);
-    if(wl.length){const b=document.createElement('div');b.className='phist';b.innerHTML='<h4>نمو الثروة</h4>';wl.forEach(x=>{const r=document.createElement('div');r.innerHTML='<b></b><span></span>';r.querySelector('b').textContent='الفصل '+(x.ch??'?');r.querySelector('span').textContent=x.sub+(x.title?' · '+x.title:'');b.appendChild(r)});PH.appendChild(b)}}
-  $('#pmHero').textContent=h?`${PKINDS[pkind(l)][2]}: ${h.name&&pkind(l)!=='people'?h.name+' · ':''}${h.label} (المرحلة ${hi+1} من ${st.length})`:'لم يُحدَّد موقع البطل في هذا السلّم بعد';
+    if(wl.length){const b=document.createElement('div');b.className='phist';b.innerHTML='<h4>نمو الثروة</h4>';wl.forEach(x=>{const r=document.createElement('div');r.innerHTML='<b></b><span></span>';r.querySelector('b').textContent='الفصل '+(x.ch??'?');r.querySelector('span').textContent=fmtMoney(x.sub)+(x.title?' · '+x.title:'');b.appendChild(r)});PH.appendChild(b)}}
+  $('#pmHero').textContent=h?fmtMoney(`${PKINDS[pkind(l)][2]}: ${h.name&&pkind(l)!=='people'?h.name+' · ':''}${h.label} (المرحلة ${hi+1} من ${st.length})`):'لم يُحدَّد موقع البطل في هذا السلّم بعد';
   const L=$('#pmList');L.innerHTML='';
-  st.map((x,i)=>[x,i]).reverse().forEach(([x,i])=>{const d=document.createElement('div');d.className=i===hi?'here':(hi>-1&&i<hi?'past':'');d.innerHTML='<i></i><span></span>';d.querySelector('i').textContent=i+1;d.querySelector('span').textContent=x.name;if(i===hi){const s2=document.createElement('small');s2.textContent=(h.label!==x.name?h.label.replace(x.name+' – ',''):'')+' هنا';d.appendChild(s2)}L.appendChild(d)});
+  st.map((x,i)=>[x,i]).reverse().forEach(([x,i])=>{const d=document.createElement('div');d.className=i===hi?'here':(hi>-1&&i<hi?'past':'');d.innerHTML='<i></i><span></span>';d.querySelector('i').textContent=i+1;d.querySelector('span').textContent=x.name;if(i===hi){const s2=document.createElement('small');s2.textContent=fmtMoney((h.label!==x.name?h.label.replace(x.name+' – ',''):'')+' هنا');d.appendChild(s2)}L.appendChild(d)});
 }
 $('#powChip').onclick=()=>{pmTab=0;renderPowMini();showSheet($('#powMini'))};
 $('#pmFull').onclick=()=>{const n=nv(current);hideSheet();if(curNovel!==n)openNovel(n);renderPow();showSheet($('#powSheet'))};
