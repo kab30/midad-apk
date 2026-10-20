@@ -954,6 +954,24 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 .trpill.err .spin{animation:none;border-color:var(--warn)}
 .trpill.err .pltxt{white-space:normal;color:var(--warn)}
 .plact{display:flex;gap:8px;padding:0 12px 12px}
+/* compact: a small ring in the corner, tap for the full panel */
+.plring{display:none}
+.trpill.mini{left:14px;right:auto;bottom:calc(146px + env(safe-area-inset-bottom,0px));width:60px;height:60px;max-width:none;margin:0;border-radius:50%;padding:0;overflow:visible;
+  box-shadow:0 10px 26px -10px rgba(0,0,0,.65),0 0 18px -6px rgba(79,220,255,.55);transition:transform .2s}
+.trpill.mini:active{transform:scale(.94)}
+.trpill.mini .plrow,.trpill.mini .plbar,.trpill.mini .pllive,.trpill.mini .plact{display:none!important}
+.trpill.mini .plring{display:grid;place-items:center;position:relative;width:100%;height:100%;border-radius:50%;color:var(--ink)}
+.plring svg{position:absolute;inset:3px;width:calc(100% - 6px);height:calc(100% - 6px);transform:rotate(-90deg)}
+.plring circle{fill:none;stroke-width:4}
+.plring .rt{stroke:color-mix(in srgb,var(--plasma) 16%,transparent)}
+.plring .rv{stroke:var(--plasma);stroke-linecap:round;stroke-dasharray:119.4;stroke-dashoffset:119.4;transition:stroke-dashoffset .6s cubic-bezier(.2,.8,.2,1)}
+.plring.think .rt{animation:ringPulse 1.4s ease-in-out infinite}
+@keyframes ringPulse{50%{stroke:color-mix(in srgb,var(--plasma) 40%,transparent)}}
+.plring .rn{position:relative;display:flex;flex-direction:column;align-items:center;line-height:1.05;font-family:var(--mono)}
+.plring .rn b{font-size:13px;color:var(--plasma);font-variant-numeric:tabular-nums}
+.plring .rn small{font-family:var(--ui);font-size:9.5px;opacity:.75;margin-top:2px}
+.plring .rq{position:absolute;top:-3px;right:-3px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--plasma);color:var(--void,#05070d);font:700 11px/20px var(--ui);text-align:center}
+@media (prefers-reduced-motion:reduce){.plring .rv{transition:none}}
 .plact button{flex:1;height:38px;border-radius:10px;font-size:13px;font-weight:600;background:var(--deck);border:1px solid var(--line)}
 .plact button:first-child{background:var(--plasma);color:var(--onacc);border:0}
 .rnav button.pending{opacity:.75}
@@ -1827,6 +1845,10 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 </section>
 
 <div class="trpill" id="trPill" dir="rtl" hidden>
+  <button class="plring" id="plRing" type="button" aria-label="الترجمة الجارية، اضغط للتفاصيل">
+    <svg viewBox="0 0 44 44" aria-hidden="true"><circle class="rt" cx="22" cy="22" r="19"/><circle class="rv" id="plRingV" cx="22" cy="22" r="19"/></svg>
+    <span class="rn"><b id="plRingP">0%</b><small id="plRingC"></small></span><span class="rq" id="plRingQ" dir="ltr" hidden></span>
+  </button>
   <div class="plrow">
     <button class="plmain" id="plMain" type="button" aria-label="عرض الترجمة الجارية">
       <span class="spin" aria-hidden="true"></span>
@@ -4112,7 +4134,7 @@ async function runQueue(){
 function renderPill(){
   const pl=$('#trPill');
   if(!trQueue.length&&!trErr){pl.hidden=true;pillOpen=false;return}
-  pl.hidden=false;pl.classList.toggle('err',!!trErr);pl.classList.toggle('open',pillOpen&&!trErr);
+  pl.hidden=false;pl.classList.toggle('err',!!trErr);pl.classList.toggle('open',pillOpen&&!trErr);pl.classList.toggle('mini',!pillOpen&&!trErr);
   $('#plErrAct').hidden=!trErr;$('#plStop').hidden=!!trErr;$('#plUsage').hidden=true;
   const sLeft=usage.s&&usage.s.at>Date.now()?` · يتجدد الحد بعد ${fmtLeft(usage.s.at-Date.now())}`:'';
   if(trErr){$('#plTxt').textContent=trErr+(trQueue.length?` (${trQueue.length} فصل بانتظار الإعادة)`:'');$('#plPct').textContent='';$('#plBar').style.width='0';return}
@@ -4121,9 +4143,14 @@ function renderPill(){
   $('#plTxt').textContent=`يترجم الفصل ${j.r.num}`+(j.parts>1?` · جزء ${j.part}/${j.parts}`:'')+(j.phase==='think'?' · يفكر…':'')+(waiting?` · ${waiting} بالانتظار`:'');
   const pct=Math.min(99,Math.round(j.done/j.total*100));
   $('#plPct').textContent=pct+'%';$('#plBar').style.width=pct+'%';
+  $('#plRingP').textContent=pct+'%';$('#plRingC').textContent=j.r.num!=null?'فصل '+j.r.num:'';$('#plRingV').style.strokeDashoffset=String(119.4*(1-pct/100));
+  $('#plRing').classList.toggle('think',j.phase==='think'||pct<1);
+  const rq=$('#plRingQ');rq.hidden=!waiting;rq.textContent='+'+waiting;
+  $('#plRing').setAttribute('aria-label',`يترجم الفصل ${j.r.num} · ${pct}%`+(waiting?` · ${waiting} بالانتظار`:'')+'. اضغط للتفاصيل');
   const lv=$('#plLive');lv.textContent=trLive?trLive.slice(-900):'';if(pillOpen)lv.scrollTop=lv.scrollHeight;
 }
 $('#plMain').onclick=()=>{if(trErr)return;pillOpen=!pillOpen;renderPill()};
+$('#plRing').onclick=()=>{pillOpen=true;renderPill()};
 $('#plStop').onclick=()=>{const b=$('#plStop');if(!b.classList.contains('arm')){b.classList.add('arm');b.textContent='إيقاف؟';setTimeout(()=>{b.classList.remove('arm');b.textContent='×'},2500);return}b.classList.remove('arm');b.textContent='×';trCtl?trCtl.abort():(trQueue.length=0,renderPill())};
 $('#plRetry').onclick=()=>{trErr='';trErrCode='';if(!trQueue.length&&current){renderPill();maybeAutoNext();return}renderPill();runQueue()};
 $('#plDrop').onclick=()=>{trErr='';trQueue.length=0;renderPill();if(current)updateNav();if(curNovel)renderNovel()};
