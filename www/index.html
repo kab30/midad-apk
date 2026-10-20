@@ -995,6 +995,33 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 .donecard .dstats b{display:block;font-size:15px;font-variant-numeric:tabular-nums;color:var(--ra)}
 .donecard .dstats small{display:block;font-size:10.5px;opacity:.75;margin-top:2px;white-space:nowrap}
 #confetti{position:absolute;inset:0;z-index:7;pointer-events:none;width:100%;height:100%}
+.promo{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:24px;background:rgba(3,6,14,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);font-family:var(--ui);animation:prFade .3s both}
+.promo[hidden]{display:none!important}
+@keyframes prFade{from{opacity:0}}
+.promo .pr-card{position:relative;width:min(340px,100%);padding:34px 20px 20px;border-radius:26px;text-align:center;color:#eef4ff;overflow:hidden;
+  background:radial-gradient(130% 80% at 50% 0%,color-mix(in srgb,var(--pc,#4fdcff) 30%,#0b1120),#0b1120 75%);border:1px solid color-mix(in srgb,var(--pc,#4fdcff) 60%,transparent);
+  box-shadow:0 0 60px -10px color-mix(in srgb,var(--pc,#4fdcff) 60%,transparent);animation:prIn .6s both cubic-bezier(.2,1.4,.3,1)}
+@keyframes prIn{from{transform:scale(.6) translateY(40px);opacity:0}}
+.promo .pr-glow{position:absolute;inset:-50%;background:conic-gradient(from 0deg,transparent 0 20deg,color-mix(in srgb,var(--pc,#4fdcff) 18%,transparent) 20deg 30deg,transparent 30deg 60deg);animation:prSpin 6s linear infinite;pointer-events:none}
+@keyframes prSpin{to{transform:rotate(360deg)}}
+.promo .pr-ring{position:absolute;left:50%;top:62px;width:96px;height:96px;margin:-48px 0 0 -48px;border-radius:50%;border:2px solid var(--pc,#4fdcff);opacity:0;animation:prRing 1.6s .3s ease-out infinite;pointer-events:none}
+@keyframes prRing{0%{opacity:.9;transform:scale(.5)}100%{opacity:0;transform:scale(1.9)}}
+.promo .pr-ico{position:relative;display:block;font-size:58px;line-height:1;margin-bottom:26px;filter:drop-shadow(0 0 18px var(--pc,#4fdcff));animation:peBounce 1s .25s both cubic-bezier(.2,1.6,.4,1)}
+.promo small{position:relative;display:block;font-size:12.5px;opacity:.8}
+.promo .pr-from{position:relative;margin-top:12px;font-size:14px;opacity:.6;text-decoration:line-through;text-decoration-thickness:1px}
+.promo .pr-arrow{position:relative;font-size:16px;opacity:.6;margin:2px 0;animation:prDrop 1.2s .5s ease-in-out infinite}
+@keyframes prDrop{50%{transform:translateY(4px)}}
+.promo .pr-to{position:relative;display:block;font-size:24px;line-height:1.5;color:var(--pc,#4fdcff);font-variant-numeric:tabular-nums;animation:prTo .7s .55s both cubic-bezier(.2,1.5,.3,1)}
+@keyframes prTo{from{opacity:0;transform:scale(1.5);filter:blur(6px)}}
+.promo .pr-step{position:relative;margin:14px auto 0;width:80%}
+.promo .pr-bar{height:6px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden}
+.promo .pr-bar i{display:block;height:100%;width:0;border-radius:6px;background:var(--pc,#4fdcff);transition:width 1.1s .7s cubic-bezier(.2,.8,.2,1)}
+.promo .pr-step small{margin-top:6px}
+.promo .pr-ok{position:relative;margin-top:18px;height:44px;padding:0 34px;border-radius:14px;background:var(--pc,#4fdcff);color:#0b1120;font-weight:700;font-size:15px}
+.powev .pe-from{display:block;font-size:12.5px;opacity:.55;text-decoration:line-through;margin-top:2px}
+.powev .pe-bar{height:5px;border-radius:5px;background:color-mix(in srgb,var(--ra) 15%,transparent);overflow:hidden;margin:12px auto 4px;width:70%}
+.powev .pe-bar i{display:block;height:100%;width:0;background:var(--ra);transition:width 1.2s .5s cubic-bezier(.2,.8,.2,1)}
+.powev .pe-step{font-size:11.5px;opacity:.7}
 /* promotion moment */
 .powev{position:relative;overflow:hidden;font-family:var(--ui);margin:1.6em 0 0;padding:22px 16px 18px;border-radius:20px;text-align:center;
   border:1px solid color-mix(in srgb,var(--ra) 55%,transparent);background:radial-gradient(120% 90% at 50% 0%,color-mix(in srgb,var(--ra) 22%,transparent),color-mix(in srgb,var(--ra) 5%,transparent) 70%);
@@ -1859,6 +1886,12 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
   <div class="lbacts"><button type="button" id="lbGo">افتح المشهد</button><button type="button" id="lbSave">احفظ في الجوال</button><button type="button" id="lbDel">حذف</button><button type="button" id="lbClose">إغلاق</button></div>
 </div>
 
+<div class="promo" id="promo" dir="rtl" hidden role="dialog" aria-label="ترقّي البطل">
+  <div class="pr-card"><span class="pr-glow"></span><span class="pr-ring"></span><span class="pr-ico" id="prIco"></span>
+    <small id="prHead"></small><div class="pr-from" id="prFrom"></div><div class="pr-arrow">↓</div><b class="pr-to" id="prTo"></b>
+    <div class="pr-step" id="prStepW"><div class="pr-bar"><i id="prBar"></i></div><small id="prStep"></small></div>
+    <button type="button" class="pr-ok" id="prOk">رائع</button></div>
+</div>
 <div class="toast" id="toast" role="status"></div>
 
 <script>
@@ -2387,7 +2420,7 @@ function renderLibrary(){
     b.querySelector('.cn').textContent=name;paintCover(b.querySelector('.cover'),name,m);
     b.dataset.novel=name;b.onclick=()=>openNovel(name);shelf.appendChild(b);
   }
-  if(!libCounted&&stats.length){libCounted=true;shelf.querySelectorAll('.nmeta b').forEach(b=>countUp(b,0,800))}
+  if(!libCounted&&stats.length){libCounted=true;shelf.querySelectorAll('.nmeta b').forEach(b=>countUp(b,0,800));countUp($('#shelfInfo'),0,800)}
 
   renderNewSlider(novels);
   const last=list.find(c=>c.id===lastId);
@@ -3118,7 +3151,7 @@ async function updatePower(novel,quiet,opt={}){
   // recent: after importing a ladder, place the hero from the last chapters read instead of re-reading the whole novel
   const todo=opt.recent?kbTodo(novel,{upTo:0}).slice(-2):kbTodo(novel,cur);if(!todo.length)return;
   powBusy=true;if(curNovel===novel)renderPow();
-  const before=cur.hero&&cur.hero.stage?`${cur.hero.stage}|${cur.hero.sub||''}`:'';
+  const before=cur.hero&&cur.hero.stage?`${cur.hero.stage}|${cur.hero.sub||''}`:'';const heroBefore=cur.hero?Object.assign({},cur.hero):null;
   try{
     for(const batch of kbBatches(todo)){
       powMsg=kbPending(batch);if(curNovel===novel)renderPow();
@@ -3196,7 +3229,14 @@ ${batch.map(it=>`${batchHead(it)}\n${kbText(it)}`).join('\n\n')}`;
     if(opt.recent){toast(cur.hero&&cur.hero.stage?`${cur.hero.name||'البطل'} الآن: ${cur.hero.stage}${cur.hero.sub?' – '+cur.hero.sub:''}`:'جاهز. لم أجد موقع البطل بوضوح في آخر فصلين، يمكنك تحديده يدوياً');powBusy=false;powMsg='';if(openSheet&&openSheet.id==='powSheet')renderPow();return}
     const after=cur.hero&&cur.hero.stage?`${cur.hero.stage}|${cur.hero.sub||''}`:'';
     const k0=pkind(powLadders(cur)[0]);
-    if(before&&after&&before!==after)toast(k0==='wealth'?fmtMoney(`💰 ثروة ${cur.hero.name||'البطل'} الآن: ${cur.hero.sub||cur.hero.stage}${cur.hero.ch?' (الفصل '+cur.hero.ch+')':''}`):k0==='company'?`🏢 ${cur.hero.name||'الشركة'} صارت: ${cur.hero.stage}`:`ترقّى ${cur.hero.name||'البطل'} إلى ${cur.hero.stage}${cur.hero.sub?' – '+cur.hero.sub:''}${cur.hero.ch?' في الفصل '+cur.hero.ch:''}`);
+    const reading=$('#reader').classList.contains('show')&&document.visibilityState==='visible'&&current&&nv(current)===novel&&!opt.recent;
+    if(before&&after&&before!==after&&reading){
+      const L0=powLadders(cur)[0]||{stages:[]},idx=(L0.stages||[]).findIndex(x=>x.name===cur.hero.stage),who=cur.hero.name||(k0==='company'?'الشركة':'البطل');
+      showPromo(k0==='wealth'?{k:'wealth',head:`ثروة ${who}${cur.hero.ch?' · الفصل '+cur.hero.ch:''}`,from:fmtMoney(heroBefore&&heroBefore.sub||''),to:fmtMoney(cur.hero.sub||cur.hero.stage),fromV:numIn(heroBefore&&heroBefore.sub),idx,total:(L0.stages||[]).length}
+        :k0==='company'?{k:'company',head:`${who} تكبر`,from:heroBefore&&heroBefore.stage,to:cur.hero.stage,idx,total:(L0.stages||[]).length}
+        :{k:'people',head:`ترقّى ${who}${cur.hero.ch?' · الفصل '+cur.hero.ch:''}`,from:heroBefore?heroBefore.stage+(heroBefore.sub?' – '+heroBefore.sub:''):'',to:cur.hero.stage+(cur.hero.sub?' – '+cur.hero.sub:''),idx,total:(L0.stages||[]).length});
+    }
+    else if(before&&after&&before!==after)toast(k0==='wealth'?fmtMoney(`💰 ثروة ${cur.hero.name||'البطل'} الآن: ${cur.hero.sub||cur.hero.stage}${cur.hero.ch?' (الفصل '+cur.hero.ch+')':''}`):k0==='company'?`🏢 ${cur.hero.name||'الشركة'} صارت: ${cur.hero.stage}`:`ترقّى ${cur.hero.name||'البطل'} إلى ${cur.hero.stage}${cur.hero.sub?' – '+cur.hero.sub:''}${cur.hero.ch?' في الفصل '+cur.hero.ch:''}`);
     else if(!quiet)toast('تم تحديث سلّم القوة');
   }catch(e){if(!quiet)toast(TR_ERR[e&&e.code]||'تعذّر تحديث سلّم القوة، حاول مرة أخرى')}
   powBusy=false;powMsg='';if(openSheet&&openSheet.id==='powSheet')renderPow();
@@ -3233,7 +3273,8 @@ function renderPowChip(){
   b.textContent=k0==='wealth'?(wAt()||(h&&(h.label.split(' – ')[1]||h.label))?'💰 '+(wAt()||h.label.split(' – ')[1]||h.label):'💰 سلّم الثروة')
     :k0==='company'?(h?'🏢 '+h.label:'🏢 شركة البطل')
     :h&&k0==='people'?'⚡ '+h.label:'⚡ سلّم القوة';
-  if(k0==='wealth')b.textContent=fmtMoney(b.textContent);
+  if(k0==='wealth'){b.textContent=fmtMoney(b.textContent);const v=numIn(b.textContent),key=nv(current);
+    if(v!=null&&chipVal.n===key&&chipVal.v!=null&&chipVal.v!==v)countUp(b,chipVal.v,1100);chipVal={n:key,v}}
   // a promotion that happens in this chapter is shown at its end, not up front
   const pw=(meta.novels[nv(current)]||{}).power||{};
   const ev=(pw.history||[]).filter(x=>x.ch===current.num);
@@ -3244,16 +3285,20 @@ function renderPowChip(){
     const ico=k==='wealth'?'💰':k==='company'?'🏢':'⚡';
     const head=k==='wealth'?`ثروة ${who} الآن`:k==='company'?`${who} صارت`:`ترقّى ${who} إلى`;
     const val=k==='wealth'?fmtMoney(e.split(' – ')[1]||e):e;
-    d.innerHTML=`<span class="pe-rays"></span><span class="pe-ico">${ico}</span><small>حدث في هذا الفصل</small><small style="opacity:.9;font-size:13px"></small><b></b>`;
+    const L0=powLadders(pw)[0]||{stages:[]},stN=e.split(' – ')[0],idx=(L0.stages||[]).findIndex(x=>x.name===stN),tot=(L0.stages||[]).length;
+    const fromTxt=prevEv?(k==='wealth'?fmtMoney(prevEv.stage.split(' – ')[1]||prevEv.stage):prevEv.stage):'';
+    d.innerHTML=`<span class="pe-rays"></span><span class="pe-ico">${ico}</span><small>حدث في هذا الفصل</small><small style="opacity:.9;font-size:13px"></small><span class="pe-from"></span><b></b>${idx>-1&&tot>1?'<div class="pe-bar"><i></i></div><div class="pe-step"></div>':''}`;
     d.querySelectorAll('small')[1].textContent=head;d.querySelector('b').textContent=val;
+    const pf=d.querySelector('.pe-from');if(fromTxt&&fromTxt!==val)pf.textContent=fromTxt;else pf.remove();
+    if(d.querySelector('.pe-step'))d.querySelector('.pe-step').textContent=`المرحلة ${idx+1} من ${tot}`;
     for(let q=0;q<10;q++){const sp=document.createElement('i');sp.className='spark';const a=q/10*Math.PI*2,r=70+Math.random()*50;sp.style.cssText=`--x:${Math.cos(a)*r}px;--y:${Math.sin(a)*r*.6}px;--d:${.25+Math.random()*.2}s`;d.appendChild(sp)}
     const em=document.querySelector('#article .endmark');if(em)em.before(d);
     const from=k==='wealth'&&prevEv?parseFloat(((fmtMoney(prevEv.stage.split(' – ')[1]||'').match(/\d[\d,]*(\.\d+)?/)||[''])[0]).replace(/,/g,'')):0;
-    const show=()=>{if(d.classList.contains('in'))return;d.classList.add('in');buzz([20,60,30,60,40]);if(k==='wealth')countUp(d.querySelector('b'),isFinite(from)?from:0,1200)};
+    const show=()=>{if(d.classList.contains('in'))return;d.classList.add('in');buzz([20,60,30,60,40]);const bi=d.querySelector('.pe-bar i');if(bi)requestAnimationFrame(()=>{bi.style.width=Math.round((idx+1)/tot*100)+'%'});if(k==='wealth')countUp(d.querySelector('b'),isFinite(from)?from:0,1200)};
     if('IntersectionObserver' in window){const io=new IntersectionObserver(es=>{if(es.some(x=>x.isIntersecting)){io.disconnect();show()}},{threshold:.5});io.observe(d)}else show();
   }
 }
-let pmTab=0;
+let pmTab=0,chipVal={n:null,v:null};
 function heroOf(l,li,n){if(li===0)return heroAt(n,current.num);const x=l.hero;return x&&x.stage&&!(x.ch&&current.num!=null&&x.ch>current.num)?Object.assign({label:x.stage+(x.sub?' – '+x.sub:'')},x):null}
 function renderPowMini(){
   const n=nv(current),pw=(meta.novels[n]||{}).power||{},LL=powLadders(pw);
@@ -3739,7 +3784,13 @@ $('#q').addEventListener('input',renderLibrary);
 /* ---------- sheets ---------- */
 let openSheet=null,translating=false,addMode=LS.get('midad.mode','paste');
 const trQueue=[];let trRunning=false,trCtl=null,trLive='',trErr='',trErrCode='',pillOpen=false;
-function showSheet(el){openSheet=el;el.classList.add('open');const s=$('#scrim');s.classList.toggle('clear',el.id==='setSheet');s.classList.add('open')}
+function showSheet(el){openSheet=el;el.classList.add('open');const s=$('#scrim');s.classList.toggle('clear',el.id==='setSheet');s.classList.add('open');requestAnimationFrame(()=>animateNums(el))}
+function animateNums(root){
+  if(!root||RM())return;
+  const els=[...root.querySelectorAll('b,.cnt')].filter(b=>!b.children.length&&/^\s*[\d]/.test(b.textContent)&&!b.closest('.list,.rawrow,#batchList,.phist,.mladder,.ladder,.seg'));
+  els.slice(0,24).forEach(b=>countUp(b,0,700));
+  ['#pwHero b','#pmHero'].forEach(q=>{const e=root.querySelector(q);if(e&&/\d{2,}/.test(e.textContent))countUp(e,0,1000)});
+}
 function hideSheet(){if(!openSheet)return;openSheet.classList.remove('open');$('#scrim').classList.remove('open');openSheet=null;$('#delBtn').classList.remove('arm');$('#delBtn').textContent='حذف هذا الفصل';$('#redoBtn').classList.remove('arm');$('#redoBtn').textContent='أعد ترجمة الفصل كاملاً'}
 $('#scrim').onclick=hideSheet;
 
@@ -4239,6 +4290,25 @@ function chapterDone(){
   $('#dcStats').querySelectorAll('b').forEach((b,i)=>{if(i!==2)countUp(b,0,900)});
   confetti();
 }
+/* the big promotion moment: a card over everything, old rank crossed out, new rank lands, progress along the ladder */
+let prT=null;
+function showPromo(o){
+  const P=$('#promo');if(!P)return;
+  const col={wealth:'#ffd166',company:'#7cf29c'}[o.k]||(getComputedStyle($('#reader')).getPropertyValue('--ra').trim()||'#4fdcff');
+  P.style.setProperty('--pc',col);
+  $('#prIco').textContent=o.k==='wealth'?'💰':o.k==='company'?'🏢':'⚡';
+  $('#prHead').textContent=o.head;$('#prFrom').textContent=o.from||'';$('#prFrom').hidden=!o.from;P.querySelector('.pr-arrow').hidden=!o.from;
+  $('#prTo').textContent=o.to;
+  const sw=$('#prStepW');sw.hidden=!(o.total>1&&o.idx>-1);
+  if(!sw.hidden){$('#prBar').style.width='0';$('#prStep').textContent=`المرحلة ${o.idx+1} من ${o.total}`;requestAnimationFrame(()=>requestAnimationFrame(()=>{$('#prBar').style.width=Math.round((o.idx+1)/o.total*100)+'%'}))}
+  P.hidden=false;buzz([25,70,35,70,60]);
+  if(o.k==='wealth'&&o.fromV!=null)setTimeout(()=>countUp($('#prTo'),o.fromV,1300),550);
+  clearTimeout(prT);prT=setTimeout(hidePromo,7000);
+  if($('#reader').classList.contains('show'))confetti();
+}
+function hidePromo(){clearTimeout(prT);$('#promo').hidden=true}
+$('#prOk').onclick=hidePromo;$('#promo').addEventListener('click',e=>{if(e.target.id==='promo')hidePromo()});
+const numIn=t=>{const m=fmtMoney(String(t||'')).match(/\d[\d,]*(\.\d+)?/);return m?parseFloat(m[0].replace(/,/g,'')):null};
 function readStreak(){let n=0;const d=new Date();for(let i=0;i<400;i++){const k=dayKey(new Date(d.getTime()-i*864e5)),x=stats.days[k];if(x&&(x.rc||x.rw)){n++}else if(i>0)break}return n}
 /* a short burst of paper in the novel's accent colour */
 function confetti(){
