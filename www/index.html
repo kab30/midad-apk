@@ -1423,6 +1423,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
     </button>
     <div class="pwacts"><button type="button" class="redo" id="pwEditBtn">عدّل يدوياً</button><button type="button" class="redo" id="pwImpBtn">الصق بحثاً عن النظام</button></div>
     <button type="button" class="redo" id="pwRebuild" style="flex:none;min-height:38px">أعد البناء من كل الفصول المقروءة</button>
+    <button type="button" class="redo" id="pwGenre" style="flex:none;min-height:38px" hidden>رواية أموال وشركات؟ اكتشف من آخر فصلين</button>
     <div class="pwtabs" id="pwTabs" hidden></div>
     <small class="pwlock" id="pwLock" hidden>مراحل هذا السلّم مُدخلة يدوياً، فلا يغيّرها التحديث التلقائي. Gemini يحدّث فقط موقع البطل ومن في كل مرحلة.</small>
     <div class="herocard" id="pwHero" hidden></div>
@@ -1797,7 +1798,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 <section class="sheet" id="powMini" dir="rtl" aria-label="مرحلة البطل">
   <div class="grab"></div>
   <h3 id="pmTitle">سلّم القوة</h3>
-  <div class="scroll"><div class="pwtabs" id="pmTabs" hidden></div><small class="cpnote" id="pmHero"></small><div class="mladder" id="pmList"></div>
+  <div class="scroll"><div class="pwtabs" id="pmTabs" hidden></div><small class="cpnote" id="pmHero"></small><div class="mladder" id="pmList"></div><div id="pmHist"></div>
   <button class="btn" id="pmFull" type="button">افتح سلّم القوة كاملاً</button></div>
 </section>
 <div class="lightbox" id="lbox" dir="rtl" hidden>
@@ -2853,11 +2854,18 @@ $('#markReadBtn').onclick=()=>{if(!current)return;const r=!isReadCh(current);set
 /* ---------- power ladder: ranks from lowest to highest, hero's current rank, built only from read text ---------- */
 let powBusy=false,powMsg='',powTab=0;
 /* several ladders per novel (e.g. professional ranks + fey grades + fey quality); ladder 0 is mirrored to power.stages/hero */
-const PKINDS={people:['👤','البشر','البطل الآن'],beast:['🐉','الوحوش والمخلوقات','وحش/روح البطل'],item:['💎','الكنوز والأدوات','أفضل ما يملكه البطل'],skill:['📜','التقنيات والمهارات','أعلى تقنية لدى البطل'],org:['🏛','المناصب والمنظمات','منصب البطل'],other:['⭐','أخرى','البطل الآن']};
-const PKORDER=['people','beast','item','skill','org','other'];
+const PKINDS={people:['👤','البشر','البطل الآن'],beast:['🐉','الوحوش والمخلوقات','وحش/روح البطل'],item:['💎','الكنوز والأدوات','أفضل ما يملكه البطل'],skill:['📜','التقنيات والمهارات','أعلى تقنية لدى البطل'],org:['🏛','المناصب والمنظمات','منصب البطل'],wealth:['💰','ثروة البطل','ثروة البطل الآن'],company:['🏢','شركة البطل','شركة البطل الآن'],other:['⭐','أخرى','البطل الآن']};
+const PKORDER=['people','wealth','company','beast','item','skill','org','other'];
+/* business, investment and tech novels: the ladder is money and the company, not cultivation */
+const WEALTH_TIERS=[['مفلس أو مديون','لا يملك شيئاً أو عليه ديون',0],['دخل بسيط','أقل من عشرة آلاف يوان',1e4],['ميسور','عشرات الآلاف',1e5],['ثري صغير','مئات الآلاف',1e6],['مليونير','ملايين',1e7],['عشرات الملايين','',1e8],['مئات الملايين','',1e9],['ملياردير','مليارات',1e10],['عشرات المليارات','',1e11],['مئات المليارات','',1e12],['تريليونير','ألف مليار فأكثر',Infinity]];
+const COMPANY_TIERS=[['فكرة أو ورشة','بداية المشروع، لا شركة مسجلة بعد'],['شركة ناشئة','فريق صغير ومنتج أول'],['شركة صغيرة','زبائن ودخل ثابت'],['شركة متوسطة','معروفة في مدينتها أو مجالها'],['شركة كبرى','من كبار السوق المحلي'],['رائدة في البلد','من أكبر شركات البلد في مجالها'],['شركة عالمية','تبيع وتنافس في العالم'],['عملاق عالمي','من أكبر شركات العالم']];
+const CUR_RATE={CNY:1,RMB:1,USD:7.2,EUR:7.8,GBP:9.1,JPY:0.048,KRW:0.0053,HKD:0.92,TWD:0.22};
+const tierStages=T=>T.map(x=>({name:x[0],src:'',desc:x[1]||'',subs:[],chars:[],sure:true}));
+function wealthTier(v,cur){if(v==null||isNaN(v))return null;const y=v*(CUR_RATE[String(cur||'CNY').toUpperCase()]||1);if(y<=0)return WEALTH_TIERS[0][0];return (WEALTH_TIERS.slice(1).find(t=>y<t[2])||WEALTH_TIERS[WEALTH_TIERS.length-1])[0]}
+const isMoneyGenre=g=>g==='wealth'||g==='mixed';
 const pkind=l=>PKINDS[l&&l.kind]?l.kind:'people';
-const KIND_PROMPT=`صنّف كل سلّم في kind واحد: people (مراحل تدريب البشر أو المحترفين أو الزراعة، وإذا كان للبشر العاديين نظام تدريب مختلف عن المحترفين فاجعله سلّماً منفصلاً)، beast (رتب الوحوش أو المخلوقات أو الأرواح المستدعاة)، item (درجات الكنوز أو الأسلحة أو الحبوب أو الموارد)، skill (درجات التقنيات أو المهارات أو الفنون القتالية)، org (مراتب المناصب أو المنظمات أو الشركات)، other. لا تخلط نوعين في سلّم واحد.`;
-function powSortL(L){return L.map((l,i)=>[l,i]).sort((a,b)=>(PKORDER.indexOf(pkind(a[0]))-PKORDER.indexOf(pkind(b[0])))||a[1]-b[1]).map(x=>x[0])}
+const KIND_PROMPT=`صنّف كل سلّم في kind واحد: people (مراحل تدريب البشر أو المحترفين أو الزراعة، وإذا كان للبشر العاديين نظام تدريب مختلف عن المحترفين فاجعله سلّماً منفصلاً)، beast (رتب الوحوش أو المخلوقات أو الأرواح المستدعاة)، item (درجات الكنوز أو الأسلحة أو الحبوب أو الموارد)، skill (درجات التقنيات أو المهارات أو الفنون القتالية)، wealth (ثروة البطل وأمواله في روايات الأعمال والاستثمار والتكنولوجيا)، company (حجم شركة البطل ونموها)، org (مراتب المناصب أو المنظمات أو الشركات)، other. لا تخلط نوعين في سلّم واحد.`;
+function powSortL(L,genre){const O=genre==='wealth'?['wealth','company'].concat(PKORDER.filter(k=>k!=='wealth'&&k!=='company')):PKORDER;return L.map((l,i)=>[l,i]).sort((a,b)=>(O.indexOf(pkind(a[0]))-O.indexOf(pkind(b[0])))||a[1]-b[1]).map(x=>x[0])}
 function powLadders(pw){if(!pw)return [];if(Array.isArray(pw.ladders)&&pw.ladders.length)return pw.ladders;return pw.stages&&pw.stages.length?[{name:pw.system||'',stages:pw.stages,hero:pw.hero||null,locked:false}]:[]}
 function powSync(pw){const L=powLadders(pw);pw.ladders=L;const p=L[0]||{stages:[],hero:null};pw.stages=p.stages||[];pw.hero=p.hero||null;return pw}
 function powSave(novel,pw){
@@ -2865,7 +2873,28 @@ function powSave(novel,pw){
   if(curNovel===novel){renderPow();renderNovel()}
   if(current&&nv(current)===novel){renderPowChip();if(typeof markEntities==='function')markEntities()}
 }
-function powHist(pw,ch){const h=pw.ladders&&pw.ladders[0]&&pw.ladders[0].hero;if(!h||!h.stage)return;const key=`${h.stage}${h.sub?' – '+h.sub:''}`;pw.history=(pw.history||[]).slice();if(!pw.history.length||pw.history[pw.history.length-1].stage!==key)pw.history.push({ch:h.ch||ch||null,stage:key});pw.history=pw.history.slice(-60)}
+// wealth and company ladders always use the fixed tiers; the hero's tier comes from the amount
+function moneyLadders(out,genre){
+  for(const k of ['wealth','company']){
+    const T=k==='wealth'?WEALTH_TIERS:COMPANY_TIERS,names=T.map(t=>t[0]);
+    let i=out.findIndex(l=>pkind(l)===k);
+    if(i<0&&isMoneyGenre(genre)){out.push({name:PKINDS[k][1],kind:k,stages:tierStages(T),hero:null,locked:true});i=out.length-1}
+    if(i<0)continue;
+    const o=out[i],old=o.stages||[];
+    o.stages=tierStages(T).map(x=>{const y=old.find(z=>z.name===x.name);return y?Object.assign(x,{chars:y.chars||[]}):x});
+    o.locked=true;o.kind=k;if(!o.name)o.name=PKINDS[k][1];
+    const h=o.hero;
+    if(h){
+      if(k==='wealth'&&h.value!=null)h.stage=wealthTier(h.value,h.cur);
+      if(!names.includes(h.stage))o.hero=k==='wealth'&&h.sub?Object.assign(h,{stage:h.stage||''}):null;
+      if(o.hero&&k==='wealth'&&!o.hero.stage)o.hero=null;
+    }
+  }
+}
+function powHist(pw,ch){const h=pw.ladders&&pw.ladders[0]&&pw.ladders[0].hero;if(!h||!h.stage)return;const key=`${h.stage}${h.sub?' – '+h.sub:''}`;pw.history=(pw.history||[]).slice();if(!pw.history.length||pw.history[pw.history.length-1].stage!==key)pw.history.push({ch:h.ch||ch||null,stage:key});pw.history=pw.history.slice(-60)
+  const w=(pw.ladders||[]).find(l=>pkind(l)==='wealth'),wh=w&&w.hero;
+  if(wh&&wh.sub){pw.whist=(pw.whist||[]).slice();const last=pw.whist[pw.whist.length-1];if(!last||last.sub!==wh.sub)pw.whist.push({ch:wh.ch||ch||null,sub:wh.sub,stage:wh.stage,title:wh.title||''});pw.whist=pw.whist.slice(-80)}
+}
 function renderPow(){
   const m=meta.novels[curNovel]||{},full=m.power||{stages:[],upTo:0};
   const todo=kbTodo(curNovel,full);
@@ -2873,9 +2902,10 @@ function renderPow(){
   const T=$('#pwTabs');T.innerHTML='';T.hidden=LS2.length<2;
   LS2.forEach((l,i)=>{const b=document.createElement('button');b.type='button';b.textContent=PKINDS[pkind(l)][0]+' '+(l.name||PKINDS[pkind(l)][1]);b.setAttribute('aria-pressed',String(i===powTab));b.onclick=()=>{powTab=i;renderPow()};T.appendChild(b)});
   const lad=LS2[powTab]||{stages:[],hero:null};
-  $('#pwLock').hidden=!lad.locked;
-  const cur={system:LS2.length>1?(lad.name||full.system):full.system,stages:lad.stages||[],hero:lad.hero||{},upTo:full.upTo,part:full.part,history:powTab===0?full.history:[]};
-  $('#pwTitle').textContent=full.system&&LS2.length<2?`سلّم القوة: ${full.system}`:'سلّم القوة';
+  $('#pwLock').hidden=!lad.locked||pkind(lad)==='wealth'||pkind(lad)==='company';
+  const cur={system:LS2.length>1?(lad.name||full.system):full.system,stages:lad.stages||[],hero:lad.hero||{},upTo:full.upTo,part:full.part,history:powTab===0&&pkind(lad)!=='wealth'?full.history:[]};
+  $('#pwTitle').textContent=full.genre==='wealth'?'سلّم الثروة والشركة':full.system&&LS2.length<2?`سلّم القوة: ${full.system}`:'سلّم القوة';
+  $('#pwGenre').hidden=!!full.genre||!(full.upTo||full.part||LS2.length)||powBusy;
   $('#pwInfo').textContent=cur.stages&&cur.stages.length?`مرتب من الأدنى إلى الأعلى، ومبني مما قرأته حتى ${kbLabel(cur)}. لا تظهر المراحل الأعلى قبل أن تُذكر في القصة. يتحدث تلقائياً كلما أنهيت فصلاً.`:'يقرأ Gemini الفصول التي قرأتها، ويرتب مراحل القوة أو الرتب من الأدنى إلى الأعلى، ويحدد مكان البطل فيها.';
   const ub=$('#pwUpdate');ub.disabled=powBusy||!todo.length;ub.style.opacity=(powBusy||todo.length)?'':'.5';ub.setAttribute('aria-busy',String(powBusy));
   $('#pwUpdateT').textContent=powBusy?'Gemini يقرأ الفصول…':(cur.stages&&cur.stages.length?'حدّث من الفصول المقروءة':'ابنِ سلّم القوة');
@@ -2884,7 +2914,7 @@ function renderPow(){
   const hereIdx=h.stage?st.findIndex(x=>x.name===h.stage):-1;
   const hb=$('#pwHero');hb.hidden=!(h.name&&h.stage);
   if(!hb.hidden){hb.innerHTML='<span class="hb"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/></svg></span><span class="ht"><small></small><b></b><span></span></span>';hb.querySelector('small').textContent=PKINDS[pkind(lad)][2];
-    hb.querySelector('b').textContent=`${h.name}: ${h.stage}${h.sub?' – '+h.sub:''}`;
+    hb.querySelector('b').textContent=pkind(lad)==='wealth'?`${h.name}: ${h.sub||h.stage}${h.title?' · '+h.title:''}`:`${h.name}: ${h.stage}${h.sub?' – '+h.sub:''}`;
     hb.querySelector('.ht span').textContent=(hereIdx>-1?`المرحلة ${hereIdx+1} من ${st.length} معروفة`:'')+(h.ch?` · منذ الفصل ${h.ch}`:'');}
   const L=$('#pwLadder');L.innerHTML='';
   if(!st.length){L.innerHTML=`<div class="empty">${cur.upTo||cur.part||LS2.length?'لم تُذكر مراحل قوة أو رتب واضحة في الفصول التي قرأتها حتى الآن.':'لم يُبنَ بعد.'}</div>`}
@@ -2901,8 +2931,9 @@ function renderPow(){
     L.appendChild(d);
   });
   const H=$('#pwHist');H.innerHTML='';
-  const hist=cur.history||[];
-  if(hist.length){const b=document.createElement('div');b.className='phist';b.innerHTML='<h4>ترقّيات البطل</h4>';
+  const kL=pkind(lad);
+  const hist=kL==='wealth'?(full.whist||[]).map(x=>({ch:x.ch,stage:x.sub+(x.title?' · '+x.title:'')})):(cur.history||[]);
+  if(hist.length){const b=document.createElement('div');b.className='phist';b.innerHTML=`<h4>${kL==='wealth'?'نمو الثروة':kL==='company'?'نمو الشركة':'ترقّيات البطل'}</h4>`;
     hist.forEach(x=>{const r=document.createElement('div');r.innerHTML='<b></b><span></span>';r.querySelector('b').textContent='الفصل '+(x.ch??'?');r.querySelector('span').textContent=x.stage;b.appendChild(r)});H.appendChild(b)}
 }
 $('#nPow').onclick=()=>{renderPow();showSheet($('#powSheet'))};
@@ -3013,17 +3044,31 @@ ${(m.glossary||'').trim()?`قاموس الأسماء:\n${(m.glossary||'').slice(
 - افصل الأنظمة المختلفة في سلالم مستقلة. ${KIND_PROMPT}
 - لكل مرحلة في chars: في سلالم البشر أسماء الشخصيات، وفي سلالم الوحوش أسماء الوحوش أو المخلوقات (مع صاحبها إن عُرف)، وفي سلالم الكنوز والتقنيات أسماء الكنوز أو التقنيات التي ظهرت بهذه الدرجة.
 - hero في كل سلّم: في people مرحلة البطل، في beast أقوى وحش أو روح يملكه البطل (name اسمه)، في item أفضل كنز يملكه البطل، في skill أعلى تقنية لديه، في org منصبه. مع المستوى الفرعي ورقم الفصل. إن لم يُذكر فاجعل hero فارغاً.
+- حدّد genre: "power" إذا كانت رواية قوة وقتال وزراعة، و"wealth" إذا كانت عن المال أو الاستثمار أو الشركات أو التكنولوجيا أو الأعمال، و"mixed" إذا جمعت الاثنين.
+- في روايات wealth و mixed أضف سلّمين بهذه المراحل حرفياً وبهذا الترتيب:
+  wealth باسم "ثروة البطل": ${WEALTH_TIERS.map(t=>t[0]).join('، ')}.
+  company باسم "شركة البطل": ${COMPANY_TIERS.map(t=>t[0]).join('، ')}.
+  hero في wealth: name اسم البطل، sub مبلغ ثروته الشخصية كما ورد في النص مع العملة (مثل "3.2 مليار يوان")، value الرقم كاملاً بلا اختصار (3200000000)، cur رمز العملة (CNY أو USD أو EUR أو JPY أو KRW أو GBP أو HKD)، title لقب يذكره النص إن وُجد (مثل "أغنى رجل في المدينة")، و stage اتركه فارغاً فالتطبيق يحسبه من المبلغ. إذا لم يُذكر مبلغ صريح لا تخمّن، وضع آخر مبلغ معروف.
+  hero في company: name اسم الشركة، stage أنسب مرحلة من القائمة، sub قيمتها أو أهم منتج أو إنجاز بإيجاز.
+  وتبقى السلالم الأخرى (مثل مستويات النظام أو المناصب) كما هي إن وُجدت.
 - لا تنشئ سلّماً إلا إذا ذكر النص درجتين على الأقل منه أو صرّح بوجود نظام درجات.
 - لا تخمّن أي شيء لم يرد في النصوص. إذا لم يكن في الرواية نظام قوة أو رتب حتى الآن، أعد stages فارغة.
 اكتب الأسماء كما وردت في الترجمة العربية حرفياً.
-أعد فقط كائن JSON: {"system":"اسم النظام بإيجاز أو فارغ","ladders":[{"kind":"people","name":"اسم السلّم","stages":[{"name":"اسم المرحلة","src":"الأصل إن عُرف","desc":"شرح قصير","subs":["المستويات الفرعية"],"chars":["أسماء الشخصيات"],"sure":true}],"hero":{"name":"اسم البطل أو روحه","stage":"اسم المرحلة كما في القائمة","sub":"المستوى الفرعي أو فارغ","ch":رقم الفصل}}]}
+أعد فقط كائن JSON: {"genre":"power أو wealth أو mixed","system":"اسم النظام بإيجاز أو فارغ","ladders":[{"kind":"people","name":"اسم السلّم","stages":[{"name":"اسم المرحلة","src":"الأصل إن عُرف","desc":"شرح قصير","subs":["المستويات الفرعية"],"chars":["أسماء الشخصيات"],"sure":true}],"hero":{"name":"اسم البطل أو روحه","stage":"اسم المرحلة كما في القائمة","sub":"المستوى الفرعي أو فارغ","ch":رقم الفصل,"value":null,"cur":"","title":""}}]}
 
 ${batch.map(it=>`${batchHead(it)}\n${kbText(it)}`).join('\n\n')}`;
       const r=await sample.json(prompt,{cache:false,...ecoTier()});trackUse('power',0);
       const S=v=>typeof v==='string'?applyTerms(v.trim()):'';
       const cleanSt=x=>({name:S(x.name).slice(0,60),src:String(x.src||'').slice(0,40),desc:S(x.desc).slice(0,300),
         subs:(Array.isArray(x.subs)?x.subs:[]).map(S).filter(Boolean).slice(0,12),chars:(Array.isArray(x.chars)?x.chars:[]).map(S).filter(Boolean).slice(0,10),sure:x.sure!==false});
-      const cleanHero=h=>h&&h.stage?{name:S(h.name).slice(0,60),stage:S(h.stage).slice(0,60),sub:S(h.sub||'').slice(0,40),ch:+h.ch||null}:null;
+      const cleanHero=h=>{
+        if(!h)return null;
+        const v=h.value==null||h.value===''?null:+String(h.value).replace(/[^\d.\-e]/g,'');
+        const o={name:S(h.name).slice(0,60),stage:S(h.stage||'').slice(0,60),sub:S(h.sub||'').slice(0,50),ch:+h.ch||null};
+        if(v!=null&&!isNaN(v)){o.value=v;o.cur=String(h.cur||'CNY').slice(0,4).toUpperCase()}
+        if(h.title)o.title=S(h.title).slice(0,60);
+        return o.stage||o.value!=null?o:null;
+      };
       let rl=r&&Array.isArray(r.ladders)?r.ladders:(r&&Array.isArray(r.stages)?[{name:r.system||'',stages:r.stages,hero:r.hero}]:[]);
       const out=lads.map(l=>Object.assign({},l));
       rl.forEach((x,ri)=>{
@@ -3034,6 +3079,7 @@ ${batch.map(it=>`${batchHead(it)}\n${kbText(it)}`).join('\n\n')}`;
         const st=(Array.isArray(x.stages)?x.stages:[]).filter(y=>y&&y.name).slice(0,60).map(cleanSt);
         const h=cleanHero(x.hero);
         const kd=PKINDS[x.kind]?x.kind:null;
+        if(h&&h.value!=null&&(kd==='wealth'||(i>=0&&pkind(out[i])==='wealth')))h.stage=wealthTier(h.value,h.cur)||h.stage;
         if(i<0&&kd){const same=out.filter(l=>pkind(l)===kd);if(same.length===1&&!rl.some((y,yi)=>yi!==ri&&y&&y.kind===kd))i=out.indexOf(same[0])}
         if(i<0){if(st.length)out.push({name:nm.slice(0,60),kind:kd||'other',stages:st,hero:h,locked:false});return}
         if(kd&&!out[i].kind)out[i].kind=kd;
@@ -3047,19 +3093,23 @@ ${batch.map(it=>`${batchHead(it)}\n${kbText(it)}`).join('\n\n')}`;
           o.stages=st;if(h)o.hero=h;if(!o.name&&nm)o.name=nm.slice(0,60);
         }
       });
-      cur.ladders=powSortL(out);powSync(cur);powHist(cur,batch[batch.length-1].c.num);
+      if(r&&['power','wealth','mixed'].includes(r.genre))cur.genre=r.genre;
+      moneyLadders(out,cur.genre);
+      cur.ladders=powSortL(out,cur.genre);powSync(cur);powHist(cur,batch[batch.length-1].c.num);
       cur=Object.assign(kbAdvance(cur,batch),{system:S(r&&r.system||cur.system||'').slice(0,60)});
       if(opt.recent&&m.power){cur.upTo=Math.max(cur.upTo||0,(m.power.upTo||0))}
       powSave(novel,cur);
     }
     if(opt.recent){toast(cur.hero&&cur.hero.stage?`${cur.hero.name||'البطل'} الآن: ${cur.hero.stage}${cur.hero.sub?' – '+cur.hero.sub:''}`:'جاهز. لم أجد موقع البطل بوضوح في آخر فصلين، يمكنك تحديده يدوياً');powBusy=false;powMsg='';if(openSheet&&openSheet.id==='powSheet')renderPow();return}
     const after=cur.hero&&cur.hero.stage?`${cur.hero.stage}|${cur.hero.sub||''}`:'';
-    if(before&&after&&before!==after)toast(`ترقّى ${cur.hero.name||'البطل'} إلى ${cur.hero.stage}${cur.hero.sub?' – '+cur.hero.sub:''}${cur.hero.ch?' في الفصل '+cur.hero.ch:''}`);
+    const k0=pkind(powLadders(cur)[0]);
+    if(before&&after&&before!==after)toast(k0==='wealth'?`💰 ثروة ${cur.hero.name||'البطل'} الآن: ${cur.hero.sub||cur.hero.stage}${cur.hero.ch?' (الفصل '+cur.hero.ch+')':''}`:k0==='company'?`🏢 ${cur.hero.name||'الشركة'} صارت: ${cur.hero.stage}`:`ترقّى ${cur.hero.name||'البطل'} إلى ${cur.hero.stage}${cur.hero.sub?' – '+cur.hero.sub:''}${cur.hero.ch?' في الفصل '+cur.hero.ch:''}`);
     else if(!quiet)toast('تم تحديث سلّم القوة');
   }catch(e){if(!quiet)toast(TR_ERR[e&&e.code]||'تعذّر تحديث سلّم القوة، حاول مرة أخرى')}
   powBusy=false;powMsg='';if(openSheet&&openSheet.id==='powSheet')renderPow();
 }
 $('#pwUpdate').onclick=()=>updatePower(curNovel,false);
+$('#pwGenre').onclick=()=>{$('#pwGenre').hidden=true;updatePower(curNovel,false,{recent:true})};
 $('#pwRebuild').onclick=()=>{
   const b=$('#pwRebuild');if(powBusy)return;
   if(!b.classList.contains('arm')){b.classList.add('arm');b.textContent='اضغط مرة أخرى: يعيد قراءة كل الفصول ويستهلك أكثر';setTimeout(()=>{b.classList.remove('arm');b.textContent='أعد البناء من كل الفصول المقروءة'},5000);return}
@@ -3085,12 +3135,18 @@ function renderPowChip(){
   b.hidden=false;
   // the hero's rank at this chapter; otherwise any other ladder's hero; otherwise just open the ladder
   const h=heroAt(nv(current),current.num);
-  b.textContent=h&&pkind(powLadders(pw0)[0])==='people'?'⚡ '+h.label:'⚡ سلّم القوة';
+  const k0=pkind(powLadders(pw0)[0]);
+  const wAt=()=>{const w=((pw0||{}).whist||[]).filter(x=>x.ch!=null&&current.num!=null&&x.ch<=current.num).pop();return w&&w.sub};
+  b.textContent=k0==='wealth'?(wAt()||(h&&(h.label.split(' – ')[1]||h.label))?'💰 '+(wAt()||h.label.split(' – ')[1]||h.label):'💰 سلّم الثروة')
+    :k0==='company'?(h?'🏢 '+h.label:'🏢 شركة البطل')
+    :h&&k0==='people'?'⚡ '+h.label:'⚡ سلّم القوة';
   // a promotion that happens in this chapter is shown at its end, not up front
   const pw=(meta.novels[nv(current)]||{}).power||{};
   const ev=(pw.history||[]).filter(x=>x.ch===current.num);
   const old=document.querySelector('#article .powev');if(old)old.remove();
-  if(ev.length){const d=document.createElement('div');d.className='powev';d.innerHTML='حدث في هذا الفصل: ترقّى <b></b>';d.querySelector('b').textContent=`${(pw.hero||{}).name||'البطل'} إلى ${ev[ev.length-1].stage}`;const em=document.querySelector('#article .endmark');if(em)em.before(d)}
+  if(ev.length){const d=document.createElement('div');d.className='powev';const k=pkind(powLadders(pw)[0]);
+    d.innerHTML=k==='wealth'?'حدث في هذا الفصل: صارت ثروة <b></b>':k==='company'?'حدث في هذا الفصل: صارت <b></b>':'حدث في هذا الفصل: ترقّى <b></b>';
+    const e=ev[ev.length-1].stage;d.querySelector('b').textContent=k==='wealth'?`${(pw.hero||{}).name||'البطل'} ${e.split(' – ')[1]||e}`:k==='company'?`${(pw.hero||{}).name||'الشركة'} ${e}`:`${(pw.hero||{}).name||'البطل'} إلى ${e}`;const em=document.querySelector('#article .endmark');if(em)em.before(d)}
 }
 let pmTab=0;
 function heroOf(l,li,n){if(li===0)return heroAt(n,current.num);const x=l.hero;return x&&x.stage&&!(x.ch&&current.num!=null&&x.ch>current.num)?Object.assign({label:x.stage+(x.sub?' – '+x.sub:'')},x):null}
@@ -3100,7 +3156,10 @@ function renderPowMini(){
   const T=$('#pmTabs');T.innerHTML='';T.hidden=idx.length<2;
   idx.forEach(i=>{const l=LL[i],b=document.createElement('button');b.type='button';b.textContent=PKINDS[pkind(l)][0]+' '+(l.name||PKINDS[pkind(l)][1]);b.setAttribute('aria-pressed',String(i===pmTab));b.onclick=()=>{pmTab=i;renderPowMini()};T.appendChild(b)});
   const l=LL[pmTab]||{stages:[]},st=l.stages||[],h=heroOf(l,pmTab,n),hi=h?st.findIndex(x=>x.name===h.stage):-1;
-  $('#pmTitle').textContent=pw.system?`سلّم القوة: ${pw.system}`:'سلّم القوة';
+  $('#pmTitle').textContent=pkind(l)==='wealth'?'سلّم الثروة':pkind(l)==='company'?'شركة البطل':pw.system?`سلّم القوة: ${pw.system}`:'سلّم القوة';
+  const PH=$('#pmHist');PH.innerHTML='';
+  if(pkind(l)==='wealth'){const wl=(pw.whist||[]).filter(x=>x.ch==null||current.num==null||x.ch<=current.num).slice(-8);
+    if(wl.length){const b=document.createElement('div');b.className='phist';b.innerHTML='<h4>نمو الثروة</h4>';wl.forEach(x=>{const r=document.createElement('div');r.innerHTML='<b></b><span></span>';r.querySelector('b').textContent='الفصل '+(x.ch??'?');r.querySelector('span').textContent=x.sub+(x.title?' · '+x.title:'');b.appendChild(r)});PH.appendChild(b)}}
   $('#pmHero').textContent=h?`${PKINDS[pkind(l)][2]}: ${h.name&&pkind(l)!=='people'?h.name+' · ':''}${h.label} (المرحلة ${hi+1} من ${st.length})`:'لم يُحدَّد موقع البطل في هذا السلّم بعد';
   const L=$('#pmList');L.innerHTML='';
   st.map((x,i)=>[x,i]).reverse().forEach(([x,i])=>{const d=document.createElement('div');d.className=i===hi?'here':(hi>-1&&i<hi?'past':'');d.innerHTML='<i></i><span></span>';d.querySelector('i').textContent=i+1;d.querySelector('span').textContent=x.name;if(i===hi){const s2=document.createElement('small');s2.textContent=(h.label!==x.name?h.label.replace(x.name+' – ',''):'')+' هنا';d.appendChild(s2)}L.appendChild(d)});
