@@ -4504,7 +4504,7 @@ function openReader(id,opt){
   if(tts.on&&!opt.keepTts)ttsStop();
   hidePMenu();hideDone();$('#article').classList.remove('leave-next','leave-prev');
   curWords=words(ch.text||'');autoAsked=null;
-  readMark=(ch.progress||0)>.97?0:(ch.progress||0);wasDone=(ch.progress||0)>.97;lastReadAt=Date.now();chSecs=0;
+  readMark=(ch.progress||0)>.97?0:(ch.progress||0);wasDone=(ch.progress||0)>.97;lastReadAt=Date.now();chSecs=0;openedAt=Date.now();
   saveProgress(true);current=ch;lastId=id;LS.set('midad.last',id);widgetPush();
   if(!ch.sample){ch.lastAt=Date.now();persistLocal();if(col&&!ch.pending)col.doc(ch.id).update({lastAt:ch.lastAt}).catch(()=>{})}
   $('#rT').textContent=ch.title;$('#rN').textContent=ch.novel||'';
@@ -4525,7 +4525,7 @@ function openReader(id,opt){
   if(prefs.wake)lockWake();
 }
 /* finishing a chapter: the bar shines, the phone taps, and the next chapter slides up */
-let dcT=null,chSecs=0;
+let dcT=null,chSecs=0,openedAt=0;
 function hideDone(){clearTimeout(dcT);$('#doneCard').classList.remove('in')}
 function chapterDone(){
   const p=$('.prog');if(p){p.classList.remove('done');void p.offsetWidth;p.classList.add('done')}
@@ -4585,6 +4585,8 @@ $('#backBtn').onclick=()=>vt(closeReader);
 let lastTop=0,progT=null,dirty=false,autoAsked=null;
 function onScroll(){
   const sc=$('#rscroll');const max=sc.scrollHeight-sc.clientHeight;
+  // right after opening, the page may not be laid out yet (height 0): that is not "the whole chapter fits on screen"
+  if(max<=0&&(!sc.clientHeight||curWords>250))return;
   const f=max>0?Math.min(1,sc.scrollTop/max):1;
   $('#progBar').style.width=(f*100)+'%';
   const rem=Math.ceil(curWords*(1-f)/180);
@@ -4594,7 +4596,7 @@ function onScroll(){
     const now=Date.now();if(lastReadAt){const dt=Math.min(60,(now-lastReadAt)/1000);if(dt>0){bumpStat('rs',Math.round(dt));chSecs+=dt}}lastReadAt=now;
     bumpStat('rw',Math.round((f-readMark)*curWords));readMark=f;
   }
-  if(current&&!current.sample&&f>.97&&!wasDone){wasDone=true;bumpStat('rc',1);autoKnowledge(nv(current));chapterDone()}
+  if(current&&!current.sample&&f>.97&&!wasDone&&Date.now()-openedAt>2500&&(sc.scrollTop>0||max<=0)){wasDone=true;bumpStat('rc',1);autoKnowledge(nv(current));chapterDone()}
   const r=$('#reader');
   if(sc.scrollTop>lastTop+8&&sc.scrollTop>80)r.classList.add('immersive');
   else if(sc.scrollTop<lastTop-8||f>.98)r.classList.remove('immersive');
