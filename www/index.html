@@ -2654,7 +2654,7 @@ function renderLibrary(){
 function chapterCard(c,showNovel,dupSet){
   const p=Math.round((c.progress||0)*100);
   const b=document.createElement('button');b.type='button';b.className='card'+(dupSet&&dupSet.has(c.num)?' dup':'')+(p>97?' read':'');
-  b.innerHTML=`<div class="num">${c.num??'—'}<small>فصل</small>${p>97?'<span class="ck" aria-label="مقروء"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></span>':''}</div><div class="body"><div class="ttl"></div><div class="sub">${showNovel?'<span class="nv"></span>':''}<span>${Math.max(1,Math.round(words(c.text||'')/180))} د قراءة</span>${marksOf(c).length?`<span>${marksOf(c).length} علامة</span>`:''}${c.rate?`<span class="rate">${'★'.repeat(c.rate)}</span>`:''}${c.note?'<span>📝</span>':''}<span>${fmtDate(c.createdAt)}</span>${c.sample?'<span class="tag">مثال</span>':''}${dupSet&&dupSet.has(c.num)?'<span class="tag" style="border-color:var(--danger);color:var(--danger)">مكرر</span>':''}${p>97?'<span class="tag" style="border-color:var(--plasma);color:var(--plasma)">مكتمل</span>':''}</div><div class="bar"><i style="width:${p}%"></i></div></div>`;
+  b.innerHTML=`<div class="num">${c.num??'—'}<small>فصل</small>${p>97?'<span class="ck" aria-label="مقروء"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></span>':''}</div><div class="body"><div class="ttl"></div><div class="sub">${showNovel?'<span class="nv"></span>':''}<span>${Math.max(1,Math.round(words(c.text||'')/readWpm()))} د قراءة</span>${marksOf(c).length?`<span>${marksOf(c).length} علامة</span>`:''}${c.rate?`<span class="rate">${'★'.repeat(c.rate)}</span>`:''}${c.note?'<span>📝</span>':''}<span>${fmtDate(c.createdAt)}</span>${c.sample?'<span class="tag">مثال</span>':''}${dupSet&&dupSet.has(c.num)?'<span class="tag" style="border-color:var(--danger);color:var(--danger)">مكرر</span>':''}${p>97?'<span class="tag" style="border-color:var(--plasma);color:var(--plasma)">مكتمل</span>':''}</div><div class="bar"><i style="width:${p}%"></i></div></div>`;
   b.querySelector('.ttl').textContent=c.title;if(showNovel)b.querySelector('.nv').textContent=nv(c);
   b.dataset.id=c.id;b.onclick=()=>{if(selMode&&!showNovel){toggleSel(c.id,b);return}openReader(c.id)};if(selMode&&selIds.has(c.id))b.classList.add('sel');return b;
 }
@@ -4084,7 +4084,7 @@ function renderContinue(){
   const t=continueTarget(curNovel);if(!t)return;
   const p=Math.round((t.c.progress||0)*100);
   const lbl={cont:'تابع القراءة',next:'الفصل التالي',start:'ابدأ القراءة',done:'أنهيت كل الفصول الموجودة'}[t.kind];
-  const left=Math.max(1,Math.ceil(words(t.c.text||'')*(1-(t.c.progress||0))/180));
+  const left=Math.max(1,Math.ceil(words(t.c.text||'')*(1-(t.c.progress||0))/readWpm()));
   const b=document.createElement('button');b.type='button';b.className='resume big';
   const raw=t.kind==='done'&&rawsOf(curNovel).length;
   b.innerHTML=`<div class="ring" style="--p:${t.kind==='done'?100:p}"><span>${t.kind==='done'?'✓':p+'%'}</span></div><div class="meta"><div class="lbl">${lbl}</div><div class="t"></div><div class="sub2">${t.kind==='done'?(raw?'في المخزن فصول خام جاهزة للترجمة':'أضف الفصل التالي لتكمل'):`${left} د متبقية`}</div></div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m15 6-6 6 6 6"/></svg>`;
@@ -4762,7 +4762,7 @@ function chapterDone(){
   $('#dcS').textContent=next?('التالي: '+(next.title||'الفصل '+next.num)):(big?big.textContent.trim():'');
   $('#dcGo').hidden=!big;$('#dcGo').textContent=next?'التالي':'متابعة';
   // what this chapter added up to
-  readTick();const mins=Math.max(1,Math.round(chSecs/60)),sib=siblings(),doneN=sib.filter(c=>(c.progress||0)>.97||c.id===current.id).length;
+  readTick();learnWpm(curWords,chSecs);const mins=Math.max(1,Math.round(chSecs/60)),sib=siblings(),doneN=sib.filter(c=>(c.progress||0)>.97||c.id===current.id).length;
   const streak=readStreak(),today=(stats.days[dayKey()]||{}).rc||0;
   const items=[[mins,'دقيقة'],[curWords,'كلمة'],[`${doneN}/${sib.length}`,'من الرواية'],streak>1?[streak,'يوم متتالي 🔥']:[today,today===1?'فصل اليوم':'فصول اليوم']];
   $('#dcStats').innerHTML=items.map(([v,l])=>`<div><b>${typeof v==='number'?v.toLocaleString('en'):v}</b><small>${l}</small></div>`).join('');
@@ -4790,6 +4790,12 @@ function showPromo(o){
 function hidePromo(){clearTimeout(prT);$('#promo').hidden=true}
 $('#prOk').onclick=hidePromo;$('#promo').addEventListener('click',e=>{if(e.target.id==='promo')hidePromo()});
 const numIn=t=>{const m=fmtMoney(String(t||'')).match(/\d[\d,]*(\.\d+)?/);return m?parseFloat(m[0].replace(/,/g,'')):null};
+/* your own reading speed, learned from chapters you finish (starts at 180 words a minute) */
+function readWpm(){const v=+LS.get('midad.wpm',0);return v>=60&&v<=500?v:180}
+function learnWpm(words,secs){
+  if(!words||words<300||secs<60)return;const w=words/(secs/60);if(w<50||w>600)return; // skimmed or left open: ignore
+  const old=+LS.get('midad.wpm',0),n=old?Math.round(old*.7+w*.3):Math.round(w);LS.set('midad.wpm',Math.min(500,Math.max(60,n)));
+}
 function readStreak(){let n=0;const d=new Date();for(let i=0;i<400;i++){const k=dayKey(new Date(d.getTime()-i*864e5)),x=stats.days[k];if(x&&(x.rc||x.rw)){n++}else if(i>0)break}return n}
 /* a short burst of paper in the novel's accent colour */
 function confetti(){
@@ -4816,7 +4822,7 @@ function onScroll(){
   if(max<=0&&(!sc.clientHeight||curWords>250))return;
   const f=max>0?Math.min(1,sc.scrollTop/max):1;
   $('#progBar').style.width=(f*100)+'%';
-  const rem=Math.ceil(curWords*(1-f)/180);
+  const rem=Math.ceil(curWords*(1-f)/readWpm());
   $('#pct').textContent=Math.round(f*100)+'% · '+(f>.985?'انتهى':rem<=1?'أقل من دقيقة':rem+' د متبقية');
   if(current&&Math.abs(f-(current.progress||0))>.005){current.progress=f;dirty=true;clearTimeout(progT);progT=setTimeout(()=>saveProgress(),1500)}
   if(current&&!current.sample&&f>readMark+.02){
