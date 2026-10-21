@@ -982,6 +982,56 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 
 
 
+
+
+.frinfo{font-family:var(--ui);font-size:13px;line-height:1.7;color:var(--dim);padding:8px 12px;border-radius:12px;background:var(--deck);border:1px solid var(--line)}
+.frinfo:empty{display:none}.frinfo b{color:var(--ink)}
+.frinfo ul{margin:6px 0 0;padding-inline-start:18px;max-height:24vh;overflow-y:auto}
+.frinfo li{margin:2px 0;font-size:12.5px}.frinfo mark{background:color-mix(in srgb,var(--warn) 35%,transparent);color:inherit;border-radius:3px;padding:0 2px}
+#article.focus p{opacity:.28;transition:opacity .35s}
+#article.focus p.fcur,#article.focus p.speaking{opacity:1}
+#article.focus .srcp{opacity:.25}
+.srcp.bili{margin:-.6em 0 1.1em;font-size:.82em;opacity:.7;padding:6px 10px;border-inline-start:2px solid color-mix(in srgb,var(--ra) 50%,transparent);border-radius:0 8px 8px 0;font-family:"Noto Sans SC","PingFang SC",sans-serif;line-height:1.7}
+.donecard .drate{flex:1 1 100%;display:flex;align-items:center;gap:8px;font-size:12px;opacity:.9;flex-wrap:wrap}
+.donecard .stars{display:flex;gap:2px;direction:ltr}
+.donecard .stars button{font-size:22px;line-height:1;width:30px;height:30px;color:color-mix(in srgb,var(--rf) 35%,transparent);transition:transform .15s,color .15s}
+.donecard .stars button.on{color:#ffd166}.donecard .stars button:active{transform:scale(1.3)}
+.donecard .dnote{width:32px;height:30px;border-radius:9px;font-size:16px}
+.donecard #dcNote{flex:1 1 100%;height:36px;border-radius:10px;border:1px solid color-mix(in srgb,var(--ra) 45%,transparent);background:transparent;color:var(--rf);padding:0 10px;font:13px var(--ui)}
+.card .rate{color:#e0a800}
+/* ---------- home: goal, ready to read, raw alerts, this week ---------- */
+.homex{display:grid;gap:12px;margin:12px 0 4px}
+.homex:empty{display:none}
+.hgoal{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:18px;background:var(--panel);border:1px solid var(--line);text-align:start;width:100%;color:var(--ink);font-family:var(--ui)}
+.hgoal .gr{position:relative;width:62px;height:62px;flex:none}
+.hgoal .gr svg{width:100%;height:100%;transform:rotate(-90deg)}
+.hgoal .gr circle{fill:none;stroke-width:6}
+.hgoal .gr .t{stroke:color-mix(in srgb,var(--plasma) 15%,transparent)}
+.hgoal .gr .v{stroke:var(--plasma);stroke-linecap:round;stroke-dasharray:163.4;transition:stroke-dashoffset .9s cubic-bezier(.2,.8,.2,1)}
+.hgoal.done .gr .v{stroke:#7cf29c}
+.hgoal .gr b{position:absolute;inset:0;display:grid;place-items:center;font:700 15px var(--mono);font-variant-numeric:tabular-nums}
+.hgoal .gt{flex:1;min-width:0}.hgoal .gt b{display:block;font-size:14.5px}.hgoal .gt small{display:block;font-size:12px;color:var(--dim);margin-top:2px}
+.hgoal .fire{flex:none;text-align:center;font-size:12px;color:var(--dim)}.hgoal .fire b{display:block;font-size:22px;line-height:1.1;color:#ffb347}
+.hgoal .fire.on b{animation:flame 1.6s ease-in-out infinite}
+@keyframes flame{50%{transform:scale(1.12) rotate(-4deg)}}
+.hsec h3{margin:2px 2px 8px;font-size:14px;font-family:var(--ui);display:flex;align-items:center;gap:6px}
+.hsec h3 small{font-weight:400;color:var(--dim);font-size:12px}
+.hready{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px;scrollbar-width:none}
+.hready::-webkit-scrollbar{display:none}
+.hready button{scroll-snap-align:start;flex:none;width:156px;padding:10px;border-radius:16px;background:var(--panel);border:1px solid var(--line);text-align:start;color:var(--ink);font-family:var(--ui);display:flex;flex-direction:column;gap:6px}
+.hready .hc{height:6px;border-radius:4px;background:var(--hcol,var(--plasma))}
+.hready b{font-size:13px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.8em}
+.hready small{font-size:11.5px;color:var(--dim)}
+.hready .hn{font:700 12px var(--ui);color:var(--plasma)}
+.halert{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;border:1px dashed color-mix(in srgb,var(--warn) 70%,transparent);background:color-mix(in srgb,var(--warn) 7%,transparent);font-family:var(--ui);font-size:13px;color:var(--ink)}
+.halert span{flex:1;min-width:0}.halert span small{display:block;color:var(--dim);font-size:11.5px}
+.halert .ha{flex:none;height:34px;padding:0 12px;border-radius:10px;border:1px solid var(--warn);color:var(--warn);font-size:12.5px;font-weight:600}
+.halert .hx{flex:none;width:28px;height:28px;color:var(--dim)}
+.hweek{display:grid;gap:6px}
+.hweek button{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:14px;background:var(--panel);border:1px solid var(--line);text-align:start;color:var(--ink);font-family:var(--ui);font-size:13px;width:100%}
+.hweek i{font-style:normal;font-size:18px;flex:none}
+.hweek span{flex:1;min-width:0}.hweek span small{display:block;color:var(--dim);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hweek em{font-style:normal;font-size:11px;color:var(--dim);flex:none}
 /* ---------- relationship map ---------- */
 #relView{display:none;z-index:8;background:radial-gradient(120% 70% at 50% 35%,color-mix(in srgb,var(--plasma) 7%,var(--void)),var(--void));font-family:var(--ui);color:var(--ink)}
 #relView.show{display:flex;animation:vin .28s cubic-bezier(.2,.8,.2,1)}
@@ -1127,6 +1177,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
     </div>
 
     <div class="stats" id="stats"></div>
+    <div class="homex" id="homeX"></div>
 
 
     <section class="usage" id="usage" aria-label="استخدام Gemini" hidden>
@@ -1332,7 +1383,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
     <button type="button" id="ttsSleep" aria-label="مؤقت النوم"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button>
     <button type="button" id="ttsStop" aria-label="إنهاء القراءة الصوتية"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
   </div>
-  <div class="donecard" id="doneCard" role="status" aria-live="polite"><span class="dk">✓</span><span class="dt"><b id="dcT"></b><small id="dcS"></small></span><button type="button" class="dg" id="dcGo">التالي</button><button type="button" class="dx" id="dcX" aria-label="إغلاق">✕</button><div class="dstats" id="dcStats"></div></div>
+  <div class="donecard" id="doneCard" role="status" aria-live="polite"><span class="dk">✓</span><span class="dt"><b id="dcT"></b><small id="dcS"></small></span><button type="button" class="dg" id="dcGo">التالي</button><button type="button" class="dx" id="dcX" aria-label="إغلاق">✕</button><div class="dstats" id="dcStats"></div><div class="drate" id="dcRate"><span>قيّم الفصل</span><span class="stars" id="dcStars"></span><button type="button" class="dnote" id="dcNoteBtn" aria-label="ملاحظة على الفصل">📝</button><input id="dcNote" placeholder="ملاحظة قصيرة عن الفصل…" maxlength="200" hidden></div></div>
   <canvas id="confetti" aria-hidden="true"></canvas>
   <div class="ttsbar asbar" id="asBar" hidden>
     <button type="button" class="main" id="asPlay" aria-label="إيقاف مؤقت"></button>
@@ -1799,6 +1850,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 </section>
 
 <div class="pmenu" id="pMenu" dir="rtl" hidden>
+  <button type="button" data-act="repl" id="pmRepl" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h11l-3-3M20 17H9l3 3"/></svg><span>استبدل</span></button>
   <button type="button" data-act="word" id="pmWord" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/><path d="M9 8h7M9 12h5"/></svg><span>معنى</span></button>
   <button type="button" data-act="ask" id="pmAsk"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 1 3.1 6.3L4 19.5l1.2-3A7.9 7.9 0 0 1 4 12z"/><path d="M10 10a2 2 0 1 1 2.5 1.9c-.3.1-.5.4-.5.7V13M12 15.5h.01"/></svg><span>اسأل</span></button>
   <button type="button" data-act="hl" id="pmHl"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11-6 6v3h3l6-6"/><path d="m22 5-3-3-9 9 3 3z"/></svg><span>تظليل</span></button>
@@ -1813,6 +1865,20 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 </div>
 
 <div class="wordpop" id="wordPop" dir="rtl" hidden role="dialog" aria-label="معنى الكلمة"><button type="button" class="wx" id="wpX" aria-label="إغلاق">✕</button><b class="w" id="wpW"></b><div class="wm" id="wpM"></div></div>
+
+<section class="sheet" id="frSheet" dir="rtl" aria-label="بحث واستبدال">
+  <div class="grab"></div>
+  <h3>بحث واستبدال</h3>
+  <div class="scroll">
+    <div class="fld"><label for="frFind">ابحث عن</label><input id="frFind" autocomplete="off" placeholder="مثال: تشن تشي"></div>
+    <div class="fld"><label for="frRep">واستبدله بـ</label><input id="frRep" autocomplete="off" placeholder="مثال: تشين تشي"></div>
+    <div class="seg" id="frScope"><button type="button" data-s="ch" aria-pressed="false">هذا الفصل</button><button type="button" data-s="nv" aria-pressed="true">كل فصول الرواية</button></div>
+    <label class="tog" for="frWhole" style="border:0;padding:0"><span>الكلمة كاملة فقط<small>لا يغيّر الكلمة إذا كانت جزءاً من كلمة أطول، ويقبل و/ف/ب/ل/ك في أولها</small></span><input type="checkbox" id="frWhole" class="cb" checked></label>
+    <label class="tog" for="frTerm" style="border:0;padding:0"><span>طبّقه على الترجمات القادمة<small>يُحفظ في المصطلحات البديلة، فيُصحَّح تلقائياً في كل فصل يُترجم بعد الآن</small></span><input type="checkbox" id="frTerm" class="cb" checked></label>
+    <div class="frinfo" id="frInfo"></div>
+    <div class="row"><button class="btn" id="frUndo" type="button" hidden>تراجع عن آخر استبدال</button><button class="btn primary" id="frGo" type="button" disabled>استبدل</button></div>
+  </div>
+</section>
 
 <section class="sheet" id="backupSheet" dir="rtl" aria-label="النسخ الاحتياطي">
   <div class="grab"></div>
@@ -1895,9 +1961,12 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
       <div class="tog"><span>إبراز الأسماء والمصطلحات<small>اضغط على اسم شخصية أو مصطلح لترى بطاقته</small></span><button type="button" class="sx" role="switch" id="tEnt" aria-label="إبراز الأسماء والمصطلحات"></button></div>
       <div class="tog"><span>إطار الحوار<small>كل فقرة فيها كلام تظهر في إطار، والكلام الممتد على عدة فقرات يُجمع في إطار واحد</small></span><button type="button" class="sx" role="switch" id="tGrp" aria-label="إطار الحوار"></button></div>
       <div class="tog"><span>تلوين الحوار<small>يميّز كلام الشخصيات بين علامات التنصيص</small></span><button type="button" class="sx" role="switch" id="tDlg" aria-label="تلوين الحوار"></button></div>
+      <div class="tog"><span>وضع التركيز<small>تخفت الفقرات كلها إلا التي تقرؤها الآن</small></span><button type="button" class="sx" role="switch" id="tFocus" aria-label="وضع التركيز"></button></div>
+      <div class="tog" id="tBiliRow"><span>الأصل تحت الترجمة<small>يعرض النص الصيني تحت كل فقرة لمراجعة الترجمة (موضع تقريبي)</small></span><button type="button" class="sx" role="switch" id="tBili" aria-label="الأصل تحت الترجمة"></button></div>
       <div class="tog"><span>خط عريض<small>كل النص بخط سميك</small></span><button type="button" class="sx" role="switch" id="tBold" aria-label="خط عريض"></button></div>
       <div class="tog"><span>إبقاء الشاشة مضاءة<small>أثناء القراءة فقط</small></span><button type="button" class="sx" role="switch" id="tWake" aria-label="إبقاء الشاشة مضاءة"></button></div>
     </div>
+    <button type="button" class="redo" id="frBtn">بحث واستبدال في الرواية</button>
     <button type="button" class="redo" id="markReadBtn">علّم الفصل كمقروء</button>
     <button type="button" class="redo" id="reviewBtn">راجع الأسماء مع القاموس</button>
     <button type="button" class="redo" id="redoBtn">أعد ترجمة الفصل كاملاً</button>
@@ -2479,6 +2548,59 @@ function novelStats(name){
 }
 const kfmt=n=>n>999?(n/1000).toFixed(n>99999?0:1)+'k':String(n);
 
+
+/* ---------- home extras (all local, no AI) ---------- */
+const GOALS=[3,5,7,10,15,20];
+function renderHome(){
+  const box=$('#homeX');if(!box)return;box.innerHTML='';if(!chapters.length)return;
+  // 1) daily goal ring
+  const goal=prefs.goal||5,today=(stats.days[dayKey()]||{}).rc||0,streak=readStreak(),pct=Math.min(1,today/goal);
+  const g=document.createElement('button');g.type='button';g.className='hgoal'+(today>=goal?' done':'');
+  g.innerHTML=`<span class="gr"><svg viewBox="0 0 62 62"><circle class="t" cx="31" cy="31" r="26"/><circle class="v" cx="31" cy="31" r="26" style="stroke-dashoffset:163.4"/></svg><b>${today}/${goal}</b></span>
+    <span class="gt"><b>${today>=goal?'حققت هدف اليوم 🎉':'هدف اليوم'}</b><small>${today>=goal?`قرأت ${today} ${today===1?'فصلاً':'فصول'} اليوم`:`باقي ${goal-today} ${goal-today===1?'فصل':'فصول'} · اضغط لتغيير الهدف`}</small></span>
+    <span class="fire${streak>1?' on':''}"><b>${streak>1?'🔥':'·'}</b>${streak>1?streak+' يوم':'ابدأ سلسلتك'}</span>`;
+  g.onclick=()=>{prefs.goal=GOALS[(GOALS.indexOf(goal)+1)%GOALS.length];LS.set('midad.prefs',prefs);queuePrefsSave();toast(`هدفك اليومي: ${prefs.goal} فصول`);renderHome()};
+  box.appendChild(g);requestAnimationFrame(()=>requestAnimationFrame(()=>{const v=g.querySelector('.v');if(v)v.style.strokeDashoffset=String(163.4*(1-pct))}));
+  if(today>=goal&&LS.get('midad.goalDay','')!==dayKey()&&wasGoalBelow){LS.set('midad.goalDay',dayKey());toast('🎉 حققت هدفك اليومي!');buzz([20,60,30,60,40])}
+  wasGoalBelow=today<goal;
+  // 2) ready to read: unread translated chapters, by novel
+  const names=[...allNovelNames()].filter(n=>n!==SAMPLE.novel);
+  const ready=names.map(n=>{const list=chapters.filter(c=>nv(c)===n&&(c.progress||0)<=.97);if(!list.length)return null;const t=continueTarget(n);return t&&t.c?{n,cnt:list.length,c:t.c,at:Math.max(0,...chapters.filter(c=>nv(c)===n).map(c=>c.lastAt||c.createdAt||0))}:null}).filter(Boolean).sort((a,b)=>b.at-a.at).slice(0,10);
+  if(ready.length){const sec=document.createElement('section');sec.className='hsec';sec.innerHTML=`<h3>📖 جاهز للقراءة <small>${ready.reduce((s,r)=>s+r.cnt,0)} فصل</small></h3><div class="hready"></div>`;
+    const row=sec.querySelector('.hready');
+    ready.forEach(r=>{const b=document.createElement('button');b.type='button';const m=novelMeta(r.n);b.style.setProperty('--hcol',m.color||'var(--plasma)');
+      b.innerHTML=`<span class="hc"></span><b></b><span class="hn">${r.cnt} ${r.cnt===1?'فصل جاهز':r.cnt<=10?'فصول جاهزة':'فصلاً جاهزاً'}</span><small></small>`;
+      b.querySelector('b').textContent=r.n;b.querySelector('small').textContent=(r.c.progress||0)>.02?`تابع الفصل ${r.c.num??''} · ${Math.round((r.c.progress||0)*100)}%`:`ابدأ الفصل ${r.c.num??''}`;
+      b.onclick=()=>{curNovel=r.n;openReader(r.c.id)};row.appendChild(b)});
+    box.appendChild(sec)}
+  // 3) raw store running low on novels you are reading now
+  const dis=LS.get('midad.rawAlertOff',{});
+  names.forEach(n=>{
+    const rl=rawsOf(n).length,usesRaw=chapters.some(c=>nv(c)===n&&c.src),recent=chapters.some(c=>nv(c)===n&&c.lastAt&&Date.now()-c.lastAt<14*864e5);
+    if(!usesRaw||!recent||rl>5||dis[n]===rl)return;
+    const a=document.createElement('div');a.className='halert';
+    a.innerHTML=`<span></span><button type="button" class="ha">أضف فصولاً</button><button type="button" class="hx" aria-label="إخفاء">✕</button>`;
+    a.querySelector('span').innerHTML=`<b></b><small>${rl?`بقي ${rl} ${rl===1?'فصل خام':'فصول خام'} فقط، وبعدها تتوقف الترجمة التلقائية`:'المخزن الخام فارغ، الترجمة التلقائية متوقفة'}</small>`;
+    a.querySelector('b').textContent=n;
+    a.querySelector('.ha').onclick=()=>{openAdd(n);if(!$('#modeSeg').hidden)setMode('tr');$('#trStore').checked=true};
+    a.querySelector('.hx').onclick=()=>{dis[n]=rl;LS.set('midad.rawAlertOff',dis);a.remove()};
+    box.appendChild(a);
+  });
+  // 4) this week: promotions and wealth jumps in chapters you read in the last 7 days
+  const ev=[],wk=Date.now()-7*864e5;
+  names.forEach(n=>{
+    const pw=(meta.novels[n]||{}).power;if(!pw)return;
+    const readNums=new Set(chapters.filter(c=>nv(c)===n&&c.lastAt&&c.lastAt>wk&&(c.progress||0)>.97).map(c=>c.num));if(!readNums.size)return;
+    const k0=pkind(powLadders(pw)[0]),who=(pw.hero||{}).name||'البطل';
+    (pw.history||[]).filter(x=>readNums.has(x.ch)).forEach(x=>ev.push({n,ch:x.ch,ico:k0==='wealth'?'💰':k0==='company'?'🏢':'⚡',t:k0==='wealth'?`ثروة ${who}: ${fmtMoney(x.stage.split(' – ')[1]||x.stage)}`:k0==='company'?`${who}: ${x.stage}`:`${who} ← ${x.stage}`}));
+  });
+  if(ev.length){const sec=document.createElement('section');sec.className='hsec';sec.innerHTML='<h3>✨ أحداث أسبوعك</h3><div class="hweek"></div>';
+    ev.sort((a,b)=>b.ch-a.ch).slice(0,5).forEach(e=>{const b=document.createElement('button');b.type='button';b.innerHTML=`<i>${e.ico}</i><span><b></b><small></small></span><em>ف${e.ch}</em>`;
+      b.querySelector('b').textContent=e.t;b.querySelector('small').textContent=e.n;
+      b.onclick=()=>{const c=chapters.find(x=>nv(x)===e.n&&x.num===e.ch);if(c){curNovel=e.n;openReader(c.id)}};sec.querySelector('.hweek').appendChild(b)});
+    box.appendChild(sec)}
+}
+let wasGoalBelow=true;
 function renderLibrary(){
   const list=all();
   const novels=[...allNovelNames()];
@@ -2486,6 +2608,7 @@ function renderLibrary(){
   const done=chapters.filter(c=>(c.progress||0)>.97).length;
   $('#stats').innerHTML=`<div><b>${chapters.length}</b>فصل محفوظ</div><div><b>${chapters.length?novels.length:0}</b>رواية</div><div><b>${done}</b>فصل مكتمل</div><div><b>${kfmt(totalW)}</b>كلمة</div>`;
   renderStatDot();if($('#statsView').classList.contains('show'))renderWeek();
+  try{renderHome()}catch(e){}
   $('#novels').innerHTML=chapters.length?novels.map(n=>`<option value="${esc(n)}">`).join(''):'';
 
   /* shelf */
@@ -2530,7 +2653,7 @@ function renderLibrary(){
 function chapterCard(c,showNovel,dupSet){
   const p=Math.round((c.progress||0)*100);
   const b=document.createElement('button');b.type='button';b.className='card'+(dupSet&&dupSet.has(c.num)?' dup':'')+(p>97?' read':'');
-  b.innerHTML=`<div class="num">${c.num??'—'}<small>فصل</small>${p>97?'<span class="ck" aria-label="مقروء"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></span>':''}</div><div class="body"><div class="ttl"></div><div class="sub">${showNovel?'<span class="nv"></span>':''}<span>${Math.max(1,Math.round(words(c.text||'')/180))} د قراءة</span>${marksOf(c).length?`<span>${marksOf(c).length} علامة</span>`:''}<span>${fmtDate(c.createdAt)}</span>${c.sample?'<span class="tag">مثال</span>':''}${dupSet&&dupSet.has(c.num)?'<span class="tag" style="border-color:var(--danger);color:var(--danger)">مكرر</span>':''}${p>97?'<span class="tag" style="border-color:var(--plasma);color:var(--plasma)">مكتمل</span>':''}</div><div class="bar"><i style="width:${p}%"></i></div></div>`;
+  b.innerHTML=`<div class="num">${c.num??'—'}<small>فصل</small>${p>97?'<span class="ck" aria-label="مقروء"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></span>':''}</div><div class="body"><div class="ttl"></div><div class="sub">${showNovel?'<span class="nv"></span>':''}<span>${Math.max(1,Math.round(words(c.text||'')/180))} د قراءة</span>${marksOf(c).length?`<span>${marksOf(c).length} علامة</span>`:''}${c.rate?`<span class="rate">${'★'.repeat(c.rate)}</span>`:''}${c.note?'<span>📝</span>':''}<span>${fmtDate(c.createdAt)}</span>${c.sample?'<span class="tag">مثال</span>':''}${dupSet&&dupSet.has(c.num)?'<span class="tag" style="border-color:var(--danger);color:var(--danger)">مكرر</span>':''}${p>97?'<span class="tag" style="border-color:var(--plasma);color:var(--plasma)">مكتمل</span>':''}</div><div class="bar"><i style="width:${p}%"></i></div></div>`;
   b.querySelector('.ttl').textContent=c.title;if(showNovel)b.querySelector('.nv').textContent=nv(c);
   b.dataset.id=c.id;b.onclick=()=>{if(selMode&&!showNovel){toggleSel(c.id,b);return}openReader(c.id)};if(selMode&&selIds.has(c.id))b.classList.add('sel');return b;
 }
@@ -2821,6 +2944,104 @@ ${batch.map(it=>`${batchHead(it)}\n${kbText(it)}`).join('\n\n')}`;
   }catch(e){if(!quiet)toast(TR_ERR[e&&e.code]||'تعذّر تحديث الشخصيات، حاول مرة أخرى')}
   charsBusy=false;charsMsg='';if(openSheet&&openSheet.id==='charSheet')renderChars();
 }
+
+/* ---------- find & replace across a chapter or the whole novel (local, no AI) ---------- */
+const AR_L='\\u0621-\\u064A\\u0671-\\u06D3';
+let frScope='nv',frLast=null;
+function frRegex(find,whole){
+  const p=reEsc(find).replace(/\s+/g,'\\s+');
+  return whole?new RegExp(`(^|[^${AR_L}])((?:[وف]?[بكل]?)?)(${p})(?=$|[^${AR_L}])`,'g'):new RegExp(`()()(${p})`,'g');
+}
+function frTargets(){return frScope==='ch'&&current?[chapters.find(c=>c.id===current.id)].filter(Boolean):chapters.filter(c=>nv(c)===(current?nv(current):curNovel))}
+function frCount(t,re){re.lastIndex=0;let n=0;while(re.exec(t))n++;return n}
+function frPreview(){
+  const find=$('#frFind').value.trim(),repl=$('#frRep').value.trim(),info=$('#frInfo'),go=$('#frGo');
+  document.querySelectorAll('#frScope button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.s===frScope)));
+  if(!find){info.innerHTML='';go.disabled=true;return}
+  const re=frRegex(find,$('#frWhole').checked),hits=[];let total=0;
+  frTargets().forEach(c=>{const n=frCount(c.text||'',re)+frCount(c.title||'',re);if(n){hits.push([c,n]);total+=n}});
+  go.disabled=!total||!repl||repl===find;
+  if(!total){info.innerHTML='لا توجد نتائج';return}
+  hits.sort((a,b)=>(a[0].num??0)-(b[0].num??0));
+  info.innerHTML=`وُجد <b>${total}</b> موضع في <b>${hits.length}</b> ${hits.length===1?'فصل':'فصول'}<ul></ul>`;
+  const ul=info.querySelector('ul');
+  hits.slice(0,30).forEach(([c,n])=>{const li=document.createElement('li');const t=c.text||'';re.lastIndex=0;const m=re.exec(t);
+    let ctx='';if(m){const at=m.index+m[1].length+m[2].length;ctx=t.slice(Math.max(0,at-25),at).split('\n').pop()+'\u0000'+m[3]+'\u0001'+t.slice(at+m[3].length,at+m[3].length+25).split('\n')[0]}
+    li.innerHTML=`الفصل ${c.num??'—'} (${n}): <span></span>`;const sp=li.querySelector('span');
+    if(ctx){const [a,rest]=ctx.split('\u0000'),[w,b]=rest.split('\u0001');sp.append('…'+a);const mk=document.createElement('mark');mk.textContent=w;sp.append(mk,b+'…')}
+    ul.appendChild(li)});
+  if(hits.length>30){const li=document.createElement('li');li.textContent=`و${hits.length-30} فصول أخرى`;ul.appendChild(li)}
+}
+function openFR(word){
+  $('#frFind').value=word||'';$('#frRep').value='';frScope=current?'nv':'nv';
+  $('#frUndo').hidden=!frLast;frPreview();hideSheet();showSheet($('#frSheet'));setTimeout(()=>(word?$('#frRep'):$('#frFind')).focus(),250);
+}
+['#frFind','#frRep'].forEach(q=>$(q).addEventListener('input',frPreview));
+$('#frWhole').addEventListener('change',frPreview);
+document.querySelectorAll('#frScope button').forEach(b=>b.onclick=()=>{frScope=b.dataset.s;frPreview()});
+$('#frBtn').onclick=()=>openFR('');
+$('#frGo').onclick=async()=>{
+  const find=$('#frFind').value.trim(),repl=$('#frRep').value.trim();if(!find||!repl)return;
+  const re=frRegex(find,$('#frWhole').checked),novel=current?nv(current):curNovel,changed=[];let total=0;
+  frTargets().forEach(c=>{const t=c.text||'',ti=c.title||'';const n=frCount(t,re)+frCount(ti,re);if(!n)return;
+    changed.push({id:c.id,text:t,title:ti});total+=n;
+    re.lastIndex=0;c.text=t.replace(re,(m0,a,b)=>a+b+repl);re.lastIndex=0;c.title=ti.replace(re,(m0,a,b)=>a+b+repl)});
+  if(!total)return;
+  // the novel's glossary and character file follow the new spelling
+  const m=meta.novels[novel]||{},extra=[],prevMeta={glossary:m.glossary,chars:m.chars?JSON.parse(JSON.stringify(m.chars)):null,terms:prefs.terms};
+  if(m.glossary&&m.glossary.includes(find)){m.glossary=m.glossary.split('\n').map(l=>{const i=l.search(/[=:：]/);return i>0&&l.slice(i+1).trim()===find?l.slice(0,i+1)+' '+repl:l}).join('\n');extra.push('القاموس')}
+  if(m.chars&&m.chars.list){let k=0;m.chars.list.forEach(c=>{if(c.name===find){c.name=repl;k++}});if(k)extra.push('ملف الشخصيات')}
+  if(extra.length){meta.novels[novel]=m;saveMeta()}
+  if($('#frTerm').checked&&isArabicWord(find)){const lines=(prefs.terms||'').split('\n').filter(l=>!(l.split('=')[0]||'').trim().startsWith(find+'')||l.split('=')[0].trim()!==find);lines.push(`${find} = ${repl}`);prefs.terms=lines.filter(Boolean).join('\n');prefs.termsOn=true;LS.set('midad.prefs',prefs);queuePrefsSave();extra.push('المصطلحات البديلة')}
+  frLast={novel,changed,prevMeta};persistLocal();
+  for(const c of changed){const ch=chapters.find(x=>x.id===c.id);if(ch)saveChapterField(ch,{text:ch.text,title:ch.title})}
+  hideSheet();toast(`استُبدل ${total} موضع في ${changed.length} ${changed.length===1?'فصل':'فصول'}`+(extra.length?` · وحُدّث ${extra.join(' و')}`:''));
+  if(current&&changed.some(c=>c.id===current.id)){const i=firstVisibleIdx();openReader(current.id,{keepTts:tts.on,para:i})}
+  if(curNovel)renderNovel();
+};
+$('#frUndo').onclick=()=>{
+  if(!frLast)return;let n=0;
+  frLast.changed.forEach(o=>{const ch=chapters.find(x=>x.id===o.id);if(ch){ch.text=o.text;ch.title=o.title;n++;saveChapterField(ch,{text:ch.text,title:ch.title})}});
+  const pm=frLast.prevMeta,mm=meta.novels[frLast.novel];
+  if(pm&&mm){if(pm.glossary!==undefined)mm.glossary=pm.glossary;if(pm.chars)mm.chars=pm.chars;saveMeta()}
+  if(pm&&pm.terms!==prefs.terms){prefs.terms=pm.terms;LS.set('midad.prefs',prefs);queuePrefsSave()}
+  persistLocal();frLast=null;hideSheet();toast(`أُعيد ${n} ${n===1?'فصل':'فصول'} كما كانت`);if(current)openReader(current.id,{para:firstVisibleIdx()});
+};
+
+/* ---------- original under each paragraph ---------- */
+function applyBili(){
+  document.querySelectorAll('#article .srcp.bili').forEach(x=>x.remove());
+  $('#tBiliRow').hidden=!(current&&current.src);
+  if(!prefs.bili||!current||!current.src)return;
+  const S=(current.src||'').split('\n').map(x=>x.trim()).filter(Boolean),P=[...document.querySelectorAll('#article p[data-i]')],n=Math.max(1,(current.text||'').split('\n').filter(Boolean).length);
+  if(!S.length)return;
+  P.forEach(p=>{const i=+p.dataset.i,a=Math.floor(i*S.length/n),b=Math.max(a+1,Math.floor((i+1)*S.length/n));const d=document.createElement('div');d.className='srcp bili';d.dir='auto';d.lang='zh';d.textContent=S.slice(a,b).join(' ');if(d.textContent)p.after(d)});
+}
+$('#tBili').onclick=()=>{prefs.bili=!prefs.bili;applyPrefs();applyBili()};
+
+/* ---------- focus mode: only the paragraph you are reading stays bright ---------- */
+let focusRaf=0;
+function focusTick(){
+  if(!prefs.focus||focusRaf)return;
+  focusRaf=requestAnimationFrame(()=>{focusRaf=0;const mid=innerHeight*.42;let best=null,bd=1e9;
+    for(const p of document.querySelectorAll('#article p[data-i]')){const r=p.getBoundingClientRect();if(r.bottom<0)continue;if(r.top>innerHeight)break;const d=r.top<=mid&&r.bottom>=mid?0:Math.min(Math.abs(r.top-mid),Math.abs(r.bottom-mid));if(d<bd){bd=d;best=p}}
+    document.querySelectorAll('#article p.fcur').forEach(x=>{if(x!==best)x.classList.remove('fcur')});if(best)best.classList.add('fcur')});
+}
+$('#rscroll').addEventListener('scroll',focusTick,{passive:true});
+$('#tFocus').onclick=()=>{prefs.focus=!prefs.focus;applyPrefs();focusTick()};
+
+/* ---------- rate the chapter you just finished ---------- */
+function renderRate(){
+  const ch=current&&chapters.find(c=>c.id===current.id);const st=$('#dcStars');st.innerHTML='';if(!ch)return;
+  for(let k=1;k<=5;k++){const b=document.createElement('button');b.type='button';b.textContent='★';b.className=(ch.rate||0)>=k?'on':'';b.setAttribute('aria-label',`${k} من 5`);
+    b.onclick=()=>{clearTimeout(dcT);ch.rate=ch.rate===k?0:k;current.rate=ch.rate;saveChapterField(ch,{rate:ch.rate});renderRate();buzz(10);if(ch.rate)dcT=setTimeout(hideDone,4000)};st.appendChild(b)}
+  const nt=$('#dcNote');nt.value=ch.note||'';$('#dcNoteBtn').style.opacity=ch.note?1:.6;
+}
+$('#dcNoteBtn').onclick=()=>{clearTimeout(dcT);const nt=$('#dcNote');nt.hidden=!nt.hidden;if(!nt.hidden)nt.focus()};
+$('#dcNote').addEventListener('focus',()=>clearTimeout(dcT));
+$('#dcNote').addEventListener('change',()=>{const ch=current&&chapters.find(c=>c.id===current.id);if(!ch)return;ch.note=$('#dcNote').value.trim().slice(0,200);current.note=ch.note;saveChapterField(ch,{note:ch.note});toast(ch.note?'حُفظت ملاحظتك':'حُذفت الملاحظة');$('#dcNoteBtn').style.opacity=ch.note?1:.6});
+$('#dcNote').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#dcNote').blur()}});
+
 $('#chUpdate').onclick=()=>updateChars(curNovel,false);
 /* ---------- relationship map: built from the character file, filtered by the chapter you have reached ---------- */
 const REL_T={ally:['حليف','#4fdcff'],family:['عائلة','#7cf29c'],love:['حب','#ff6b9a'],enemy:['عدو','#ff5a5a'],rival:['منافس','#ffb347'],business:['عمل','#ffd166'],mentor:['معلّم وتلميذ','#b48cff'],boss:['رئيس وتابع','#8fa3c0'],other:['أخرى','#9aa5b8']};
@@ -4405,7 +4626,7 @@ function renderSettings(){
   seg($('#fonts'),Object.entries(FONTS).map(([k,v])=>[k,v[0]]),'font');
   seg($('#aligns'),ALIGNS,'align');seg($('#pads'),PADS,'pad');
   $('#szOut').textContent=prefs.size;$('#lh').value=prefs.lh;
-  $('#tDlg').setAttribute('aria-checked',prefs.dialog);$('#tGrp').setAttribute('aria-checked',prefs.groupSpeech!==false);$('#tEnt').setAttribute('aria-checked',prefs.ents!==false);$('#tBold').setAttribute('aria-checked',prefs.bold);$('#tWake').setAttribute('aria-checked',prefs.wake);
+  $('#tDlg').setAttribute('aria-checked',prefs.dialog);$('#tGrp').setAttribute('aria-checked',prefs.groupSpeech!==false);$('#tEnt').setAttribute('aria-checked',prefs.ents!==false);$('#tBold').setAttribute('aria-checked',prefs.bold);$('#tFocus').setAttribute('aria-checked',!!prefs.focus);$('#tBili').setAttribute('aria-checked',!!prefs.bili);$('#article').classList.toggle('focus',!!prefs.focus);$('#tWake').setAttribute('aria-checked',prefs.wake);
 }
 $('#szDown').onclick=()=>{prefs.size=Math.max(10,prefs.size-1);applyPrefs()};
 $('#szUp').onclick=()=>{prefs.size=Math.min(40,prefs.size+1);applyPrefs()};
@@ -4515,7 +4736,7 @@ function openReader(id,opt){
   const r=$('#reader');r.classList.add('show');r.classList.remove('immersive');
   applyPrefs();updateNav();maybeAutoNext();paintAskDot();saveView();renderMarkBtn();renderPowChip();
   const sc=$('#rscroll');
-  applyMarks();if(prefs.ents!==false)markEntities();renderIllustrations();renderRecap();renderReview();hideEnt();
+  applyMarks();if(prefs.ents!==false)markEntities();renderIllustrations();renderRecap();renderReview();hideEnt();applyBili();setTimeout(focusTick,60);
   requestAnimationFrame(()=>{
     const tp=opt.para!=null&&document.querySelector(`#article p[data-i="${opt.para}"]`);
     if(tp){tp.scrollIntoView({block:'center'});tp.classList.add('flash');setTimeout(()=>tp.classList.remove('flash'),1700)}
@@ -4544,6 +4765,7 @@ function chapterDone(){
   const streak=readStreak(),today=(stats.days[dayKey()]||{}).rc||0;
   const items=[[mins,'دقيقة'],[curWords,'كلمة'],[`${doneN}/${sib.length}`,'من الرواية'],streak>1?[streak,'يوم متتالي 🔥']:[today,today===1?'فصل اليوم':'فصول اليوم']];
   $('#dcStats').innerHTML=items.map(([v,l])=>`<div><b>${typeof v==='number'?v.toLocaleString('en'):v}</b><small>${l}</small></div>`).join('');
+  $('#dcNote').hidden=true;renderRate();
   $('#doneCard').classList.add('in');clearTimeout(dcT);dcT=setTimeout(hideDone,10000);
   $('#dcStats').querySelectorAll('b').forEach((b,i)=>{if(i!==2)countUp(b,0,900)});
   confetti();
@@ -5073,7 +5295,7 @@ art.addEventListener('contextmenu',e=>{if(e.target.closest('#article p'))e.preve
 function showPMenu(p){
   document.querySelectorAll('#article p.held').forEach(x=>x.classList.remove('held'));p.classList.add('held');
   const m=$('#pMenu');$('#pmSrc').hidden=!current.src;
-  $('#pmWord').hidden=!lpWord;$('#pmWord').querySelector('span').textContent=lpWord?'معنى «'+(lpWord.length>7?lpWord.slice(0,7)+'…':lpWord)+'»':'معنى';
+  $('#pmWord').hidden=!lpWord;$('#pmRepl').hidden=!lpWord||current.sample;$('#pmWord').querySelector('span').textContent=lpWord?'معنى «'+(lpWord.length>7?lpWord.slice(0,7)+'…':lpWord)+'»':'معنى';
   const i=+p.dataset.i,h=hasMark(current,i,'hl'),b=hasMark(current,i,'bm');
   $('#pmHl').classList.toggle('on',h);$('#pmHl').querySelector('span').textContent=h?'إزالة التظليل':'تظليل';
   $('#pmBm').classList.toggle('on',b);$('#pmBm').querySelector('span').textContent=b?'إزالة العلامة':'علامة';
@@ -5098,6 +5320,7 @@ $('#pMenu').addEventListener('click',async e=>{
   if(act==='edit'){editParagraph(p,i);return}
   if(act==='speak'){ttsStart(i);return}
   if(act==='word'){wordMeaning(lpWord,lines[i],p);return}
+  if(act==='repl'){openFR(lpWord);return}
   if(act==='redo')redoParagraph(p,i,lines);
 });
 function srcWindow(i,n){const src=(current.src||'').split('\n').filter(Boolean);if(!src.length)return '';const c=Math.round(i*(src.length-1)/Math.max(1,n-1));return src.slice(Math.max(0,c-1),c+2).join('\n')}
