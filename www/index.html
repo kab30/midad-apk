@@ -4504,7 +4504,7 @@ function openReader(id,opt){
   if(tts.on&&!opt.keepTts)ttsStop();
   hidePMenu();hideDone();$('#article').classList.remove('leave-next','leave-prev');
   curWords=words(ch.text||'');autoAsked=null;
-  readMark=(ch.progress||0)>.97?0:(ch.progress||0);wasDone=(ch.progress||0)>.97;lastReadAt=Date.now();chSecs=0;openedAt=Date.now();
+  readMark=(ch.progress||0)>.97?0:(ch.progress||0);wasDone=(ch.progress||0)>.97;lastReadAt=Date.now();chSecs=0;openedAt=Date.now();actAt=Date.now();
   saveProgress(true);current=ch;lastId=id;LS.set('midad.last',id);widgetPush();
   if(!ch.sample){ch.lastAt=Date.now();persistLocal();if(col&&!ch.pending)col.doc(ch.id).update({lastAt:ch.lastAt}).catch(()=>{})}
   $('#rT').textContent=ch.title;$('#rN').textContent=ch.novel||'';
@@ -4525,7 +4525,11 @@ function openReader(id,opt){
   if(prefs.wake)lockWake();
 }
 /* finishing a chapter: the bar shines, the phone taps, and the next chapter slides up */
-let dcT=null,chSecs=0,openedAt=0;
+let dcT=null,chSecs=0,openedAt=0,actAt=0;
+/* time spent on this chapter: the reader is open and visible, counting pauses of up to 3 minutes between touches or scrolls */
+function readTick(){const now=Date.now();if(actAt&&current&&$('#reader').classList.contains('show')&&document.visibilityState==='visible')chSecs+=Math.min(180,(now-actAt)/1000);actAt=now}
+['scroll','pointerdown','wheel'].forEach(ev=>$('#rscroll').addEventListener(ev,readTick,{passive:true}));
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')actAt=Date.now();else{readTick();actAt=0}});
 function hideDone(){clearTimeout(dcT);$('#doneCard').classList.remove('in')}
 function chapterDone(){
   const p=$('.prog');if(p){p.classList.remove('done');void p.offsetWidth;p.classList.add('done')}
@@ -4536,7 +4540,7 @@ function chapterDone(){
   $('#dcS').textContent=next?('التالي: '+(next.title||'الفصل '+next.num)):(big?big.textContent.trim():'');
   $('#dcGo').hidden=!big;$('#dcGo').textContent=next?'التالي':'متابعة';
   // what this chapter added up to
-  const mins=Math.max(1,Math.round(chSecs/60)),sib=siblings(),doneN=sib.filter(c=>(c.progress||0)>.97||c.id===current.id).length;
+  readTick();const mins=Math.max(1,Math.round(chSecs/60)),sib=siblings(),doneN=sib.filter(c=>(c.progress||0)>.97||c.id===current.id).length;
   const streak=readStreak(),today=(stats.days[dayKey()]||{}).rc||0;
   const items=[[mins,'دقيقة'],[curWords,'كلمة'],[`${doneN}/${sib.length}`,'من الرواية'],streak>1?[streak,'يوم متتالي 🔥']:[today,today===1?'فصل اليوم':'فصول اليوم']];
   $('#dcStats').innerHTML=items.map(([v,l])=>`<div><b>${typeof v==='number'?v.toLocaleString('en'):v}</b><small>${l}</small></div>`).join('');
@@ -4593,7 +4597,7 @@ function onScroll(){
   $('#pct').textContent=Math.round(f*100)+'% · '+(f>.985?'انتهى':rem<=1?'أقل من دقيقة':rem+' د متبقية');
   if(current&&Math.abs(f-(current.progress||0))>.005){current.progress=f;dirty=true;clearTimeout(progT);progT=setTimeout(()=>saveProgress(),1500)}
   if(current&&!current.sample&&f>readMark+.02){
-    const now=Date.now();if(lastReadAt){const dt=Math.min(60,(now-lastReadAt)/1000);if(dt>0){bumpStat('rs',Math.round(dt));chSecs+=dt}}lastReadAt=now;
+    const now=Date.now();if(lastReadAt){const dt=Math.min(60,(now-lastReadAt)/1000);if(dt>0)bumpStat('rs',Math.round(dt))}lastReadAt=now;
     bumpStat('rw',Math.round((f-readMark)*curWords));readMark=f;
   }
   if(current&&!current.sample&&f>.97&&!wasDone&&Date.now()-openedAt>2500&&(sc.scrollTop>0||max<=0)){wasDone=true;bumpStat('rc',1);autoKnowledge(nv(current));chapterDone()}
