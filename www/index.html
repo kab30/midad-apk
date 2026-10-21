@@ -1000,7 +1000,8 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 .donecard #dcNote{flex:1 1 100%;height:36px;border-radius:10px;border:1px solid color-mix(in srgb,var(--ra) 45%,transparent);background:transparent;color:var(--rf);padding:0 10px;font:13px var(--ui)}
 .card .rate{color:#e0a800}
 /* ---------- home: goal, ready to read, raw alerts, this week ---------- */
-.homex{display:grid;gap:12px;margin:12px 0 4px}
+.homex{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin:12px 0 4px;min-width:0;max-width:100%}
+.homex>*{min-width:0;max-width:100%}
 .homex:empty{display:none}
 .hgoal{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:18px;background:var(--panel);border:1px solid var(--line);text-align:start;width:100%;color:var(--ink);font-family:var(--ui)}
 .hgoal .gr{position:relative;width:62px;height:62px;flex:none}
@@ -1016,7 +1017,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 @keyframes flame{50%{transform:scale(1.12) rotate(-4deg)}}
 .hsec h3{margin:2px 2px 8px;font-size:14px;font-family:var(--ui);display:flex;align-items:center;gap:6px}
 .hsec h3 small{font-weight:400;color:var(--dim);font-size:12px}
-.hready{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px;scrollbar-width:none}
+.hready{display:flex;gap:10px;overflow-x:auto;max-width:100%;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;padding-bottom:4px;scrollbar-width:none}
 .hready::-webkit-scrollbar{display:none}
 .hready button{scroll-snap-align:start;flex:none;width:156px;padding:10px;border-radius:16px;background:var(--panel);border:1px solid var(--line);text-align:start;color:var(--ink);font-family:var(--ui);display:flex;flex-direction:column;gap:6px}
 .hready .hc{height:6px;border-radius:4px;background:var(--hcol,var(--plasma))}
