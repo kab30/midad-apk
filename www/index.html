@@ -2177,6 +2177,9 @@ let covers=LS.get('midad.covers',{}); // coverId -> jpeg data URL
 const isCoverId=id=>id.startsWith('cv-');
 /* raw (untranslated) chapters waiting in a novel's store */
 let raws=LS.get('midad.raw',[]);
+let rawLazy=!window.midadCloud&&!!(LS.get('midad.prefs',{})||{}).sbUid; // linked to Supabase on Gemini: the raw store lives only in the account
+const rawLen=r=>r.text!=null?r.text.length:(r.len||0);
+const rawOut=new Map();let rawOutT=null; // raw chapters on their way to the account
 const isRawId=id=>id.startsWith('raw-');
 /* chapter illustrations: one document per image ("img-<id>"), compressed JPEG */
 const isImgId=id=>id.startsWith('img-');
@@ -2202,9 +2205,9 @@ function saveChat(chId){
     else ref.set(Object.assign({kind:'chat',ch:chId},c)).catch(()=>{});
   },400);
 }
-function persistRaw(){LS.set('midad.raw',raws);idbSave('raw',raws)}
-async function rawSet(r){if(!col){r.pending=true;persistRaw();return}try{const {id,pending,...b}=r;await col.doc(id).set(Object.assign({kind:'raw'},b));delete r.pending;persistRaw()}catch(e){r.pending=true;persistRaw();if(e&&e.code==='quota_exceeded')toast('المساحة ممتلئة، احذف بعض الفصول الخام')}}
-function rawDel(id){raws=raws.filter(r=>r.id!==id);persistRaw();if(col)col.doc(id).delete().catch(()=>{})}
+function persistRaw(){const v=rawLazy?raws.map(r=>{const {text,...x}=r;return Object.assign(x,{len:rawLen(r)})}):raws;LS.set('midad.raw',v);idbSave('raw',v)}
+async function rawSet(r){if(rawLazy){sbRawPut(r);return}if(!col){r.pending=true;persistRaw();return}try{const {id,pending,...b}=r;await col.doc(id).set(Object.assign({kind:'raw'},b));delete r.pending;persistRaw()}catch(e){r.pending=true;persistRaw();if(e&&e.code==='quota_exceeded')toast('المساحة ممتلئة، احذف بعض الفصول الخام')}}
+function rawDel(id){rawOut.delete(id);raws=raws.filter(r=>r.id!==id);persistRaw();if(col)col.doc(id).delete().catch(()=>{})}
 const rawsOf=novel=>raws.filter(r=>r.novel===novel).sort((a,b)=>a.num-b.num);
 function saveCoversLocal(){LS.set('midad.covers',covers)}
 /* novel info is one shared document. Each novel carries the time it was last changed (_u) and deleted names leave a
@@ -2301,7 +2304,7 @@ async function connectDb(){
     {const pend=chapters.filter(x=>x.pending);const docs=first.docs.filter(x=>{const k=x.id;return k!==META_ID&&k!==PREFS_ID&&k!==USAGE_ID&&k!==STATS_ID&&k!==DISC_ID&&!isCoverId(k)&&!isRawId(k)&&!isChatId(k)&&!isImgId(k)&&!isTrashId(k)});
      const ids=new Set(docs.map(x=>x.id));chapters=docs.map(x=>Object.assign({id:x.id},x.data())).concat(pend.filter(p=>!ids.has(p.id)));
      const m=first.docs.find(x=>x.id===META_ID);if(m&&m.data().novels)applyRemoteMeta(m.data())
-     const rp=raws.filter(r=>r.pending);const rd=first.docs.filter(x=>isRawId(x.id)).map(x=>{const v=Object.assign({},x.data());delete v.kind;return Object.assign({id:x.id},v)});const rids=new Set(rd.map(r=>r.id));raws=rd.concat(rp.filter(r=>!rids.has(r.id)));
+     if(!rawLazy){const rp=raws.filter(r=>r.pending);const rd=first.docs.filter(x=>isRawId(x.id)).map(x=>{const v=Object.assign({},x.data());delete v.kind;return Object.assign({id:x.id},v)});const rids=new Set(rd.map(r=>r.id));raws=rd.concat(rp.filter(r=>!rids.has(r.id)));}
      {const t={};first.docs.filter(x=>isTrashId(x.id)).forEach(x=>t[x.id]=x.data());trash=t;renderTrashInfo()}
      persistLocal();persistRaw();setSyncState('ok');renderLibrary();if(curNovel)renderNovel();healRenames()}
     const have=new Set(first.docs.map(x=>x.id));
@@ -2329,9 +2332,9 @@ async function connectDb(){
       covers=cv;saveCoversLocal();
       const pd=s.docs.find(x=>x.id===PREFS_ID);
       if(pd){const d=pd.data();const j=JSON.stringify({prefs:Object.assign({},prefs,d.prefs||{}),ui:d.ui});if(j!==prefsSynced)applyRemotePrefs(d)}
-      const rp=raws.filter(r=>r.pending);
+      if(!rawLazy){const rp=raws.filter(r=>r.pending);
       const rdocs=s.docs.filter(x=>isRawId(x.id)).map(x=>{const d=Object.assign({},x.data());delete d.kind;return Object.assign({id:x.id},d)});
-      const rids=new Set(rdocs.map(r=>r.id));raws=rdocs.concat(rp.filter(r=>!rids.has(r.id)));persistRaw();
+      const rids=new Set(rdocs.map(r=>r.id));raws=rdocs.concat(rp.filter(r=>!rids.has(r.id)));persistRaw();}
       const ud=s.docs.find(x=>x.id===USAGE_ID);
       if(ud){const d=ud.data();if((+d.updated||0)>(usage.updated||0)){usage=Object.assign({since:{calls:0,chars:0},days:{}},d);delete usage.kind;LS.set('midad.usage',usage);renderUsage()}}
       const sd=s.docs.find(x=>x.id===STATS_ID);if(sd)mergeStats(sd.data().days);
@@ -2860,7 +2863,7 @@ function renderProg(){
   const total=Math.max(tr+raw,nums.length?Math.max(...nums)-Math.min(...nums)+1:0);
   const sp=readingSpeed();
   const remTr=ch.reduce((s,c)=>s+words(c.text||'')*(1-Math.min(1,c.progress||0)),0);
-  const remRaw=rw.reduce((s,r)=>s+r.text.replace(/\s/g,'').length*0.55,0); // ~0.55 Arabic words per Chinese character
+  const remRaw=rw.reduce((s,r)=>s+(r.text!=null?r.text.replace(/\s/g,'').length:rawLen(r)*.9)*0.55,0); // ~0.55 Arabic words per Chinese character
   const pct=x=>total?(x/total*100):0;
   box.innerHTML=`<div class="pbar" role="img" aria-label="قرأت ${read}، مترجم ${tr}، خام ${raw}، من أصل ${total}"><i class="s1" style="width:${pct(read)}%"></i><i class="s2" style="width:${pct(tr-read)}%"></i><i class="s3" style="width:${pct(raw)}%"></i></div>
     <div class="plegend"><span><i class="k1"></i>قرأت <b>${read}</b></span><span><i class="k2"></i>مترجم <b>${tr}</b></span><span><i class="k3"></i>خام <b>${raw}</b></span><span>من أصل <b>${total}</b></span></div>
@@ -4882,6 +4885,9 @@ const hasChapter=(novel,num)=>chapters.some(c=>nv(c)===novel&&c.num===num);
 function queueRaw(raw,quiet){
   if(trQueue.some(j=>j.novel===raw.novel&&j.r.num===raw.num))return false;
   if(hasChapter(raw.novel,raw.num)){rawDel(raw.id);return false}
+  if(raw.text==null){ // the text is still in the account: fetch it, then queue
+    if(raw._loading)return true;raw._loading=true;
+    rawText(raw).then(()=>{raw._loading=false;queueRaw(raw,quiet)}).catch(()=>{raw._loading=false;toast(`تعذّر جلب الفصل الخام ${raw.num} من حسابك`)});return true}
   enqueue({novel:raw.novel,r:{num:raw.num,title:raw.title,lines:raw.text.split('\n').filter(Boolean)},gloss:(meta.novels[raw.novel]||{}).glossary||'',rawId:raw.id});
   if(!quiet)toast(`بدأت ترجمة الفصل ${raw.num} من المخزن`);
   renderPill();if(current)updateNav();if(curNovel)renderNovel();runQueue();return true;
@@ -4962,7 +4968,7 @@ function renderRawSheet(){
       ?`<span class="ck" aria-hidden="true">${rwSel.has(r.id)?'✓':''}</span><div class="num">${r.num}</div><button type="button" class="rt"><b></b><small></small></button>`
       :`<div class="num">${r.num}</div><button type="button" class="rt"><b></b><small></small></button><button type="button" class="go"${q?' disabled':''}>ترجم الآن</button><button type="button" class="rm" aria-label="حذف">حذف</button>`;
     row.querySelector('.rt b').textContent=r.titleAr||orig||('الفصل '+r.num);
-    row.querySelector('.rt small').textContent=(r.titleAr&&orig?orig+' · ':'')+r.text.length.toLocaleString('ar')+' حرف'+(q?' · قيد الترجمة':'');
+    row.querySelector('.rt small').textContent=(r.titleAr&&orig?orig+' · ':'')+rawLen(r).toLocaleString('ar')+' حرف'+(q?' · قيد الترجمة':'');
     if(rwSelMode){
       row.classList.toggle('sel',rwSel.has(r.id));row.setAttribute('role','checkbox');row.setAttribute('aria-checked',String(rwSel.has(r.id)));
       row.onclick=()=>{rwSel.has(r.id)?rwSel.delete(r.id):rwSel.add(r.id);const on=rwSel.has(r.id);row.classList.toggle('sel',on);row.setAttribute('aria-checked',String(on));row.querySelector('.ck').textContent=on?'✓':'';renderRwSel()};
@@ -5016,6 +5022,7 @@ const rawOrigTitle=r=>(r.title||'').replace(/^الفصل\s*[0-9٠-٩]+\s*:?\s*/,
 /* preview a stored raw chapter */
 let rpRaw=null;
 function openRawPreview(r){
+  if(r.text==null){toast('يحمّل الفصل من حسابك…');rawText(r).then(()=>openRawPreview(r)).catch(()=>toast('تعذّر جلب الفصل من حسابك'));return}
   rpRaw=r;hideSheet();
   const orig=rawOrigTitle(r);
   $('#rpTitle').textContent=`الفصل ${r.num}`+(r.titleAr?': '+r.titleAr:'');
@@ -6380,17 +6387,23 @@ async function sbReconcile(){
     const srv=new Map(idx.map(r=>[r.id,r]));
     const all=await sbRaw.get(),local=new Map(all.docs.map(d=>[d.id,d]));
     const fetch=[],drop=[];
+    rawLazy=true;
     for(const [id,r] of srv){
-      if(sb.q.has(id))continue;
+      if(sb.q.has(id)||isRawId(id))continue;
       if(r.deleted){if(local.has(id))drop.push(id);continue}
       if(!local.has(id))fetch.push(id);
     }
-    local.forEach((d,id)=>{const r=srv.get(id),v=d.data()||{};if(!r||(!r.deleted&&v.novel&&!r.n))sb.q.set(id,1)});
+    const freed=[];
+    local.forEach((d,id)=>{const r=srv.get(id),v=d.data()||{};
+      if(isRawId(id)){if(r)freed.push(id);else sb.q.set(id,1);return} // the account has it (or deleted it): no copy needed here
+      if(!r||(!r.deleted&&v.novel&&!r.n))sb.q.set(id,1)});
+    for(const id of freed){try{await sbRaw.doc(id).delete()}catch(e){}}
     for(const id of drop){try{await sbRaw.doc(id).delete()}catch(e){}}
+    await rawIndexLoad();
     for(let k=0;k<fetch.length;k+=10){
       const part=fetch.slice(k,k+10);
       const rows=await sbSql(`select id,data from public.docs where user_id='${sbUid()}' and id in (${part.map(sbq).join(',')})`);
-      for(const r of rows){if(r.data&&!sb.q.has(r.id)){try{await sbRaw.doc(r.id).set(r.data)}catch(e){}}}
+      for(const r of rows){if(r.data&&!sb.q.has(r.id)){try{await sbRaw.doc(r.id).set(r.data)}catch(e){if(e&&e.code==='quota_exceeded')sbQuota()}}}
     }
     sb.mirrorAt=Date.now();sb.err='';
     if(fetch.length+drop.length)toast(`طابقت مكتبتك مع حسابك: ${fetch.length?`وصل ${fetch.length}`:''}${fetch.length&&drop.length?' و':''}${drop.length?`حُذف ${drop.length}`:''}`);
@@ -6398,13 +6411,51 @@ async function sbReconcile(){
   }catch(e){sb.err=sbErrText(e);renderSb()}
   sb.mirroring=false;
 }
+let sbQuotaShown=false;
+function sbQuota(){if(sbQuotaShown)return;sbQuotaShown=true;toast('مساحة Gemini ممتلئة: بعض ما في حسابك لم يُنسخ هنا. افرغ سلة المحذوفات أو احذف فصولاً قديمة')}
 function sbErrText(e){const c=e&&e.code;return c==='unavailable'?'افتح مداد من داخل Gemini':c==='not_connected'||c==='server_not_connected'?'Supabase غير مربوط بحسابك في Gemini':c==='denied'||c==='not_granted'?'لم يُسمح لمداد باستخدام Supabase':'تعذّر الاتصال بـ Supabase'+(e&&e.message?': '+String(e.message).slice(0,80):'')}
+/* ---------- raw store in the account (Gemini side) ----------
+   Gemini's own database is small; the raw chapters are the biggest part of the library. Linked to Supabase,
+   the store is read and written there directly: only an index stays here, and a chapter's text is fetched when it is translated. */
+async function rawIndexLoad(){
+  const rows=await sbSql(`select id,data->>'novel' as novel,(data->>'num')::float as num,data->>'title' as title,data->>'titleAr' as "titleAr",coalesce(length(data->>'text'),0) as len,(data->>'createdAt')::float as "createdAt" from public.docs where user_id='${sbUid()}' and not deleted and id like 'raw-%'`);
+  const keep=new Map(raws.filter(r=>r.text!=null).map(r=>[r.id,r.text]));
+  const pend=raws.filter(r=>r.pending&&!rows.some(x=>x.id===r.id));
+  raws=rows.map(r=>{const o={id:r.id,novel:r.novel,num:r.num,title:r.title||'',len:r.len,createdAt:r.createdAt||0};if(r.titleAr)o.titleAr=r.titleAr;if(keep.has(r.id))o.text=keep.get(r.id);return o}).concat(pend);
+  persistRaw();if(openSheet&&openSheet.id==='rawSheet')renderRawSheet();if(curNovel)renderNovel();
+}
+async function rawText(r){
+  if(r.text!=null)return r.text;
+  const rows=await sbSql(`select data->>'text' as t from public.docs where user_id='${sbUid()}' and id=${sbq(r.id)}`);
+  if(!rows.length||rows[0].t==null)throw {code:'missing'};
+  r.text=rows[0].t;return r.text;
+}
+function sbRawPut(r){r.pending=true;rawOut.set(r.id,r);persistRaw();clearTimeout(rawOutT);rawOutT=setTimeout(rawFlush,400)}
+async function rawFlush(){
+  if(!rawOut.size||!sbUid())return;const uid=sbUid();
+  const items=[...rawOut.values()];rawOut.clear();
+  let stm=[],size=0;
+  const send=async()=>{if(!stm.length)return;await sbSql(stm.join(';\n')+';\nselect 1 as ok');stm=[];size=0};
+  try{
+    for(const r of items){
+      const {id,pending,_loading,len,text,...b}=r;let q;
+      if(text!=null){const j=sbq(JSON.stringify(Object.assign({kind:'raw',text},b)).replace(/\\u0000/g,''));
+        q=`insert into public.docs(user_id,id,data,deleted) values('${uid}',${sbq(id)},${j}::jsonb,false) on conflict(user_id,id) do update set data=excluded.data,deleted=false`}
+      else{const j=sbq(JSON.stringify(b)); // only the fields that changed (a title, say): the text in the account stays as it is
+        q=`update public.docs set data=coalesce(data,'{}'::jsonb)||${j}::jsonb where user_id='${uid}' and id=${sbq(id)}`}
+      if(stm.length&&size+q.length>40000)await send();
+      stm.push(q);size+=q.length;sb.pushed[id]=undefined;
+    }
+    await send();items.forEach(r=>{delete r.pending});persistRaw();
+  }catch(e){items.forEach(r=>rawOut.set(r.id,r));clearTimeout(rawOutT);rawOutT=setTimeout(rawFlush,20000);sb.err=sbErrText(e);renderSb()}
+}
 /* a novel's raw store looks empty here but the account still has it: fetch just those chapters back */
 const rawTried=new Set();
 async function rawRecover(novel,quiet){
   try{
     let got=0;
     if(NC&&NC.refetchRaws){got=await NC.refetchRaws(novel)}
+    else if(rawLazy&&sbUid()){const before=rawsOf(novel).length;await rawIndexLoad();got=rawsOf(novel).length-before}
     else if(sbUid()&&sbRaw){
       const have=new Set(raws.map(r=>r.id));
       for(let off=0;off<2000;off+=20){
@@ -6419,7 +6470,7 @@ async function rawRecover(novel,quiet){
 }
 async function sbPull(){
   if(sb.pulling||!sbUid()||!sbRaw)return;
-  sb.pulling=true;let got=0;
+  sb.pulling=true;let got=0,rawChanged=false;
   try{
     for(let page=0;page<40;page++){
       const last=sbLast();
@@ -6427,8 +6478,12 @@ async function sbPull(){
       if(!rows.length)break;
       for(const r of rows){
         const pv=sb.pushed[r.id];const mine=pv!==undefined&&pv!==null&&(r.deleted?pv==='del':deq(pv,r.data));if(mine)delete sb.pushed[r.id];
-        if(!sb.q.has(r.id)&&!mine){
-          try{if(r.deleted)await sbRaw.doc(r.id).delete();else if(r.data)await sbRaw.doc(r.id).set(r.data);got++}catch(e){}
+        if(rawLazy&&isRawId(r.id)){
+          if(!rawOut.has(r.id)){const k=raws.findIndex(x=>x.id===r.id);
+            if(r.deleted||!r.data){if(k>-1){raws.splice(k,1);rawChanged=true}}
+            else{const v=Object.assign({id:r.id},r.data);delete v.kind;if(k>-1)raws[k]=v;else raws.push(v);rawChanged=true}}
+        }else if(!sb.q.has(r.id)&&!mine){
+          try{if(r.deleted)await sbRaw.doc(r.id).delete();else if(r.data)await sbRaw.doc(r.id).set(r.data);got++}catch(e){if(e&&e.code==='quota_exceeded')sbQuota()}
         }
         LS.set('midad.sbLast:'+sbUid(),r.t);
       }
@@ -6436,6 +6491,7 @@ async function sbPull(){
     }
     sb.err='';sb.lastAt=Date.now();
     if(got>=3)toast(`وصل ${got} تحديثات من حسابك`);
+    if(rawChanged){persistRaw();if(openSheet&&openSheet.id==='rawSheet')renderRawSheet();if(curNovel)renderNovel();if(current)updateNav()}
   }catch(e){sb.err=sbErrText(e)}
   sb.pulling=false;renderSb();
 }
