@@ -2166,7 +2166,7 @@ function queuePrefsSave(){
 }
 function applyRemotePrefs(d){
   if(!d||prefsPending)return;
-  const next=Object.assign({},prefs,d.prefs||{});next.sbUid=prefs.sbUid;next.sbEmail=prefs.sbEmail;
+  const next=Object.assign({},prefs,d.prefs||{});{const rp=d.prefs||{};next.sbEmail=prefs.sbEmail||rp.sbEmail||'';next.sbUid=prefs.sbUid||'';} // a phone without a link never unlinks this device
   if(!FONTS[next.font])next.font='naskh';
   if(!THEMES.some(t=>t[0]===next.theme))next.theme='night';
   next.size=Math.min(40,Math.max(10,+next.size||20));
@@ -2206,7 +2206,7 @@ function saveChat(chId){
   },400);
 }
 function persistRaw(){const v=rawLazy?raws.map(r=>{const {text,...x}=r;return Object.assign(x,{len:rawLen(r)})}):raws;LS.set('midad.raw',v);idbSave('raw',v)}
-async function rawSet(r){if(rawLazy){sbRawPut(r);return}if(!col){r.pending=true;persistRaw();return}try{const {id,pending,...b}=r;await col.doc(id).set(Object.assign({kind:'raw'},b));delete r.pending;persistRaw()}catch(e){r.pending=true;persistRaw();if(e&&e.code==='quota_exceeded')toast('المساحة ممتلئة، احذف بعض الفصول الخام')}}
+async function rawSet(r){if(rawLazy){sbRawPut(r);return}if(!col){r.pending=true;persistRaw();return}try{const {id,pending,...b}=r;await col.doc(id).set(Object.assign({kind:'raw'},b));delete r.pending;persistRaw()}catch(e){r.pending=true;persistRaw();if(e&&e.code==='quota_exceeded')claudeFull();if(e&&e.code==='quota_exceeded')toast('المساحة ممتلئة، احذف بعض الفصول الخام')}}
 function rawDel(id){rawOut.delete(id);raws=raws.filter(r=>r.id!==id);persistRaw();if(col)col.doc(id).delete().catch(()=>{})}
 const rawsOf=novel=>raws.filter(r=>r.novel===novel).sort((a,b)=>a.num-b.num);
 function saveCoversLocal(){LS.set('midad.covers',covers)}
@@ -6459,7 +6459,8 @@ async function sbReconcile(){
   }catch(e){sb.err=sbErrText(e);renderSb()}
   sb.mirroring=false;
 }
-let sbQuotaShown=false;
+let sbQuotaShown=false,claudeFullShown=false;
+function claudeFull(){if(claudeFullShown)return;claudeFullShown=true;toast(sbUid()?'مساحة Gemini ممتلئة':'مساحة Gemini ممتلئة، لذلك لا يُحفظ الجديد هنا. اربط المكتبة بحسابك من النسخ الاحتياطي ← مكتبة مشتركة');}
 function sbQuota(){if(sbQuotaShown)return;sbQuotaShown=true;toast('مساحة Gemini ممتلئة: بعض ما في حسابك لم يُنسخ هنا. افرغ سلة المحذوفات أو احذف فصولاً قديمة')}
 function sbErrText(e){const c=e&&e.code;return c==='unavailable'?'افتح مداد من داخل Gemini':c==='not_connected'||c==='server_not_connected'?'Supabase غير مربوط بحسابك في Gemini':c==='denied'||c==='not_granted'?'لم يُسمح لمداد باستخدام Supabase':'تعذّر الاتصال بـ Supabase'+(e&&e.message?': '+String(e.message).slice(0,80):'')}
 /* ---------- raw store in the account (Gemini side) ----------
@@ -6543,12 +6544,13 @@ async function sbPull(){
   }catch(e){sb.err=sbErrText(e)}
   sb.pulling=false;renderSb();
 }
-async function sbLinkNow(){
-  const email=$('#sbEmail').value.trim().toLowerCase();if(!/^\S+@\S+\.\S+$/.test(email)){toast('اكتب البريد بشكل صحيح');return}
+async function sbLinkNow(auto){
+  const email=(typeof auto==='string'?auto:$('#sbEmail').value).trim().toLowerCase();if(!/^\S+@\S+\.\S+$/.test(email)){toast('اكتب البريد بشكل صحيح');return}
   const b=$('#sbLink');b.disabled=true;b.textContent='جارِ الربط…';
   try{
     const u=await sbSql(`select id::text as id,(email_confirmed_at is not null) as ok from auth.users where lower(email)=${sbq(email)} limit 1`);
-    if(!u.length){toast('لا يوجد حساب بهذا البريد في Supabase. أنشئه أولاً من Authentication ← Users');return}
+    if(!u.length){if(typeof auto!=='string')toast('لا يوجد حساب بهذا البريد في Supabase. أنشئه أولاً من Authentication ← Users');return}
+    LS.set('midad.sbOffHere',false);
     if(!u[0].ok)await sbSql(`update auth.users set email_confirmed_at=now() where id='${u[0].id}' and email_confirmed_at is null;select 1 as ok`);
     prefs.sbUid=u[0].id;prefs.sbEmail=email;LS.set('midad.prefs',prefs);LS.set('midad.sbLink',{uid:u[0].id,email});queuePrefsSave();rawLazy=true;
     if(!sbRaw||!localColObj){renderSb();toast('رُبطت المكتبة بحسابك. يجلب مداد مكتبتك منه الآن…');connTry=0;await connectDb();await sbReconcile();sbPull();return}
@@ -6591,11 +6593,13 @@ $('#sbNow').onclick=async()=>{if(NC){await NC.flush();await NC.pull();return}
   finally{b.disabled=false;b.textContent='زامن الآن';renderSb()}};
 $('#sbOff').onclick=()=>{const b=$('#sbOff');if(!b.classList.contains('arm')){b.classList.add('arm');b.textContent='تأكيد';setTimeout(()=>{b.classList.remove('arm');b.textContent='افصل'},4000);return}
   if(NC){NC.unlink();renderSb();toast('فُصل التطبيق عن Supabase. لم يُحذف شيء');return}
-  prefs.sbUid='';LS.set('midad.prefs',prefs);LS.set('midad.sbLink',null);queuePrefsSave();sb.q.clear();rawLazy=false;localColObj=null;connTry=0;connectDb();renderSb();toast('فُصلت المكتبة عن Supabase. لم يُحذف شيء')};
+  prefs.sbUid='';LS.set('midad.prefs',prefs);LS.set('midad.sbLink',null);LS.set('midad.sbOffHere',true);queuePrefsSave();sb.q.clear();rawLazy=false;localColObj=null;connTry=0;connectDb();renderSb();toast('فُصلت المكتبة عن Supabase. لم يُحذف شيء')};
 setInterval(()=>{if(!document.hidden&&sbUid()&&!sb.busy)sbPull()},10000);
 setInterval(()=>{if(!document.hidden&&sbUid())sbReconcile()},5*60000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&sbUid()){setTimeout(sbPull,800);if(Date.now()-(sb.mirrorAt||0)>60000)setTimeout(sbReconcile,3000)}});
-setTimeout(async()=>{renderSb();if(sbUid()){await sbReconcile();sbPull()}},4000);
+setTimeout(async()=>{renderSb();
+  if(!NC&&!sbUid()&&prefs.sbEmail&&!LS.get('midad.sbOffHere',false)){try{await sbLinkNow(prefs.sbEmail);if(sbUid())toast('رُبط هذا الجهاز بحسابك تلقائياً')}catch(e){}return}
+  if(sbUid()){await sbReconcile();sbPull()}},4000);
 $('#gdAuto').onchange=e=>{prefs.gdAuto=e.target.checked;LS.set('midad.prefs',prefs);queuePrefsSave();renderGd();if(prefs.gdAuto)maybeDailyDrive()};
 let gdAutoTried=false;
 function maybeDailyDrive(){
