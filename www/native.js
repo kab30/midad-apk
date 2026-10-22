@@ -64,7 +64,7 @@
     }
     const local=id=>tx('readonly',s=>req(s.get(PRE+id)));
     let timer=null;
-    function queue(pre,id){if(pre!==PRE||!ses||applying.has(id))return;q.add(id);saveQ();clearTimeout(timer);timer=setTimeout(flush,2500);emit()}
+    function queue(pre,id){if(pre!==PRE||!ses||applying.has(id))return;q.add(id);saveQ();clearTimeout(timer);timer=setTimeout(flush,400);emit()}
     const applying=new Set();
     async function flush(){
       if(st.busy||!q.size||!ses)return;st.busy=true;emit();
@@ -130,11 +130,34 @@
       if(miss.length){await tx('readwrite',s=>{for(const r of miss)s.put(r.data,PRE+r.id)});notifyAll()}
       return miss.length;
     }
+    /* Supabase is the source of truth: bring what this phone is missing, drop what the account deleted, send what never arrived */
+    let mirroring=false,mirrorAt=0;
+    async function mirror(){
+      if(!ses||mirroring)return 0;mirroring=true;let n=0;
+      try{
+        const idx=[];for(let off=0;off<20000;off+=1000){const r=await rest('docs?select=id,deleted&order=id&limit=1000&offset='+off)||[];idx.push(...r);if(r.length<1000)break}
+        const keys=new Set((await tx('readonly',s=>req(s.getAllKeys()))).map(String).filter(k=>k.startsWith(PRE)).map(k=>k.slice(PRE.length)));
+        const srv=new Map(idx.map(r=>[r.id,r])),want=[],drop=[];
+        for(const [id,r] of srv){if(q.has(id))continue;if(r.deleted){if(keys.has(id))drop.push(id)}else if(!keys.has(id))want.push(id)}
+        keys.forEach(id=>{if(!srv.has(id))q.add(id)});saveQ();
+        for(let k=0;k<want.length;k+=40){
+          const part=want.slice(k,k+40);
+          const rows=await rest('docs?select=id,data&id=in.('+part.map(x=>'"'+x.replace(/"/g,'\\"')+'"').map(encodeURIComponent).join(',')+')')||[];
+          const ok=rows.filter(r=>r.data&&!q.has(r.id));
+          if(ok.length){await tx('readwrite',s=>{for(const r of ok)s.put(r.data,PRE+r.id)});n+=ok.length}
+        }
+        if(drop.length){await tx('readwrite',s=>{for(const id of drop)s.delete(PRE+id)});n+=drop.length}
+        mirrorAt=Date.now();if(n)notifyAll();if(q.size)flush();
+      }catch(e){st.err=msg(e)}
+      mirroring=false;emit();return n;
+    }
     function unlink(){ses=null;LSS('midad.sbSession',null);q.clear();saveQ();st.err='';brSend({on:false});LSS('midad.notify',false);emit()}
-    setInterval(()=>{if(ses&&!document.hidden)pull()},60000);
-    document.addEventListener('visibilitychange',()=>{if(ses&&!document.hidden){flush();setTimeout(pull,800)}});
-    if(ses)setTimeout(()=>{flush();pull()},4000);
-    return {queue,flush,pull,link,unlink,notify,refetchRaws,canNotify:()=>!!BR,notifyOn:()=>!!LSG('midad.notify',false),onChange:f=>listeners.add(f),
+    // live while the app is open: small checks every few seconds, a full comparison every few minutes
+    setInterval(()=>{if(ses&&!document.hidden&&!st.busy)pull()},5000);
+    setInterval(()=>{if(ses&&!document.hidden)mirror()},5*60000);
+    document.addEventListener('visibilitychange',()=>{if(ses&&!document.hidden){flush();setTimeout(pull,500);if(Date.now()-mirrorAt>60000)setTimeout(mirror,2500)}});
+    if(ses)setTimeout(async()=>{await flush();await pull();mirror()},2500);
+    return {queue,flush,pull,mirror,link,unlink,notify,refetchRaws,canNotify:()=>!!BR,notifyOn:()=>!!LSG('midad.notify',false),onChange:f=>listeners.add(f),
       state:()=>({linked:!!ses,email:ses&&ses.email,pending:q.size,busy:st.busy,pulling:st.pulling,err:st.err,lastAt:st.lastAt})};
   })();
   window.midadCloud=cloud;

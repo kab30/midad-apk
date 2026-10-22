@@ -6337,7 +6337,7 @@ function sbWrap(ref){
 function sbSaveQ(){LS.set('midad.sbQ:'+sbUid(),[...sb.q.keys()])}
 function sbPush(id){
   if(!sbUid())return;
-  sb.q.set(id,1);sbSaveQ();clearTimeout(sb.timer);sb.timer=setTimeout(sbFlush,2500);renderSb();
+  sb.q.set(id,1);sbSaveQ();clearTimeout(sb.timer);sb.timer=setTimeout(sbFlush,400);renderSb();
 }
 async function sbFlush(){
   if(sb.busy||!sb.q.size||!sbUid()||!sbRaw)return;
@@ -6368,16 +6368,35 @@ async function sbFlush(){
   }catch(e){sb.err=sbErrText(e);clearTimeout(sb.timer);sb.timer=setTimeout(sbFlush,30000)}
   sb.busy=false;renderSb();
 }
-/* on every start: re-send what never reached Supabase (missing there, or only a partial copy) */
+/* Supabase is the source of truth. The copy here is only a cache for speed and offline reading:
+   - in the account but missing here (or newer there)  -> brought here
+   - deleted in the account                            -> removed here
+   - here but never reached the account                -> sent there */
 async function sbReconcile(){
-  if(!sbUid()||!sbRaw)return;
+  if(!sbUid()||!sbRaw||sb.mirroring)return;sb.mirroring=true;
   try{
     LS.get('midad.sbQ:'+sbUid(),[]).forEach(id=>sb.q.set(id,1));
-    const srv=new Map((await sbSql(`select id,(data ? 'novel') as n,deleted from public.docs where user_id='${sbUid()}'`)).map(r=>[r.id,r]));
-    const all=await sbRaw.get();
-    all.docs.forEach(d=>{const r=srv.get(d.id);const v=d.data()||{};if(!r||r.deleted||(v.novel&&!r.n))sb.q.set(d.id,1)});
+    const idx=await sbSql(`select id,deleted,(data ? 'novel') as n from public.docs where user_id='${sbUid()}'`);
+    const srv=new Map(idx.map(r=>[r.id,r]));
+    const all=await sbRaw.get(),local=new Map(all.docs.map(d=>[d.id,d]));
+    const fetch=[],drop=[];
+    for(const [id,r] of srv){
+      if(sb.q.has(id))continue;
+      if(r.deleted){if(local.has(id))drop.push(id);continue}
+      if(!local.has(id))fetch.push(id);
+    }
+    local.forEach((d,id)=>{const r=srv.get(id),v=d.data()||{};if(!r||(!r.deleted&&v.novel&&!r.n))sb.q.set(id,1)});
+    for(const id of drop){try{await sbRaw.doc(id).delete()}catch(e){}}
+    for(let k=0;k<fetch.length;k+=10){
+      const part=fetch.slice(k,k+10);
+      const rows=await sbSql(`select id,data from public.docs where user_id='${sbUid()}' and id in (${part.map(sbq).join(',')})`);
+      for(const r of rows){if(r.data&&!sb.q.has(r.id)){try{await sbRaw.doc(r.id).set(r.data)}catch(e){}}}
+    }
+    sb.mirrorAt=Date.now();sb.err='';
+    if(fetch.length+drop.length)toast(`طابقت مكتبتك مع حسابك: ${fetch.length?`وصل ${fetch.length}`:''}${fetch.length&&drop.length?' و':''}${drop.length?`حُذف ${drop.length}`:''}`);
     sbSaveQ();renderSb();if(sb.q.size)await sbFlush();
   }catch(e){sb.err=sbErrText(e);renderSb()}
+  sb.mirroring=false;
 }
 function sbErrText(e){const c=e&&e.code;return c==='unavailable'?'افتح مداد من داخل Gemini':c==='not_connected'||c==='server_not_connected'?'Supabase غير مربوط بحسابك في Gemini':c==='denied'||c==='not_granted'?'لم يُسمح لمداد باستخدام Supabase':'تعذّر الاتصال بـ Supabase'+(e&&e.message?': '+String(e.message).slice(0,80):'')}
 /* a novel's raw store looks empty here but the account still has it: fetch just those chapters back */
@@ -6404,7 +6423,7 @@ async function sbPull(){
   try{
     for(let page=0;page<40;page++){
       const last=sbLast();
-      const rows=await sbSql(`select id,data,deleted,updated_at::text as t from public.docs where user_id='${sbUid()}'${last?` and updated_at>${sbq(last)}::timestamptz`:''} order by updated_at limit 8`);
+      const rows=await sbSql(`select id,data,deleted,updated_at::text as t from public.docs where user_id='${sbUid()}'${last?` and updated_at>${sbq(last)}::timestamptz`:''} order by updated_at limit 12`);
       if(!rows.length)break;
       for(const r of rows){
         const pv=sb.pushed[r.id];const mine=pv!==undefined&&pv!==null&&(r.deleted?pv==='del':deq(pv,r.data));if(mine)delete sb.pushed[r.id];
@@ -6413,10 +6432,10 @@ async function sbPull(){
         }
         LS.set('midad.sbLast:'+sbUid(),r.t);
       }
-      if(rows.length<8)break;
+      if(rows.length<12)break;
     }
     sb.err='';sb.lastAt=Date.now();
-    if(got)toast(`وصل ${got} ${got===1?'تحديث':'تحديثات'} من تطبيق الهاتف`);
+    if(got>=3)toast(`وصل ${got} تحديثات من حسابك`);
   }catch(e){sb.err=sbErrText(e)}
   sb.pulling=false;renderSb();
 }
@@ -6466,9 +6485,10 @@ $('#sbNow').onclick=async()=>{if(NC){await NC.flush();await NC.pull();return}awa
 $('#sbOff').onclick=()=>{const b=$('#sbOff');if(!b.classList.contains('arm')){b.classList.add('arm');b.textContent='تأكيد';setTimeout(()=>{b.classList.remove('arm');b.textContent='افصل'},4000);return}
   if(NC){NC.unlink();renderSb();toast('فُصل التطبيق عن Supabase. لم يُحذف شيء');return}
   prefs.sbUid='';LS.set('midad.prefs',prefs);queuePrefsSave();sb.q.clear();renderSb();toast('فُصلت المكتبة عن Supabase. لم يُحذف شيء')};
-setInterval(()=>{if(!document.hidden&&sbUid())sbPull()},60000);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&sbUid())setTimeout(sbPull,1500)});
-setTimeout(async()=>{renderSb();if(sbUid()){await sbReconcile();sbPull()}},6000);
+setInterval(()=>{if(!document.hidden&&sbUid()&&!sb.busy)sbPull()},10000);
+setInterval(()=>{if(!document.hidden&&sbUid())sbReconcile()},5*60000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&sbUid()){setTimeout(sbPull,800);if(Date.now()-(sb.mirrorAt||0)>60000)setTimeout(sbReconcile,3000)}});
+setTimeout(async()=>{renderSb();if(sbUid()){await sbReconcile();sbPull()}},4000);
 $('#gdAuto').onchange=e=>{prefs.gdAuto=e.target.checked;LS.set('midad.prefs',prefs);queuePrefsSave();renderGd();if(prefs.gdAuto)maybeDailyDrive()};
 let gdAutoTried=false;
 function maybeDailyDrive(){
