@@ -2289,7 +2289,36 @@ function setSyncState(st){syncPhase=st;const s=$('#sync');s.classList.toggle('on
   s.querySelector('span').textContent=t;s.title=t;s.setAttribute('aria-label',t);s.style.cursor=st==='failed'?'pointer':''}
 function setSync(on){if(on)return setSyncState('ok');const s=$('#sync');s.classList.toggle('on',on);const t='محفوظ في الهاتف';s.querySelector('span').textContent=t;s.title=t;s.setAttribute('aria-label',t)}
 
-let connTry=0,dbRef=null,freeTried=false;
+let connTry=0,dbRef=null,freeTried=false,dbUnsub=null;
+/* Gemini on the web, linked to Supabase: no Gemini database at all. Documents live in Supabase; this device keeps
+   a copy in its own IndexedDB for speed and offline reading (the same model as the phone app). */
+const webLinked=()=>!window.midadCloud&&!!(((LS.get('midad.prefs',{})||{}).sbUid)||((LS.get('midad.sbLink',{})||{}).uid));
+const LDB='midad-sb',LST='docs';let ldbp=null;
+function ldb(){if(ldbp)return ldbp;ldbp=new Promise((res,rej)=>{const r=indexedDB.open(LDB,1);r.onupgradeneeded=()=>r.result.createObjectStore(LST);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});return ldbp}
+async function ltx(mode,fn){const d=await ldb();return new Promise((res,rej)=>{const t=d.transaction(LST,mode),st=t.objectStore(LST);let out;Promise.resolve(fn(st)).then(v=>out=v);t.oncomplete=()=>res(out);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error||{code:'quota_exceeded'})})}
+const lreq=r=>new Promise((res,rej)=>{r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+let localColObj=null;
+function localCol(){
+  if(localColObj)return localColObj;
+  const subs=new Set();let timer=null;const clean=v=>JSON.parse(JSON.stringify(v));
+  const snap=async()=>{const all=await ltx('readonly',async st=>{const k=await lreq(st.getAllKeys()),v=await lreq(st.getAll());return k.map((x,i)=>[String(x),v[i]])});return {docs:all.map(([id,v])=>({id,exists:true,data:()=>clean(v)}))}};
+  const notify=()=>{clearTimeout(timer);timer=setTimeout(async()=>{if(!subs.size)return;let s;try{s=await snap()}catch(e){return}subs.forEach(([ok])=>{try{ok(s)}catch(e){}})},150)};
+  localColObj={get:snap,
+    onSnapshot(ok,err){const e=[ok,err];subs.add(e);snap().then(ok).catch(x=>err&&err(x));return ()=>subs.delete(e)},
+    doc(id){return {id,
+      async get(){const v=await ltx('readonly',st=>lreq(st.get(id)));return {id,exists:v!==undefined,data:()=>v===undefined?undefined:clean(v)}},
+      async set(v){await ltx('readwrite',st=>lreq(st.put(clean(v),id)));notify()},
+      async update(p){await ltx('readwrite',async st=>{const o=await lreq(st.get(id));await lreq(st.put(Object.assign({},o||{},clean(p)),id))});notify()},
+      async delete(){await ltx('readwrite',st=>lreq(st.delete(id)));notify()}}}};
+  return localColObj;
+}
+// first time on this device: start from what was already on screen, so the library doesn't go blank while the account is read
+async function seedLocal(ref){
+  const n=await ltx('readonly',st=>lreq(st.count()));if(n)return;
+  const put=[];chapters.filter(c=>!c.sample).forEach(c=>{const {id,pending,...b}=c;put.push([id,b])});
+  if(Object.keys(meta.novels||{}).length)put.push([META_ID,{kind:'meta',novels:meta.novels,renames:meta.renames||{},gone:meta.gone||{}}]);
+  if(put.length)await ltx('readwrite',st=>{put.forEach(([id,v])=>st.put(JSON.parse(JSON.stringify(v)),id))});
+}
 /* Gemini's own database can get too big to open (the raw store is most of it). The account keeps everything,
    so the raw chapters copied here can be removed by id, without reading the whole database first. */
 async function sbFreeGemini(){
@@ -2305,10 +2334,16 @@ async function connectDb(){
   const c=window.claude; if(!c||!c.use){setSyncState('local');renderLibrary();return}
   setSyncState('connecting');
   try{
-    const [d,u]=await Promise.all([c.use('db'),c.use('user')]);
-    if(!d||!u){setSyncState('local');renderLibrary();return}
-    const id=await u.id(); if(!id){setSyncState('local');renderLibrary();return}
-    const ref=d.collection('data/users/'+id);dbRef=ref;
+    let ref;
+    if(webLinked()){ref=localCol();await seedLocal(ref)} // linked to Supabase: the account is the store, a local copy on this device is the cache
+    else{
+      const [d,u]=await Promise.all([c.use('db'),c.use('user')]);
+      if(!d||!u){setSyncState('local');renderLibrary();return}
+      const id=await u.id(); if(!id){setSyncState('local');renderLibrary();return}
+      ref=d.collection('data/users/'+id);
+    }
+    if(dbUnsub){try{dbUnsub()}catch(e){}dbUnsub=null}
+    dbRef=ref;
     const first=await Promise.race([ref.get(),new Promise((_,rej)=>setTimeout(()=>rej({code:'timeout'}),45000))]);
     connTry=0;
     // the account is the source of truth: show its chapters right away, before the live snapshot arrives
@@ -2336,7 +2371,7 @@ async function connectDb(){
     for(const r of raws.filter(r=>r.pending&&!have.has(r.id))){await rawSet(r)}
     for(const [iid,im] of Object.entries(imgs)){if(im&&(im.pending||!have.has(iid)))await imgSet(iid)}
     for(const [cid,c] of Object.entries(chatStore)){if(c&&c.turns&&c.turns.length&&!have.has('chat-'+cid)){try{await ref.doc('chat-'+cid).set(Object.assign({kind:'chat',ch:cid},c))}catch(e){}}}
-    ref.onSnapshot(s=>{
+    dbUnsub=ref.onSnapshot(s=>{
       if(renameBusy)return;
       const pend=chapters.filter(c=>c.pending);
       const cv={};s.docs.filter(x=>isCoverId(x.id)).forEach(x=>{const d=x.data();if(d&&d.data)cv[x.id]=d.data});
@@ -6412,8 +6447,9 @@ async function sbReconcile(){
     for(const id of freed){try{await sbRaw.doc(id).delete()}catch(e){}}
     for(const id of drop){try{await sbRaw.doc(id).delete()}catch(e){}}
     await rawIndexLoad();
-    for(let k=0;k<fetch.length;k+=10){
-      const part=fetch.slice(k,k+10);
+    if(fetch.length>20)toast(`يجلب ${fetch.length} عنصراً من حسابك…`);
+    for(let k=0;k<fetch.length;k+=20){
+      const part=fetch.slice(k,k+20);
       const rows=await sbSql(`select id,data from public.docs where user_id='${sbUid()}' and id in (${part.map(sbq).join(',')})`);
       for(const r of rows){if(r.data&&!sb.q.has(r.id)){try{await sbRaw.doc(r.id).set(r.data)}catch(e){if(e&&e.code==='quota_exceeded')sbQuota()}}}
     }
@@ -6515,7 +6551,7 @@ async function sbLinkNow(){
     if(!u.length){toast('لا يوجد حساب بهذا البريد في Supabase. أنشئه أولاً من Authentication ← Users');return}
     if(!u[0].ok)await sbSql(`update auth.users set email_confirmed_at=now() where id='${u[0].id}' and email_confirmed_at is null;select 1 as ok`);
     prefs.sbUid=u[0].id;prefs.sbEmail=email;LS.set('midad.prefs',prefs);LS.set('midad.sbLink',{uid:u[0].id,email});queuePrefsSave();rawLazy=true;
-    if(!sbRaw){renderSb();toast('رُبطت المكتبة بحسابك. يكمل مداد النسخ حين يتصل');sbFreeGemini().then(()=>{connTry=0;connectDb()});return}
+    if(!sbRaw||!localColObj){renderSb();toast('رُبطت المكتبة بحسابك. يجلب مداد مكتبتك منه الآن…');connTry=0;await connectDb();await sbReconcile();sbPull();return}
     // first link: send what Supabase doesn't have yet, then bring in what it has
     const have=new Set((await sbSql(`select id from public.docs where user_id='${u[0].id}'`)).map(r=>r.id));
     const all=await sbRaw.get();let n=0;
@@ -6549,10 +6585,13 @@ if(NC)NC.onChange(()=>renderSb());
 $('#sbNotify').onchange=async e=>{const on=e.target.checked;
   try{await NC.notify(on);toast(on?'ستصلك إشعارات الفصول الجديدة':'أُوقفت الإشعارات')}
   catch(x){e.target.checked=!on;toast(x&&x.message?x.message:'تعذّر تفعيل الإشعارات')}};
-$('#sbNow').onclick=async()=>{if(NC){await NC.flush();await NC.pull();return}await sbFlush();await sbPull()};
+$('#sbNow').onclick=async()=>{if(NC){await NC.flush();await NC.pull();return}
+  const b=$('#sbNow');b.disabled=true;b.textContent='يزامن…';
+  try{if(!sbRaw||!localColObj){connTry=0;await connectDb()}await sbFlush();await sbReconcile();await sbPull();toast(sb.err?sb.err:'تمت المزامنة مع حسابك')}
+  finally{b.disabled=false;b.textContent='زامن الآن';renderSb()}};
 $('#sbOff').onclick=()=>{const b=$('#sbOff');if(!b.classList.contains('arm')){b.classList.add('arm');b.textContent='تأكيد';setTimeout(()=>{b.classList.remove('arm');b.textContent='افصل'},4000);return}
   if(NC){NC.unlink();renderSb();toast('فُصل التطبيق عن Supabase. لم يُحذف شيء');return}
-  prefs.sbUid='';LS.set('midad.prefs',prefs);LS.set('midad.sbLink',null);queuePrefsSave();sb.q.clear();rawLazy=false;renderSb();toast('فُصلت المكتبة عن Supabase. لم يُحذف شيء')};
+  prefs.sbUid='';LS.set('midad.prefs',prefs);LS.set('midad.sbLink',null);queuePrefsSave();sb.q.clear();rawLazy=false;localColObj=null;connTry=0;connectDb();renderSb();toast('فُصلت المكتبة عن Supabase. لم يُحذف شيء')};
 setInterval(()=>{if(!document.hidden&&sbUid()&&!sb.busy)sbPull()},10000);
 setInterval(()=>{if(!document.hidden&&sbUid())sbReconcile()},5*60000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&sbUid()){setTimeout(sbPull,800);if(Date.now()-(sb.mirrorAt||0)>60000)setTimeout(sbReconcile,3000)}});
