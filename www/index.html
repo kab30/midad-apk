@@ -2166,7 +2166,7 @@ function queuePrefsSave(){
 }
 function applyRemotePrefs(d){
   if(!d||prefsPending)return;
-  const next=Object.assign({},prefs,d.prefs||{});
+  const next=Object.assign({},prefs,d.prefs||{});next.sbUid=prefs.sbUid;next.sbEmail=prefs.sbEmail;
   if(!FONTS[next.font])next.font='naskh';
   if(!THEMES.some(t=>t[0]===next.theme))next.theme='night';
   next.size=Math.min(40,Math.max(10,+next.size||20));
@@ -2289,7 +2289,18 @@ function setSyncState(st){syncPhase=st;const s=$('#sync');s.classList.toggle('on
   s.querySelector('span').textContent=t;s.title=t;s.setAttribute('aria-label',t);s.style.cursor=st==='failed'?'pointer':''}
 function setSync(on){if(on)return setSyncState('ok');const s=$('#sync');s.classList.toggle('on',on);const t='محفوظ في الهاتف';s.querySelector('span').textContent=t;s.title=t;s.setAttribute('aria-label',t)}
 
-let connTry=0;
+let connTry=0,dbRef=null,freeTried=false;
+/* Gemini's own database can get too big to open (the raw store is most of it). The account keeps everything,
+   so the raw chapters copied here can be removed by id, without reading the whole database first. */
+async function sbFreeGemini(){
+  if(freeTried||!dbRef||!sbUid())return 0;freeTried=true;let n=0;
+  try{
+    const ids=(await sbSql(`select id from public.docs where user_id='${sbUid()}' and id like 'raw-%'`)).map(r=>r.id);
+    toast('يفرّغ مساحة Gemini من الفصول الخام (محفوظة في حسابك)…');
+    for(let k=0;k<ids.length;k+=10){await Promise.all(ids.slice(k,k+10).map(id=>dbRef.doc(id).delete().then(()=>n++,()=>{})))}
+  }catch(e){}
+  return n;
+}
 async function connectDb(){
   const c=window.claude; if(!c||!c.use){setSyncState('local');renderLibrary();return}
   setSyncState('connecting');
@@ -2297,7 +2308,7 @@ async function connectDb(){
     const [d,u]=await Promise.all([c.use('db'),c.use('user')]);
     if(!d||!u){setSyncState('local');renderLibrary();return}
     const id=await u.id(); if(!id){setSyncState('local');renderLibrary();return}
-    const ref=d.collection('data/users/'+id);
+    const ref=d.collection('data/users/'+id);dbRef=ref;
     const first=await Promise.race([ref.get(),new Promise((_,rej)=>setTimeout(()=>rej({code:'timeout'}),45000))]);
     connTry=0;
     // the account is the source of truth: show its chapters right away, before the live snapshot arrives
@@ -2361,6 +2372,7 @@ async function connectDb(){
   }catch(e){
     // the account didn't answer (slow network, big library): keep what's on the device and try again
     connTry++;setSyncState('failed');renderLibrary();
+    if(sbUid()&&!freeTried){sbFreeGemini().then(n=>{if(n){connTry=0;setTimeout(connectDb,1500)}});return}
     if(connTry<=4)setTimeout(connectDb,Math.min(30000,3000*2**(connTry-1)));
   }
 }
@@ -6318,7 +6330,7 @@ const sb={q:new Map(),timer:null,busy:false,err:'',pushed:{},lastAt:0,pulling:fa
 function deq(a,b){if(a===b)return true;if(typeof a!=='object'||typeof b!=='object'||!a||!b)return false;if(Array.isArray(a)!==Array.isArray(b))return false;
   const ka=Object.keys(a),kb=Object.keys(b);if(ka.length!==kb.length)return false;return ka.every(k=>deq(a[k],b[k]))}
 const NC=window.midadCloud||null; // phone app: syncs natively with its own sign-in
-const sbUid=()=>NC?'':(prefs.sbUid||'');
+const sbUid=()=>NC?'':(prefs.sbUid||(LS.get('midad.sbLink',{})||{}).uid||'');
 const sbLast=()=>LS.get('midad.sbLast:'+sbUid(),'');
 function sbTag(t){let g;do{g='$m'+Math.random().toString(36).slice(2,8)+'$'}while(t.includes(g));return g}
 const sbq=t=>{const g=sbTag(t);return g+t+g};
@@ -6497,13 +6509,13 @@ async function sbPull(){
 }
 async function sbLinkNow(){
   const email=$('#sbEmail').value.trim().toLowerCase();if(!/^\S+@\S+\.\S+$/.test(email)){toast('اكتب البريد بشكل صحيح');return}
-  if(!sbRaw){toast('انتظر حتى يتصل مداد بحسابك');return}
   const b=$('#sbLink');b.disabled=true;b.textContent='جارِ الربط…';
   try{
     const u=await sbSql(`select id::text as id,(email_confirmed_at is not null) as ok from auth.users where lower(email)=${sbq(email)} limit 1`);
     if(!u.length){toast('لا يوجد حساب بهذا البريد في Supabase. أنشئه أولاً من Authentication ← Users');return}
     if(!u[0].ok)await sbSql(`update auth.users set email_confirmed_at=now() where id='${u[0].id}' and email_confirmed_at is null;select 1 as ok`);
-    prefs.sbUid=u[0].id;prefs.sbEmail=email;LS.set('midad.prefs',prefs);queuePrefsSave();
+    prefs.sbUid=u[0].id;prefs.sbEmail=email;LS.set('midad.prefs',prefs);LS.set('midad.sbLink',{uid:u[0].id,email});queuePrefsSave();rawLazy=true;
+    if(!sbRaw){renderSb();toast('رُبطت المكتبة بحسابك. يكمل مداد النسخ حين يتصل');sbFreeGemini().then(()=>{connTry=0;connectDb()});return}
     // first link: send what Supabase doesn't have yet, then bring in what it has
     const have=new Set((await sbSql(`select id from public.docs where user_id='${u[0].id}'`)).map(r=>r.id));
     const all=await sbRaw.get();let n=0;
@@ -6540,7 +6552,7 @@ $('#sbNotify').onchange=async e=>{const on=e.target.checked;
 $('#sbNow').onclick=async()=>{if(NC){await NC.flush();await NC.pull();return}await sbFlush();await sbPull()};
 $('#sbOff').onclick=()=>{const b=$('#sbOff');if(!b.classList.contains('arm')){b.classList.add('arm');b.textContent='تأكيد';setTimeout(()=>{b.classList.remove('arm');b.textContent='افصل'},4000);return}
   if(NC){NC.unlink();renderSb();toast('فُصل التطبيق عن Supabase. لم يُحذف شيء');return}
-  prefs.sbUid='';LS.set('midad.prefs',prefs);queuePrefsSave();sb.q.clear();renderSb();toast('فُصلت المكتبة عن Supabase. لم يُحذف شيء')};
+  prefs.sbUid='';LS.set('midad.prefs',prefs);LS.set('midad.sbLink',null);queuePrefsSave();sb.q.clear();rawLazy=false;renderSb();toast('فُصلت المكتبة عن Supabase. لم يُحذف شيء')};
 setInterval(()=>{if(!document.hidden&&sbUid()&&!sb.busy)sbPull()},10000);
 setInterval(()=>{if(!document.hidden&&sbUid())sbReconcile()},5*60000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&sbUid()){setTimeout(sbPull,800);if(Date.now()-(sb.mirrorAt||0)>60000)setTimeout(sbReconcile,3000)}});
