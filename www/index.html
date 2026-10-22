@@ -4949,7 +4949,11 @@ function renderRawSheet(){
   const L=$('#rwList');L.innerHTML='';
   const ids=new Set(list.map(r=>r.id));[...rwSel].forEach(id=>{if(!ids.has(id))rwSel.delete(id)});
   $('#rwSelBar').hidden=list.length<2;if(list.length<2)rwSelMode=false;renderRwSel();
-  if(!list.length){L.innerHTML='<div class="empty">الصق فصولاً صينية في المخزن، وسيترجم مداد كل فصل عندما تقترب من نهاية الفصل الذي قبله.</div>';return}
+  if(!list.length){L.innerHTML='<div class="empty">الصق فصولاً صينية في المخزن، وسيترجم مداد كل فصل عندما تقترب من نهاية الفصل الذي قبله.<br><button type="button" class="redo" id="rwRecover" style="margin-top:10px">المخزن كان فيه فصول؟ استرجعها من حسابك</button></div>';
+    const rb=$('#rwRecover');if(rb)rb.onclick=async()=>{rb.disabled=true;rb.textContent='يبحث في حسابك…';await rawRecover(curNovel,false);setTimeout(()=>{if(openSheet&&openSheet.id==='rawSheet')renderRawSheet()},1200)};
+    const linked=NC?NC.state().linked:!!sbUid();
+    if(linked&&!rawTried.has(curNovel)&&chapters.some(c=>nv(c)===curNovel&&c.src)){rawTried.add(curNovel);const n=curNovel;rawRecover(n,true).then(g=>{if(g)setTimeout(()=>{if(openSheet&&openSheet.id==='rawSheet'&&curNovel===n)renderRawSheet();if(curNovel===n)renderNovel()},1200)})}
+    return}
   list.forEach(r=>{
     const q=trQueue.some(j=>j.novel===r.novel&&j.r.num===r.num);
     const row=document.createElement('div');row.className='rawrow';
@@ -6376,6 +6380,24 @@ async function sbReconcile(){
   }catch(e){sb.err=sbErrText(e);renderSb()}
 }
 function sbErrText(e){const c=e&&e.code;return c==='unavailable'?'افتح مداد من داخل Gemini':c==='not_connected'||c==='server_not_connected'?'Supabase غير مربوط بحسابك في Gemini':c==='denied'||c==='not_granted'?'لم يُسمح لمداد باستخدام Supabase':'تعذّر الاتصال بـ Supabase'+(e&&e.message?': '+String(e.message).slice(0,80):'')}
+/* a novel's raw store looks empty here but the account still has it: fetch just those chapters back */
+const rawTried=new Set();
+async function rawRecover(novel,quiet){
+  try{
+    let got=0;
+    if(NC&&NC.refetchRaws){got=await NC.refetchRaws(novel)}
+    else if(sbUid()&&sbRaw){
+      const have=new Set(raws.map(r=>r.id));
+      for(let off=0;off<2000;off+=20){
+        const rows=await sbSql(`select id,data from public.docs where user_id='${sbUid()}' and not deleted and id like 'raw-%' and data->>'novel'=${sbq(novel)} order by id limit 20 offset ${off}`);
+        for(const r of rows){if(r.data&&!have.has(r.id)){try{await sbRaw.doc(r.id).set(r.data);got++}catch(e){}}}
+        if(rows.length<20)break;
+      }
+    }else{if(!quiet)toast('اربط المكتبة بحسابك أولاً من الإعدادات');return 0}
+    if(!quiet||got)toast(got?`استُرجع ${got} فصل خام من حسابك`:'لا توجد فصول خام لهذه الرواية في حسابك');
+    return got;
+  }catch(e){if(!quiet)toast('تعذّر الاتصال بالحساب، حاول بعد قليل');return 0}
+}
 async function sbPull(){
   if(sb.pulling||!sbUid()||!sbRaw)return;
   sb.pulling=true;let got=0;

@@ -121,11 +121,20 @@
     }
     // only chapters that arrive after you leave the app are announced
     document.addEventListener('visibilitychange',()=>{if(document.hidden&&LSG('midad.notify',false))brSend({since:new Date().toISOString()})});
+    // bring back one novel's raw chapters straight from the account (if this phone lost them)
+    async function refetchRaws(novel){
+      if(!ses)return 0;
+      const rows=await rest('docs?select=id,data&deleted=eq.false&id=like.raw-*&data->>novel=eq.'+encodeURIComponent(novel))||[];
+      const have=new Set((await tx('readonly',s=>req(s.getAllKeys()))).map(String));
+      const miss=rows.filter(r=>r.data&&!have.has(PRE+r.id));
+      if(miss.length){await tx('readwrite',s=>{for(const r of miss)s.put(r.data,PRE+r.id)});notifyAll()}
+      return miss.length;
+    }
     function unlink(){ses=null;LSS('midad.sbSession',null);q.clear();saveQ();st.err='';brSend({on:false});LSS('midad.notify',false);emit()}
     setInterval(()=>{if(ses&&!document.hidden)pull()},60000);
     document.addEventListener('visibilitychange',()=>{if(ses&&!document.hidden){flush();setTimeout(pull,800)}});
     if(ses)setTimeout(()=>{flush();pull()},4000);
-    return {queue,flush,pull,link,unlink,notify,canNotify:()=>!!BR,notifyOn:()=>!!LSG('midad.notify',false),onChange:f=>listeners.add(f),
+    return {queue,flush,pull,link,unlink,notify,refetchRaws,canNotify:()=>!!BR,notifyOn:()=>!!LSG('midad.notify',false),onChange:f=>listeners.add(f),
       state:()=>({linked:!!ses,email:ses&&ses.email,pending:q.size,busy:st.busy,pulling:st.pulling,err:st.err,lastAt:st.lastAt})};
   })();
   window.midadCloud=cloud;
