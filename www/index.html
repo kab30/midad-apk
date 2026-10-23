@@ -1028,11 +1028,6 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 .halert span{flex:1;min-width:0}.halert span small{display:block;color:var(--dim);font-size:11.5px}
 .halert .ha{flex:none;height:34px;padding:0 12px;border-radius:10px;border:1px solid var(--warn);color:var(--warn);font-size:12.5px;font-weight:600}
 .halert .hx{flex:none;width:28px;height:28px;color:var(--dim)}
-.hweek{display:grid;gap:6px}
-.hweek button{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:14px;background:var(--panel);border:1px solid var(--line);text-align:start;color:var(--ink);font-family:var(--ui);font-size:13px;width:100%}
-.hweek i{font-style:normal;font-size:18px;flex:none}
-.hweek span{flex:1;min-width:0}.hweek span small{display:block;color:var(--dim);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hweek em{font-style:normal;font-size:11px;color:var(--dim);flex:none}
 /* ---------- relationship map ---------- */
 #relView{display:none;z-index:8;background:radial-gradient(120% 70% at 50% 35%,color-mix(in srgb,var(--plasma) 7%,var(--void)),var(--void));font-family:var(--ui);color:var(--ink)}
 #relView.show{display:flex;animation:vin .28s cubic-bezier(.2,.8,.2,1)}
@@ -2663,19 +2658,6 @@ function renderHome(){
     a.querySelector('.hx').onclick=()=>{dis[n]=rl;LS.set('midad.rawAlertOff',dis);a.remove()};
     box.appendChild(a);
   });
-  // 4) this week: promotions and wealth jumps in chapters you read in the last 7 days
-  const ev=[],wk=Date.now()-7*864e5;
-  names.forEach(n=>{
-    const pw=(meta.novels[n]||{}).power;if(!pw)return;
-    const readNums=new Set(chapters.filter(c=>nv(c)===n&&c.lastAt&&c.lastAt>wk&&(c.progress||0)>.97).map(c=>c.num));if(!readNums.size)return;
-    const k0=pkind(powLadders(pw)[0]),who=(pw.hero||{}).name||'البطل';
-    (pw.history||[]).filter(x=>readNums.has(x.ch)).forEach(x=>ev.push({n,ch:x.ch,ico:k0==='wealth'?'💰':k0==='company'?'🏢':'⚡',t:k0==='wealth'?`ثروة ${who}: ${fmtMoney(x.stage.split(' – ')[1]||x.stage)}`:k0==='company'?`${who}: ${x.stage}`:`${who} ← ${x.stage}`}));
-  });
-  if(ev.length){const sec=document.createElement('section');sec.className='hsec';sec.innerHTML='<h3>✨ أحداث أسبوعك</h3><div class="hweek"></div>';
-    ev.sort((a,b)=>b.ch-a.ch).slice(0,5).forEach(e=>{const b=document.createElement('button');b.type='button';b.innerHTML=`<i>${e.ico}</i><span><b></b><small></small></span><em>ف${e.ch}</em>`;
-      b.querySelector('b').textContent=e.t;b.querySelector('small').textContent=e.n;
-      b.onclick=()=>{const c=chapters.find(x=>nv(x)===e.n&&x.num===e.ch);if(c){curNovel=e.n;openReader(c.id)}};sec.querySelector('.hweek').appendChild(b)});
-    box.appendChild(sec)}
 }
 let wasGoalBelow=true;
 function renderLibrary(){
