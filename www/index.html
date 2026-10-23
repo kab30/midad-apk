@@ -2559,7 +2559,7 @@ const ICONS={letter:null,
 const NONAME='بدون اسم';
 const nv=c=>c.novel||NONAME;
 function hashIdx(s,n){let h=0;for(const ch of s)h=(h*31+ch.charCodeAt(0))>>>0;return h%n}
-function novelMeta(name){const m=meta.novels[name]||{};return {color:m.color??hashIdx(name,COLORS.length),icon:m.icon||'letter',desc:m.desc||'',cover:m.cover||null}}
+function novelMeta(name){const m=meta.novels[name]||{};return {color:m.color??hashIdx(name,COLORS.length),icon:m.icon||'letter',desc:m.desc||'',cover:m.cover||null,origName:m.origName||'',srcUrl:m.srcUrl||''}}
 function iconHTML(key,name,size){
   if(!ICONS[key])return `<span class="letter" style="font-size:${Math.round(size*.85)}px">${esc((name||'؟').trim().charAt(0))}</span>`;
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${ICONS[key]}"/></svg>`;
