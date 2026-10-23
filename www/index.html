@@ -2527,10 +2527,15 @@ function splitChapters(raw,novel){
   const lines=raw.replace(/\r/g,'').split('\n').map(clean).filter(l=>l&&!/^[-*_=]{3,}$/.test(l));
   const idx=[];lines.forEach((l,i)=>{if(isHeading(l))idx.push(i)});
   if(idx.length<2)return [resolveChapter(raw,novel)].filter(r=>r.lines.length);
-  const out=[];
+  const out=[];let last=null;
   for(let k=0;k<idx.length;k++){
     const chunk=lines.slice(idx[k],idx[k+1]??lines.length).join('\n');
-    const r=resolveChapter(chunk,novel);if(r.lines.length)out.push(r);
+    const r=resolveChapter(chunk,novel);
+    if(!r.lines.length)continue;
+    // a heading without its own number: continue from the chapter before it in this file (not from the library's largest number, which would give every such chapter the same number)
+    if(r.auto&&last!=null){r.num=last+1;r.title=r.title.replace(/^الفصل\s*[0-9٠-٩]+/,'الفصل '+r.num)}
+    if(r.num!=null)last=r.num;
+    out.push(r);
   }
   return out;
 }
