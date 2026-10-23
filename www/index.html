@@ -2638,8 +2638,9 @@ function prayPillText(){
   return `باقي على صلاة ${nx.label}: ${left>=60?Math.floor(left/60)+' س ':''}${left%60} د · ${times[nx.k]}`;
 }
 function prayPillSet(){
-  const sc=$('#rscroll');if(!sc)return;let el=$('#ppill');
-  if(!el){el=document.createElement('div');el.id='ppill';el.className='ppill';sc.insertBefore(el,sc.firstChild)}
+  const h1=$('#article h1');if(!h1)return;let el=$('#ppill');
+  if(!el){el=document.createElement('div');el.id='ppill';el.className='ppill'}
+  h1.insertAdjacentElement('afterend',el); // right under the chapter title
   el.textContent=prayPillText();
   clearInterval(prayPillSet.t);prayPillSet.t=setInterval(()=>{const e=$('#ppill');if(!e||!current){clearInterval(prayPillSet.t);return}e.textContent=prayPillText()},30000);
 }
@@ -4897,7 +4898,7 @@ function openReader(id,opt){
   const ch=all().find(c=>c.id===id);if(!ch)return;
   if(tts.on&&!opt.keepTts)ttsStop();
   hidePMenu();hideDone();$('#article').classList.remove('leave-next','leave-prev');
-  curWords=words(ch.text||'');autoAsked=null;prayPillSet();
+  curWords=words(ch.text||'');autoAsked=null;setTimeout(prayPillSet,0);
   readMark=(ch.progress||0)>.97?0:(ch.progress||0);wasDone=(ch.progress||0)>.97;lastReadAt=Date.now();chSecs=0;openedAt=Date.now();actAt=Date.now();
   saveProgress(true);current=ch;lastId=id;LS.set('midad.last',id);widgetPush();
   if(!ch.sample){ch.lastAt=Date.now();persistLocal();if(col&&!ch.pending)col.doc(ch.id).update({lastAt:ch.lastAt}).catch(()=>{})}
