@@ -1147,6 +1147,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}.powev,.donecard.in{opacity:1;transform:none}}
 .nsrc{display:flex;flex-wrap:wrap;gap:4px 12px;margin:6px 0 0;font-size:12.5px;color:var(--dim)}.nsrc a{color:var(--plasma);text-decoration:none}
 .pcard{display:grid;gap:10px;padding:12px;border-radius:16px;background:var(--panel);border:1px solid var(--line)}.pnext{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.pnext b{font-size:15px}.pnext span{color:var(--plasma);font-weight:700}.ptimes{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}.pt{display:grid;justify-items:center;padding:6px 2px;border-radius:12px;background:var(--bg-2,transparent);border:1px solid var(--line)}.pt.on{border-color:var(--plasma)}.pt small{font-size:11px;color:var(--dim)}.pt b{font-size:13px}.pfoot{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:11.5px;color:var(--dim)}.pbtn{border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:4px 10px;font-size:12px}
+.ppill{margin:4px auto 10px;width:max-content;max-width:90%;padding:5px 12px;border-radius:999px;background:var(--panel);border:1px solid var(--line);color:var(--plasma);font-size:12.5px;font-weight:700;text-align:center}
 </style>
 
 <div id="library" class="view" dir="rtl">
@@ -2629,6 +2630,19 @@ function prayTick(){
 }
 
 setInterval(()=>{try{prayTick()}catch(e){}},30000);setTimeout(()=>{try{prayRefresh()}catch(e){}},4000);
+
+/* a small countdown to the next prayer, shown at the start of each chapter and kept up to date while reading */
+function prayPillText(){
+  const {now,times}=prayDay();const nx=prayNext(times,now);const nowM=now.h*60+now.mi;
+  const left=nx.tomorrow?(24*60-nowM+nx.at):(nx.at-nowM);
+  return `باقي على صلاة ${nx.label}: ${left>=60?Math.floor(left/60)+' س ':''}${left%60} د · ${times[nx.k]}`;
+}
+function prayPillSet(){
+  const sc=$('#rscroll');if(!sc)return;let el=$('#ppill');
+  if(!el){el=document.createElement('div');el.id='ppill';el.className='ppill';sc.insertBefore(el,sc.firstChild)}
+  el.textContent=prayPillText();
+  clearInterval(prayPillSet.t);prayPillSet.t=setInterval(()=>{const e=$('#ppill');if(!e||!current){clearInterval(prayPillSet.t);return}e.textContent=prayPillText()},30000);
+}
 /* ---------- library ---------- */
 function all(){return chapters.length?chapters:(syncPhase==='connecting'?[]:[SAMPLE])}
 function sorted(list){return list.slice().sort((a,b)=>(a.novel||'').localeCompare(b.novel||'','ar')||((a.num??1e9)-(b.num??1e9))||(a.createdAt-b.createdAt))}
@@ -4883,7 +4897,7 @@ function openReader(id,opt){
   const ch=all().find(c=>c.id===id);if(!ch)return;
   if(tts.on&&!opt.keepTts)ttsStop();
   hidePMenu();hideDone();$('#article').classList.remove('leave-next','leave-prev');
-  curWords=words(ch.text||'');autoAsked=null;
+  curWords=words(ch.text||'');autoAsked=null;prayPillSet();
   readMark=(ch.progress||0)>.97?0:(ch.progress||0);wasDone=(ch.progress||0)>.97;lastReadAt=Date.now();chSecs=0;openedAt=Date.now();actAt=Date.now();
   saveProgress(true);current=ch;lastId=id;LS.set('midad.last',id);widgetPush();
   if(!ch.sample){ch.lastAt=Date.now();persistLocal();if(col&&!ch.pending)col.doc(ch.id).update({lastAt:ch.lastAt}).catch(()=>{})}
