@@ -5225,7 +5225,11 @@ $('#imFile').addEventListener('change',async e=>{
   let parts=splitChapters(text,curNovel).filter(r=>r.num!=null&&r.lines.length);
   // EPUB whose chapter titles carry no numbers: one chapter per book section, numbered in reading order
   if(epubDocs&&parts.length<2){
-    parts=epubDocs.filter(d=>d.text.replace(/\s/g,'').length>=200).map((d,i)=>{const lines=d.text.split('\n').map(clean).filter(Boolean);const t=d.title&&lines[0]===d.title?lines.shift():null;return {num:i+1,title:'الفصل '+(i+1)+((t||d.title)?': '+(t||d.title):''),lines,auto:true}});
+    parts=epubDocs.filter(d=>d.text.replace(/\s/g,'').length>=200).map((d,i)=>{const lines=d.text.split('\n').map(clean).filter(Boolean);const t=d.title&&lines[0]===d.title?lines.shift():null;
+      // the number written in the chapter's own heading ("7 又見沈雲溪") wins; the position in the book is only a fallback
+      const head=(t||d.title||lines[0]||'').trim();const hm=head.match(/^([0-9٠-٩]{1,5})(?=[\s.:：、\-–])/);const num=hm?toNum(hm[1]):i+1;
+      const name=(t||d.title||'').trim().replace(/^[0-9٠-٩]{1,5}\s*[.:：、\-–]?\s*/,'');
+      return {num,title:'الفصل '+num+(name?': '+name:''),lines,auto:!hm}});
   }
   if(epubCover&&!(meta.novels[curNovel]||{}).cover&&!(SAMPLE&&curNovel===SAMPLE.novel)){
     try{const data=await fileToCover(epubCover);const cid='cv-'+uid();covers[cid]=data;saveCoversLocal();if(col)col.doc(cid).set({kind:'cover',data}).catch(()=>{});meta.novels[curNovel]=Object.assign({},meta.novels[curNovel]||{},{cover:cid});saveMeta();renderNovel();toast('استُخدم غلاف الكتاب غلافاً للرواية')}catch(_){}
