@@ -1146,6 +1146,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 @keyframes spark{0%{opacity:1;transform:translate(-50%,-50%) scale(.6)}100%{opacity:0;transform:translate(calc(-50% + var(--x)),calc(-50% + var(--y))) scale(.2)}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}.powev,.donecard.in{opacity:1;transform:none}}
 .nsrc{display:flex;flex-wrap:wrap;gap:4px 12px;margin:6px 0 0;font-size:12.5px;color:var(--dim)}.nsrc a{color:var(--plasma);text-decoration:none}
+.pcard{display:grid;gap:10px;padding:12px;border-radius:16px;background:var(--panel);border:1px solid var(--line)}.pnext{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.pnext b{font-size:15px}.pnext span{color:var(--plasma);font-weight:700}.ptimes{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}.pt{display:grid;justify-items:center;padding:6px 2px;border-radius:12px;background:var(--bg-2,transparent);border:1px solid var(--line)}.pt.on{border-color:var(--plasma)}.pt small{font-size:11px;color:var(--dim)}.pt b{font-size:13px}.pfoot{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:11.5px;color:var(--dim)}.pbtn{border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:4px 10px;font-size:12px}
 </style>
 
 <div id="library" class="view" dir="rtl">
@@ -2546,6 +2547,88 @@ function gapsOf(nums){const s=[...new Set(nums)].sort((a,b)=>a-b);const g=[];for
 function dupsOf(nums){const seen=new Set(),d=new Set();nums.forEach(n=>{seen.has(n)?d.add(n):seen.add(n)});return [...d].sort((a,b)=>a-b)}
 function ranges(arr){const out=[];for(let i=0;i<arr.length;i++){let j=i;while(arr[j+1]===arr[j]+1)j++;out.push(j>i?arr[i]+'–'+arr[j]:String(arr[i]));i=j}return out.join('، ')}
 
+/* ---------- prayer times (Lille, France) ----------
+   Calculated on the device from the sun's position (no internet needed). When online, the same day is confirmed
+   from a public prayer-times service and that answer is used instead. Angles: 12° for Fajr and Isha (the French
+   standard, UOIF). Every time is kept as "HH:MM" in Paris time. */
+const PRAY={lat:50.6292,lon:3.0573,fajr:12,isha:12,city:'Lille',country:'France',method:12};
+const PRAY_LIST=[['fajr','الفجر'],['dhuhr','الظهر'],['asr','العصر'],['maghrib','المغرب'],['isha','العشاء']];
+function parisParts(ms){const p={};new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(new Date(ms)).forEach(x=>p[x.type]=x.value);return {y:+p.year,mo:+p.month,d:+p.day,h:+p.hour%24,mi:+p.minute}}
+function prayCalc(y,mo,d){
+  const r=x=>x*Math.PI/180,dg=x=>x*180/Math.PI,mod=(a,b)=>((a%b)+b)%b;
+  const D=(Date.UTC(y,mo-1,d,12)-Date.UTC(2000,0,1,12))/864e5;
+  const g=r(mod(357.529+0.98560028*D,360)),q=mod(280.459+0.98564736*D,360);
+  const L=r(q+1.915*Math.sin(g)+0.020*Math.sin(2*g)),e=r(23.439-0.00000036*D);
+  const RA=mod(dg(Math.atan2(Math.cos(e)*Math.sin(L),Math.cos(L))),360)/15;
+  const dec=Math.asin(Math.sin(e)*Math.sin(L));
+  let eot=q/15-RA; eot=mod(eot+12,24)-12;                       // equation of time, hours
+  const noon=12-eot-PRAY.lon/15;                                // solar noon, UTC hours
+  const H=alt=>{const c=(Math.sin(r(alt))-Math.sin(r(PRAY.lat))*Math.sin(dec))/(Math.cos(r(PRAY.lat))*Math.cos(dec));return dg(Math.acos(Math.max(-1,Math.min(1,c))))/15};
+  const asrAlt=dg(Math.atan(1/(1+Math.tan(Math.abs(r(PRAY.lat)-dec)))));
+  const t={fajr:noon-H(-PRAY.fajr),dhuhr:noon,asr:noon+H(asrAlt),maghrib:noon+H(-0.833),isha:noon+H(-PRAY.isha)};
+  const out={};
+  for(const k in t){const ms=Date.UTC(y,mo-1,d)+t[k]*36e5;const p=parisParts(ms);out[k]=String(p.h).padStart(2,'0')+':'+String(p.mi).padStart(2,'0')}
+  return out;
+}
+
+/* today's times in Paris: the device's calculation, replaced by the online answer for the same day when it arrives */
+function prayDay(){
+  const now=parisParts(Date.now()),key='midad.pray.'+now.y+'-'+now.mo+'-'+now.d;
+  let times=null;try{times=LS.get(key,null)}catch(e){}
+  if(!times||!times.online){times=Object.assign(prayCalc(now.y,now.mo,now.d),{online:false})}
+  return {now,key,times};
+}
+function prayRefresh(){
+  const now=parisParts(Date.now()),key='midad.pray.'+now.y+'-'+now.mo+'-'+now.d;
+  const cur=LS.get(key,null);if(cur&&cur.online)return;
+  const ds=String(now.d).padStart(2,'0')+'-'+String(now.mo).padStart(2,'0')+'-'+now.y;
+  const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),6000);
+  fetch(`https://api.aladhan.com/v1/timings/${ds}?latitude=${PRAY.lat}&longitude=${PRAY.lon}&method=${PRAY.method}&timezonestring=Europe/Paris`,{signal:ctl.signal})
+    .then(r=>r.json()).then(j=>{const T=j&&j.data&&j.data.timings;if(!T)return;
+      const pick=s=>String(s).slice(0,5);
+      LS.set(key,{online:true,fajr:pick(T.Fajr),dhuhr:pick(T.Dhuhr),asr:pick(T.Asr),maghrib:pick(T.Maghrib),isha:pick(T.Isha)});
+      if(curPageHome())renderHome()})
+    .catch(()=>{}).finally(()=>clearTimeout(to));
+}
+const curPageHome=()=>!openSheet&&!current&&!curNovel;
+const pm=s=>{const [h,m]=String(s).split(':').map(Number);return h*60+m};
+function prayNext(times,now){
+  const nowM=now.h*60+now.mi;
+  for(const [k,label] of PRAY_LIST){if(pm(times[k])>nowM)return {k,label,at:pm(times[k]),tomorrow:false}}
+  return {k:'fajr',label:'الفجر',at:pm(times.fajr),tomorrow:true};
+}
+function prayCard(box){
+  const {now,times}=prayDay();const nx=prayNext(times,now);
+  const nowM=now.h*60+now.mi;
+  const left=nx.tomorrow?(24*60-nowM+nx.at):(nx.at-nowM);
+  const h=Math.floor(left/60),m=left%60;
+  const sec=document.createElement('section');sec.className='hsec';
+  const perm=('Notification' in window)?Notification.permission:'unsupported';
+  sec.innerHTML=`<h3>🕌 أوقات الصلاة <small>${PRAY.city}</small></h3>
+    <div class="pcard"><div class="pnext"><b></b><span></span></div>
+    <div class="ptimes"></div>
+    <div class="pfoot"><small></small>${perm==='default'?'<button type="button" class="pbtn">فعّل التنبيه قبل 5 دقائق</button>':''}</div></div>`;
+  sec.querySelector('.pnext b').textContent='الصلاة القادمة: '+nx.label;
+  sec.querySelector('.pnext span').textContent=`${times[nx.k]} · بعد ${h?h+' س ':''}${m} د`;
+  const grid=sec.querySelector('.ptimes');
+  PRAY_LIST.forEach(([k,label])=>{const d=document.createElement('div');d.className='pt'+(k===nx.k?' on':'');d.innerHTML='<small></small><b></b>';d.querySelector('small').textContent=label;d.querySelector('b').textContent=times[k];grid.appendChild(d)});
+  sec.querySelector('.pfoot small').textContent=times.online?'من خادم مواقيت الصلاة':'محسوب على جهازك، بدون إنترنت';
+  const pb=sec.querySelector('.pbtn');
+  if(pb)pb.onclick=async()=>{try{const r=await Notification.requestPermission();toast(r==='granted'?'سيُنبّهك مداد قبل كل صلاة بـ 5 دقائق':'لم تُفعَّل التنبيهات')}catch(e){toast('التنبيهات غير متاحة هنا')}pb.remove()};
+  box.appendChild(sec);
+}
+function prayTick(){
+  const {now,key,times}=prayDay();const nowM=now.h*60+now.mi;
+  for(const [k,label] of PRAY_LIST){
+    const at=pm(times[k]);if(nowM<at-5||nowM>=at)continue;
+    const mark='midad.pnote.'+key+'.'+k;if(LS.get(mark,false))continue;LS.set(mark,true);
+    const body=`بعد 5 دقائق صلاة ${label} (${times[k]})`;
+    if('Notification' in window&&Notification.permission==='granted'){try{new Notification('مداد',{body})}catch(e){}}
+    toast('🕌 '+body);buzz([30,80,30]);
+  }
+}
+
+setInterval(()=>{try{prayTick()}catch(e){}},30000);setTimeout(()=>{try{prayRefresh()}catch(e){}},4000);
 /* ---------- library ---------- */
 function all(){return chapters.length?chapters:(syncPhase==='connecting'?[]:[SAMPLE])}
 function sorted(list){return list.slice().sort((a,b)=>(a.novel||'').localeCompare(b.novel||'','ar')||((a.num??1e9)-(b.num??1e9))||(a.createdAt-b.createdAt))}
@@ -2643,6 +2726,7 @@ function renderHome(){
   box.appendChild(g);requestAnimationFrame(()=>requestAnimationFrame(()=>{const v=g.querySelector('.v');if(v)v.style.strokeDashoffset=String(163.4*(1-pct))}));
   if(today>=goal&&LS.get('midad.goalDay','')!==dayKey()&&wasGoalBelow){LS.set('midad.goalDay',dayKey());toast('🎉 حققت هدفك اليومي!');buzz([20,60,30,60,40])}
   wasGoalBelow=today<goal;
+  prayCard(box);
   // 2) ready to read: unread translated chapters, by novel
   const names=[...allNovelNames()].filter(n=>n!==SAMPLE.novel);
   const ready=names.map(n=>{const list=chapters.filter(c=>nv(c)===n&&(c.progress||0)<=.97);if(!list.length)return null;const t=continueTarget(n);return t&&t.c?{n,cnt:list.length,c:t.c,at:Math.max(0,...chapters.filter(c=>nv(c)===n).map(c=>c.lastAt||c.createdAt||0))}:null}).filter(Boolean).sort((a,b)=>b.at-a.at).slice(0,10);
