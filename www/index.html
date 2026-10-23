@@ -2159,19 +2159,45 @@ function saveStats(){LS.set('midad.stats',stats);if(!col)return;clearTimeout(sta
 function mergeStats(days){let ch=false;for(const [k,v] of Object.entries(days||{})){const d=stats.days[k]=stats.days[k]||{rw:0,rc:0};for(const f of ['rw','rc','rs']){const nv_=+v[f]||0;if(nv_>(d[f]||0)){d[f]=nv_;ch=true}}}if(ch)LS.set('midad.stats',stats);return ch}
 const PREFS_ID='_prefs';let prefsSynced='',prefsT=null,prefsPending=false;
 function prefsJSON(){return JSON.stringify({prefs,ui})}
+/* settings merge per setting: each setting carries the time it was last changed (prefsAt, sent in the _prefs doc as "at").
+   The newer change wins for that setting only, so two devices changing different settings never overwrite each other. */
+let prefsAt=LS.get('midad.prefsAt',{});if(!prefsAt||typeof prefsAt!=='object')prefsAt={};
+function stampPrefs(now){
+  if(!prefsSynced)return; // not yet compared with the account: nothing to tell apart yet
+  let old={};try{old=JSON.parse(prefsSynced)||{}}catch(e){}
+  const op=old.prefs||{},np=prefs||{};
+  for(const k of new Set([...Object.keys(op),...Object.keys(np)]))if(JSON.stringify(op[k])!==JSON.stringify(np[k]))prefsAt[k]=now;
+  if(JSON.stringify(old.ui)!==JSON.stringify(ui))prefsAt.__ui=now;
+  LS.set('midad.prefsAt',prefsAt);
+}
 function queuePrefsSave(){
   if(!col)return;const j=prefsJSON();if(j===prefsSynced)return;
+  stampPrefs(Date.now());
   clearTimeout(prefsT);prefsPending=true;
-  prefsT=setTimeout(async()=>{const now=prefsJSON();try{await col.doc(PREFS_ID).set(Object.assign({kind:'prefs'},JSON.parse(now)));prefsSynced=now}catch(e){}prefsPending=false},700);
+  prefsT=setTimeout(async()=>{const now=prefsJSON();try{await col.doc(PREFS_ID).set(Object.assign({kind:'prefs',at:JSON.parse(JSON.stringify(prefsAt))},JSON.parse(now)));prefsSynced=now}catch(e){}prefsPending=false},700);
 }
 function applyRemotePrefs(d){
   if(!d||prefsPending)return;
-  const next=Object.assign({},prefs,d.prefs||{});{const rp=d.prefs||{};next.sbEmail=prefs.sbEmail||rp.sbEmail||'';next.sbUid=prefs.sbUid||'';} // a phone without a link never unlinks this device
+  const rp=d.prefs||{},ra=d.at||{},next=Object.assign({},prefs);
+  let localNewer=false;
+  // each setting: the newer change wins (a tie goes to the account); a setting this device changed later is kept and sent back
+  for(const k of Object.keys(rp)){
+    if(k==='sbUid'||k==='sbEmail')continue;
+    const rt=+ra[k]||0,lt=+prefsAt[k]||0;
+    if(JSON.stringify(rp[k])===JSON.stringify(next[k]))continue;
+    if(rt>=lt){next[k]=rp[k];prefsAt[k]=rt}else localNewer=true;
+  }
+  for(const k of Object.keys(prefsAt))if(k!=='__ui'&&!(k in rp)&&(prefsAt[k]>(+ra[k]||0)))localNewer=true;
+  let uiTo=ui;
+  if((d.ui==='light'||d.ui==='dark')&&JSON.stringify(d.ui)!==JSON.stringify(ui)){if((+ra.__ui||0)>=(+prefsAt.__ui||0)){uiTo=d.ui;prefsAt.__ui=+ra.__ui||0}else localNewer=true}
+  LS.set('midad.prefsAt',prefsAt);
+  next.sbEmail=prefs.sbEmail||rp.sbEmail||'';next.sbUid=prefs.sbUid||''; // a phone without a link never unlinks this device
   if(!FONTS[next.font])next.font='naskh';
   if(!THEMES.some(t=>t[0]===next.theme))next.theme='night';
   next.size=Math.min(40,Math.max(10,+next.size||20));
-  prefs=next;if(d.ui==='light'||d.ui==='dark'){ui=d.ui;LS.set('midad.ui',ui);applyUI()}
+  prefs=next;if(uiTo!==ui){ui=uiTo;LS.set('midad.ui',ui);applyUI()}
   prefsSynced=prefsJSON();applyPrefs();
+  if(localNewer){prefsSynced='';queuePrefsSave()} // send this device's newer settings back
 }
 let covers=LS.get('midad.covers',{}); // coverId -> jpeg data URL
 const isCoverId=id=>id.startsWith('cv-');
@@ -5561,7 +5587,7 @@ function resetSend(){const s=$('#chSend');s.classList.remove('stop');s.setAttrib
 
 /* ---------- bookmarks & highlights ---------- */
 const marksOf=c=>c&&Array.isArray(c.marks)?c.marks:[];
-function setMarks(ch,m){ch.marks=m;persistLocal();if(col&&!ch.pending)col.doc(ch.id).update({marks:m}).catch(()=>{})}
+function setMarks(ch,m){ch.marks=m;persistLocal();if(col&&!ch.pending)col.doc(ch.id).update({marks:m,mAt:Date.now()}).catch(()=>{})}
 function hasMark(ch,i,t){return marksOf(ch).some(x=>x.i===i&&x.t===t)}
 function toggleMark(ch,i,t){
   if(ch.sample){toast('هذا فصل تجريبي');return}
@@ -5889,7 +5915,7 @@ ${text.slice(0,20000)}
     else if(manual)toast('الأسماء مطابقة للقاموس');
   }catch(e){if(manual)toast(TR_ERR[e&&e.code]||'تعذّرت المراجعة، حاول مرة أخرى')}
 }
-function saveChapterField(ch,fields){persistLocal();if(col&&!ch.pending)col.doc(ch.id).update(fields).catch(()=>{})}
+function saveChapterField(ch,fields){persistLocal();if(col&&!ch.pending){if('rate' in fields||'note' in fields)fields=Object.assign({},fields,{rAt:Date.now()});col.doc(ch.id).update(fields).catch(()=>{})}}
 function renderReview(){
   const old=$('#revBox');if(old)old.remove();
   if(!current)return;const iss=(current.review&&current.review.issues)||[];if(!iss.length)return;
@@ -6519,11 +6545,19 @@ async function rawRecover(novel,quiet){
 }
 /* reading progress: the newest change wins (pAt is the time it was made on a device).
    If this device has a newer progress than the incoming copy, keep this device's progress and send it back. */
+/* a chapter's fields merge in groups, each with the time its group last changed:
+   progress (pAt), rating and note (rAt), marks (mAt). The newer group wins, field by field. */
+const CH_GROUPS=[['progress','pAt'],['rate','note','rAt'],['marks','mAt']];
 async function progMerge(id,remote){
   let cur=null;try{const g=await sbRaw.doc(id).get();if(g&&g.exists)cur=g.data()}catch(e){}
-  if(cur&&cur.progress!=null&&remote.progress!=null&&(cur.pAt||0)>(remote.pAt||0)&&cur.progress!==remote.progress)
-    return {doc:Object.assign({},remote,{progress:cur.progress,pAt:cur.pAt}),back:true};
-  return {doc:remote,back:false};
+  if(!cur)return {doc:remote,back:false};
+  let doc=remote,back=false;
+  for(const g of CH_GROUPS){const st=g[g.length-1],fs=g.slice(0,-1);
+    if((cur[st]||0)>(remote[st]||0)&&fs.some(f=>JSON.stringify(cur[f])!==JSON.stringify(remote[f]))){
+      if(!back)doc=Object.assign({},remote);back=true;
+      fs.forEach(f=>{if(cur[f]!==undefined)doc[f]=cur[f];else delete doc[f]});doc[st]=cur[st]}
+  }
+  return {doc,back};
 }
 async function sbPull(){
   if(sb.pulling||!sbUid()||!sbRaw)return;

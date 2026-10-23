@@ -80,6 +80,17 @@
       st.busy=false;emit();
     }
     function msg(e){return e&&e.code==='signed_out'?(e.message||'سجّل الدخول'):e&&e.name==='TypeError'?'لا يوجد اتصال بالإنترنت':'تعذّرت المزامنة'+(e&&e.message?': '+String(e.message).slice(0,90):'')}
+    const CH_GROUPS=[['progress','pAt'],['rate','note','rAt'],['marks','mAt']];
+    // returns the merged chapter when this device has a newer group, otherwise null
+    function chapMerge(cur,remote){
+      let doc=null;
+      for(const g of CH_GROUPS){const st=g[g.length-1],fs=g.slice(0,-1);
+        if((cur[st]||0)>(remote[st]||0)&&fs.some(f=>JSON.stringify(cur[f])!==JSON.stringify(remote[f]))){
+          if(!doc)doc=Object.assign({},remote);
+          fs.forEach(f=>{if(cur[f]!==undefined)doc[f]=cur[f];else delete doc[f]});doc[st]=cur[st]}
+      }
+      return doc?{doc,back:true}:null;
+    }
     async function pull(){
       if(st.pulling||!ses)return 0;st.pulling=true;emit();let got=0;
       try{
@@ -91,8 +102,9 @@
           await tx('readwrite',async s=>{for(const r of rows){const pv=pushed[r.id];const mine=pv!==undefined&&(r.deleted?pv==='del':deq(pv,r.data));if(mine)delete pushed[r.id];if(q.has(r.id)||mine)continue;
             if(r.deleted||r.data==null){s.delete(PRE+r.id);got++;continue}
             // reading progress: the newest change wins; if this phone's progress is newer, keep it and send it back
-            const cur=await req(s.get(PRE+r.id));
-            if(cur&&cur.progress!=null&&r.data.progress!=null&&(cur.pAt||0)>(r.data.pAt||0)&&cur.progress!==r.data.progress){s.put(Object.assign({},r.data,{progress:cur.progress,pAt:cur.pAt}),PRE+r.id);back.push(r.id)}
+            // chapter groups (progress, rating and note, marks): the newer group wins, field by field
+            const cur=await req(s.get(PRE+r.id));const mg=cur?chapMerge(cur,r.data):null;
+            if(mg){s.put(mg.doc,PRE+r.id);if(mg.back)back.push(r.id)}
             else s.put(r.data,PRE+r.id);got++}});
           back.forEach(id=>queue(PRE,id));
           LSS('midad.sbLast:'+ses.uid,rows[rows.length-1].updated_at);
