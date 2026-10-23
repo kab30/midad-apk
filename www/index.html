@@ -3366,7 +3366,7 @@ ${batch.map(c=>`[الفصل ${c.num}: ${c.title}]\n${c.sum?('ملخص: '+c.sum+'
 const isReadCh=c=>(c.progress||0)>.97;
 function setRead(list,read){
   const changed=list.filter(c=>c&&!c.sample&&isReadCh(c)!==read);
-  changed.forEach(c=>{c.progress=read?1:0;if(col&&!c.pending)col.doc(c.id).update({progress:c.progress}).catch(()=>{})});
+  changed.forEach(c=>{c.progress=read?1:0;c.pAt=Date.now();if(col&&!c.pending)col.doc(c.id).update({progress:c.progress,pAt:c.pAt}).catch(()=>{})});
   persistLocal();
   if(current&&changed.some(c=>c.id===current.id)){dirty=false;readMark=current.progress>.97?0:current.progress;wasDone=read}
   renderLibrary();if(curNovel)renderNovel();if(current)renderMarkBtn();
@@ -4894,8 +4894,8 @@ $('#article').addEventListener('click',e=>{if(suppressClick){suppressClick=false
   if(tts.on){const tp=e.target.closest('#article p');if(tp){tts.i=+tp.dataset.i;tts.paused=false;speakCur();return}}if(!$('#pMenu').hidden){hidePMenu();return}$('#reader').classList.toggle('immersive')});
 function saveProgress(){
   clearTimeout(progT);if(!current||!dirty||current.sample)return;dirty=false;
-  const ch=chapters.find(c=>c.id===current.id);if(!ch)return;ch.progress=current.progress;persistLocal();
-  if(col&&!ch.pending){col.doc(ch.id).update({progress:ch.progress}).catch(()=>{})}
+  const ch=chapters.find(c=>c.id===current.id);if(!ch)return;ch.progress=current.progress;ch.pAt=Date.now();persistLocal();
+  if(col&&!ch.pending){col.doc(ch.id).update({progress:ch.progress,pAt:ch.pAt}).catch(()=>{})}
 }
 document.addEventListener('visibilitychange',()=>{if(document.hidden)saveProgress();else{lastReadAt=Date.now();if(current&&prefs.wake)lockWake()}});
 
@@ -6517,6 +6517,14 @@ async function rawRecover(novel,quiet){
     return got;
   }catch(e){if(!quiet)toast('تعذّر الاتصال بالحساب، حاول بعد قليل');return 0}
 }
+/* reading progress: the newest change wins (pAt is the time it was made on a device).
+   If this device has a newer progress than the incoming copy, keep this device's progress and send it back. */
+async function progMerge(id,remote){
+  let cur=null;try{const g=await sbRaw.doc(id).get();if(g&&g.exists)cur=g.data()}catch(e){}
+  if(cur&&cur.progress!=null&&remote.progress!=null&&(cur.pAt||0)>(remote.pAt||0)&&cur.progress!==remote.progress)
+    return {doc:Object.assign({},remote,{progress:cur.progress,pAt:cur.pAt}),back:true};
+  return {doc:remote,back:false};
+}
 async function sbPull(){
   if(sb.pulling||!sbUid()||!sbRaw)return;
   sb.pulling=true;let got=0,rawChanged=false;
@@ -6532,7 +6540,7 @@ async function sbPull(){
             if(r.deleted||!r.data){if(k>-1){raws.splice(k,1);rawChanged=true}}
             else{const v=Object.assign({id:r.id},r.data);delete v.kind;if(k>-1)raws[k]=v;else raws.push(v);rawChanged=true}}
         }else if(!sb.q.has(r.id)&&!mine){
-          try{if(r.deleted)await sbRaw.doc(r.id).delete();else if(r.data)await sbRaw.doc(r.id).set(r.data);got++}catch(e){if(e&&e.code==='quota_exceeded')sbQuota()}
+          try{if(r.deleted)await sbRaw.doc(r.id).delete();else if(r.data){const m=await progMerge(r.id,r.data);await sbRaw.doc(r.id).set(m.doc);if(m.back)sbPush(r.id)}got++}catch(e){if(e&&e.code==='quota_exceeded')sbQuota()}
         }
         LS.set('midad.sbLast:'+sbUid(),r.t);
       }

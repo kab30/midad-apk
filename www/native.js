@@ -87,8 +87,14 @@
           const last=LSG('midad.sbLast:'+ses.uid,'');
           const rows=await rest('docs?select=id,data,deleted,updated_at&order=updated_at.asc&limit=40'+(last?'&updated_at=gt.'+encodeURIComponent(last):''));
           if(!rows||!rows.length)break;
-          await tx('readwrite',s=>{for(const r of rows){const pv=pushed[r.id];const mine=pv!==undefined&&(r.deleted?pv==='del':deq(pv,r.data));if(mine)delete pushed[r.id];if(q.has(r.id)||mine)continue;
-            if(r.deleted||r.data==null)s.delete(PRE+r.id);else s.put(r.data,PRE+r.id);got++}});
+          const back=[];
+          await tx('readwrite',async s=>{for(const r of rows){const pv=pushed[r.id];const mine=pv!==undefined&&(r.deleted?pv==='del':deq(pv,r.data));if(mine)delete pushed[r.id];if(q.has(r.id)||mine)continue;
+            if(r.deleted||r.data==null){s.delete(PRE+r.id);got++;continue}
+            // reading progress: the newest change wins; if this phone's progress is newer, keep it and send it back
+            const cur=await req(s.get(PRE+r.id));
+            if(cur&&cur.progress!=null&&r.data.progress!=null&&(cur.pAt||0)>(r.data.pAt||0)&&cur.progress!==r.data.progress){s.put(Object.assign({},r.data,{progress:cur.progress,pAt:cur.pAt}),PRE+r.id);back.push(r.id)}
+            else s.put(r.data,PRE+r.id);got++}});
+          back.forEach(id=>queue(PRE,id));
           LSS('midad.sbLast:'+ses.uid,rows[rows.length-1].updated_at);
           if(rows.length<40)break;
         }
