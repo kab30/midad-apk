@@ -1145,6 +1145,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 .powev.in i.spark{animation:spark 1.1s var(--d,0s) ease-out both}
 @keyframes spark{0%{opacity:1;transform:translate(-50%,-50%) scale(.6)}100%{opacity:0;transform:translate(calc(-50% + var(--x)),calc(-50% + var(--y))) scale(.2)}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}.powev,.donecard.in{opacity:1;transform:none}}
+.nsrc{display:flex;flex-wrap:wrap;gap:4px 12px;margin:6px 0 0;font-size:12.5px;color:var(--dim)}.nsrc a{color:var(--plasma);text-decoration:none}
 </style>
 
 <div id="library" class="view" dir="rtl">
@@ -1268,7 +1269,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
     </div>
     <div class="nhero">
       <div class="cover" id="nCover"></div>
-      <div style="min-width:0"><h2 id="nName"></h2><p id="nDesc"></p></div>
+      <div style="min-width:0"><h2 id="nName"></h2><p id="nDesc"></p><p id="nSrc" class="nsrc" hidden></p></div>
     </div>
     <div id="nCont"></div>
     <div class="nprog" id="nProg"></div>
@@ -1509,6 +1510,8 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
   <div class="scroll">
     <div class="fld"><label for="eName">اسم الرواية</label><input id="eName"></div>
     <div class="fld"><label for="eDesc">وصف قصير</label><textarea id="eDesc" class="short" maxlength="400" placeholder="عن ماذا تدور الرواية؟"></textarea></div>
+    <div class="fld"><label for="eOrig">الاسم الأصلي</label><input id="eOrig" maxlength="120" placeholder="مثال: 百分百胜"></div>
+    <div class="fld"><label for="eUrl">رابط الرواية</label><input id="eUrl" dir="ltr" type="url" maxlength="300" placeholder="https://..."></div>
     <div class="opt"><h4>طابع الرواية (يضبط مصطلحات الترجمة ونبرتها)</h4><div class="chips stylechips" id="eStyle"></div><small class="cpnote" id="eStyleHint"></small></div>
     <div class="fld"><label for="eStyleNote">ملاحظات أسلوب إضافية (اختياري)</label><textarea id="eStyleNote" class="short" dir="auto" maxlength="1500" placeholder="مثل: 系统 = النظام، استخدم «سيدي» بدل «سيد»، البطل يتحدث بأسلوب ساخر…"></textarea></div>
     <div class="opt"><h4>صورة الغلاف</h4>
@@ -2757,6 +2760,9 @@ function renderNovel(){
   const cv=$('#nCover');cv.innerHTML=`<div class="ico">${iconHTML(m.icon,curNovel,40)}</div><div class="cn"></div>`;paintCover(cv,curNovel,m);
   $('#nName').textContent=curNovel;
   const d=$('#nDesc');d.textContent=m.desc||'لا يوجد وصف بعد. اضغط زر التعديل لإضافة وصف وتغيير الغلاف.';d.classList.toggle('none',!m.desc);
+  const sr=$('#nSrc');sr.innerHTML='';sr.hidden=!(m.origName||m.srcUrl);
+  if(m.origName){const s=document.createElement('span');s.textContent=m.origName;sr.appendChild(s)}
+  if(m.srcUrl){const a=document.createElement('a');a.href=m.srcUrl;a.target='_blank';a.rel='noopener noreferrer';a.textContent='رابط الرواية ↗';sr.appendChild(a)}
   $('#nStats').innerHTML=`<div><b>${s.count}</b>فصل</div><div><b>${kfmt(s.words)}</b>كلمة</div><div><b>${s.done}</b>مكتمل</div><div><b>${s.min!=null?s.min+'–'+s.max:'—'}</b>المدى</div>`;
   if(nStatsAnim!==curNovel){nStatsAnim=curNovel;[...$('#nStats').querySelectorAll('b')].slice(0,3).forEach(b=>countUp(b,0,650))}
   const al=$('#nAlert');
@@ -4172,8 +4178,10 @@ $('#nEdit').onclick=()=>{
   $('#eTitle').textContent='تعديل الرواية';$('#eSave').textContent='حفظ';
   const empty=!chapters.some(c=>nv(c)===curNovel)&&!rawsOf(curNovel).length;
   const del=$('#eDelete');del.hidden=false;del.classList.remove('arm');del.textContent=delLabel(curNovel);
-  $('#eName').value=curNovel===NONAME?'':curNovel;$('#eDesc').value=m.desc;$('#eFile').value='';renderEdit();showSheet($('#novelSheet'));
+  $('#eName').value=curNovel===NONAME?'':curNovel;$('#eDesc').value=m.desc;$('#eOrig').value=m.origName||'';$('#eUrl').value=m.srcUrl||'';$('#eFile').value='';renderEdit();showSheet($('#novelSheet'));
 };
+/* the original name and the link of the novel, as the reader typed them (empty when not given) */
+function novelInfoFields(){const u=($('#eUrl').value||'').trim();return {origName:($('#eOrig').value||'').trim().slice(0,120),srcUrl:/^https?:\/\//i.test(u)?u.slice(0,300):''}}
 function newNovel(){
   editMode='create';curNovelBefore=curNovel;
   edit={color:Math.floor(Math.random()*COLORS.length),icon:'letter',img:null,imgChanged:false,style:'general'};$('#eStyleNote').value='';
@@ -4254,7 +4262,7 @@ $('#eSave').onclick=async()=>{
     if(!name){toast('اكتب اسم الرواية');return}
     if(allNovelNames().has(name)){toast('يوجد رواية بهذا الاسم، اختر اسماً آخر');return}
     const coverId=await saveCoverFor('\u0000');
-    meta.novels[name]=Object.assign({color:edit.color,icon:edit.icon,desc:$('#eDesc').value.trim(),style:edit.style,styleNote:$('#eStyleNote').value.trim().slice(0,1500),created:Date.now()},coverId?{cover:coverId}:{});
+    meta.novels[name]=Object.assign({color:edit.color,icon:edit.icon,desc:$('#eDesc').value.trim(),style:edit.style,styleNote:$('#eStyleNote').value.trim().slice(0,1500),created:Date.now()},novelInfoFields(),coverId?{cover:coverId}:{});
     if(meta.renames)delete meta.renames[name];
     saveMeta();LS.set('midad.novel',name);hideSheet();renderLibrary();openNovel(name);toast('تم إنشاء الرواية');return;
   }
@@ -4279,7 +4287,7 @@ $('#eSave').onclick=async()=>{
   const coverId=await saveCoverFor(old);
   const base=target?Object.assign({},meta.novels[old]||{},target):Object.assign({},meta.novels[old]||{});
   const keepCover=target&&target.cover&&!coverId?target.cover:null;
-  meta.novels[newName]=Object.assign(base,{color:edit.color,icon:edit.icon,desc:$('#eDesc').value.trim()||(target&&target.desc)||'',style:edit.style,styleNote:$('#eStyleNote').value.trim().slice(0,1500)||(target&&target.styleNote)||''});delete meta.novels[newName].cover;
+  meta.novels[newName]=Object.assign(base,{color:edit.color,icon:edit.icon,desc:$('#eDesc').value.trim()||(target&&target.desc)||'',style:edit.style,styleNote:$('#eStyleNote').value.trim().slice(0,1500)||(target&&target.styleNote)||''},novelInfoFields());delete meta.novels[newName].cover;
   if(coverId)meta.novels[newName].cover=coverId;else if(keepCover)meta.novels[newName].cover=keepCover;
   if(mergeInto)meta.novels[newName]=Object.assign({},meta.novels[old]||{},target); // the novel merged into keeps its own look and info
   if(newName!==old){
