@@ -2906,7 +2906,7 @@ $('#tmApply').onclick=async()=>{
   let total=0;const changed=[];
   for(const c of chapters){if(c.sample)continue;const t=applyTerms(c.text||'');const n=applyTerms.last;const tt=applyTerms(c.title||'');const n2=applyTerms.last;
     if(n||n2){c.text=t;c.title=tt;total+=n+n2;changed.push(c)}}
-  raws.forEach(r=>{if(r.titleAr){const t=applyTerms(r.titleAr);if(applyTerms.last){r.titleAr=t;persistRaw();if(col&&!r.pending)col.doc(r.id).update({titleAr:t}).catch(()=>{})}}});
+  raws.forEach(r=>{if(r.titleAr){const t=applyTerms(r.titleAr);if(applyTerms.last){r.titleAr=t;if(rawLazy)sbRawPut(r);else{persistRaw();if(col&&!r.pending)col.doc(r.id).update({titleAr:t}).catch(()=>{})}}}});
   if(!changed.length){toast('لم توجد هذه الكلمات في فصولك');return}
   persistLocal();hideSheet();renderLibrary();if(curNovel)renderNovel();if(current)openReader(current.id);
   toast(`تم الاستبدال ${total} مرة في ${changed.length} فصل`);
@@ -5124,7 +5124,7 @@ ${gloss.trim()?`- التزم بهذه الترجمات الثابتة للأسم
 ${batch.map(r=>`${r.num}: ${rawOrigTitle(r)}`).join('\n')}`;
       const arr=await sample.json(prompt,{modelTier:'quick',cache:false});trackUse('titles',0);
       const map=new Map((Array.isArray(arr)?arr:[]).filter(x=>x&&x.t).map(x=>[+x.n,String(x.t).replace(/\*\*/g,'').trim().slice(0,100)]));
-      for(const r of batch){let t=map.get(r.num);if(!t)continue;t=applyTerms(t);r.titleAr=t;persistRaw();if(col&&!r.pending)col.doc(r.id).update({titleAr:t}).catch(()=>{})}
+      for(const r of batch){let t=map.get(r.num);if(!t)continue;t=applyTerms(t);r.titleAr=t;if(rawLazy)sbRawPut(r);else{persistRaw();if(col&&!r.pending)col.doc(r.id).update({titleAr:t}).catch(()=>{})}}
       if(openSheet&&openSheet.id==='rawSheet')renderRawSheet();
     }
     if(manual)toast('تمت ترجمة العناوين');
