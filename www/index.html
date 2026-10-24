@@ -1623,6 +1623,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
       <span class="opi"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.2L3 16M3 21v-5h5"/></svg></span>
       <span class="opt-t"><b id="lxUpdateT"></b><small id="lxUpdateS"></small></span>
     </button>
+    <button class="btn primary" id="lxAdd" type="button" style="width:100%;margin:6px 0 10px">+ إضافة مصطلح يدوياً</button>
     <label class="search" for="lxFind" style="height:42px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="lxFind" type="search" placeholder="ابحث عن مصطلح"></label>
     <div class="chips stylechips" id="lxCats"></div>
     <div class="list" id="lxList"></div>
@@ -1770,9 +1771,16 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
       <span class="opi"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.2L3 16M3 21v-5h5"/></svg></span>
       <span class="opt-t"><b id="chUpdateT">حدّث من الفصول المقروءة</b><small id="chUpdateS"></small></span>
     </button>
+    <button class="btn primary" id="chAdd" type="button" style="width:100%;margin:6px 0 10px">+ إضافة شخصية يدوياً</button>
     <label class="search" for="chFind" style="height:42px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="chFind" type="search" placeholder="ابحث عن شخصية"></label>
     <div class="list" id="chList"></div>
   </div>
+</section>
+
+<section class="sheet" id="manSheet" dir="rtl" aria-label="إضافة يدوية">
+  <div class="grab"></div>
+  <h3 id="manTitle"></h3>
+  <div class="scroll"><form id="manForm" autocomplete="off"></form></div>
 </section>
 
 <section class="sheet" id="rawPrevSheet" dir="rtl" aria-label="معاينة فصل خام">
@@ -3094,7 +3102,7 @@ function renderChars(){
   const L=$('#chList');L.innerHTML='';
   const list=cur.list.filter(c=>!q||(c.name||'').includes(q)||(c.src||'').includes(q)||(c.desc||'').includes(q));
   if(!list.length){L.innerHTML=`<div class="empty">${cur.list.length?'لا توجد شخصية مطابقة.':'لا توجد شخصيات بعد.'}</div>`;return}
-  list.forEach(c=>{const d=document.createElement('div');d.className='chcard';
+  list.forEach(c=>{const d=document.createElement('div');d.className='chcard'+(c.manual?' manual':'');d.onclick=()=>openManual('chars',c);
     d.innerHTML=`<div class="cn1"><b></b><bdi></bdi>${c.role?'<span class="tag"></span>':''}${c.isNew?'<span class="tag" style="border-color:var(--ion);color:var(--ion)">جديد</span>':''}</div><p></p>${c.rel?'<small class="rel"></small>':''}${c.first?`<small>أول ظهور: الفصل ${+c.first||'?'}</small>`:''}`;
     d.querySelector('b').textContent=c.name;d.querySelector('bdi').textContent=c.src||'';if(c.role)d.querySelector('.tag').textContent=c.role;
     d.querySelector('p').textContent=c.desc||'';if(c.rel)d.querySelector('.rel').textContent='العلاقات: '+c.rel;L.appendChild(d)});
@@ -3124,6 +3132,7 @@ ${batch.map(it=>`${batchHead(it)}\n${kbText(it)}`).join('\n\n')}`;
       const res=await sample.json(prompt,{cache:false,...ecoTier()});trackUse('chars',0);
       let list=(res&&Array.isArray(res.list)?res.list:[]).filter(x=>x&&x.name).slice(0,80).map(x=>({name:applyTerms(String(x.name).trim().slice(0,60)),src:String(x.src||'').slice(0,40),role:String(x.role||'').slice(0,30),desc:applyTerms(String(x.desc||'').slice(0,300)),rel:applyTerms(String(x.rel||'').slice(0,200)),first:+x.first||null}));
       // never lose a character Gemini forgot to repeat
+      cur.list.forEach(c=>{if(c.manual){const i=list.findIndex(x=>x.name===c.name);if(i>=0)list[i]=c;else list.push(c)}});
       const names=new Set(list.map(c=>c.name));cur.list.forEach(c=>{if(!names.has(c.name))list.push(c)});
       list.forEach(c=>{if(!before.has(c.name)){c.isNew=true}else delete c.isNew});
       cur=Object.assign(kbAdvance(cur,batch),{list:list.slice(0,100)});
@@ -3442,10 +3451,54 @@ function renderLex(){
   const list=cur.list.filter(x=>(lexCat==='all'||(x.cat||'أخرى')===lexCat)&&(!q||(x.term||'').includes(q)||(x.src||'').includes(q)||(x.desc||'').includes(q)));
   const L=$('#lxList');L.innerHTML='';
   if(!list.length){L.innerHTML=`<div class="empty">${cur.list.length?'لا توجد مصطلحات مطابقة.':'لا توجد مصطلحات بعد.'}</div>`;return}
-  list.forEach(x=>{const d=document.createElement('div');d.className='lxcard';
+  list.forEach(x=>{const d=document.createElement('div');d.className='lxcard'+(x.manual?' manual':'');d.onclick=()=>openManual('lex',x);
     d.innerHTML=`<div class="cn1"><b></b><bdi></bdi><span class="tag"></span></div><p></p>${x.first?`<small>أول ظهور: الفصل ${+x.first||'?'}</small>`:''}`;
     d.querySelector('b').textContent=x.term;d.querySelector('bdi').textContent=x.src||'';d.querySelector('.tag').textContent=x.cat||'أخرى';d.querySelector('p').textContent=x.desc||'';L.appendChild(d)});
 }
+/* manual entries: add, edit and delete by hand. They are kept when Gemini updates the list. */
+const manEsc=v=>String(v??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+let manPrev=null;
+function openManual(kind,item){
+  const isL=kind==='lex',key=isL?'lex':'chars';
+  const cur=((meta.novels[curNovel]||{})[key])||{list:[]};
+  const it=item||{};
+  const cats=[...new Set([...LEX_CATS,...cur.list.map(x=>x.cat).filter(Boolean)])];
+  const F=(id,label,val,req)=>`<label class="manf"><span>${label}</span><input id="${id}" value="${manEsc(val)}"${req?' required':''}></label>`;
+  const T=(id,label,val)=>`<label class="manf"><span>${label}</span><textarea id="${id}" rows="3">${manEsc(val)}</textarea></label>`;
+  $('#manTitle').textContent=(item?'تعديل ':'إضافة ')+(isL?'مصطلح':'شخصية');
+  $('#manForm').innerHTML=(isL
+    ?F('mF1','المصطلح',it.term,1)+`<label class="manf"><span>الفئة</span><input id="mF2" list="mCats" value="${manEsc(it.cat||'')}"><datalist id="mCats">${cats.map(c=>`<option value="${manEsc(c)}">`).join('')}</datalist></label>`+F('mF3','الاسم الأصلي (اختياري)',it.src)+T('mF4','الشرح',it.desc)+F('mF5','أول فصل ظهر فيه (اختياري)',it.first||'')
+    :F('mF1','الاسم بالعربية',it.name,1)+F('mF2','الاسم الأصلي (اختياري)',it.src)+F('mF3','الدور (بطل، صديق، خصم…)',it.role)+T('mF4','الوصف',it.desc)+F('mF5','أول فصل ظهرت فيه (اختياري)',it.first||''))
+    +`<div class="manbtns">${item?'<button type="button" class="btn" id="mDel">حذف</button>':''}<button type="button" class="btn" id="mCancel">إلغاء</button><button type="submit" class="btn primary">حفظ</button></div>`;
+  manPrev=openSheet;
+  $('#manForm').onsubmit=ev=>{ev.preventDefault();saveManual(kind,item)};
+  $('#mCancel').onclick=closeManual;
+  if(item)$('#mDel').onclick=()=>deleteManual(kind,item);
+  showSheet($('#manSheet'));
+  setTimeout(()=>$('#mF1')&&$('#mF1').focus(),250);
+}
+function closeManual(){$('#manSheet').classList.remove('open');openSheet=manPrev}
+function saveManual(kind,item){
+  const isL=kind==='lex',key=isL?'lex':'chars',nk=isL?'term':'name';
+  const v=id=>(($('#'+id)||{}).value||'').trim();
+  const val=isL?{term:v('mF1'),cat:v('mF2')||'أخرى',src:v('mF3').slice(0,40),desc:v('mF4').slice(0,300),first:+v('mF5')||null}
+               :{name:v('mF1'),src:v('mF2').slice(0,40),role:v('mF3').slice(0,30),desc:v('mF4').slice(0,300),first:+v('mF5')||null};
+  if(!val[nk]){toast(isL?'اكتب المصطلح أولاً':'اكتب اسم الشخصية أولاً');return}
+  const m=meta.novels[curNovel]=meta.novels[curNovel]||{};
+  const cur=m[key]&&Array.isArray(m[key].list)?m[key]:{list:[],upTo:0};
+  if(cur.list.some(x=>x[nk]===val[nk]&&x!==item)){toast('هذا الاسم موجود بالفعل');return}
+  if(item)Object.assign(item,val,{manual:true});else cur.list.push(Object.assign(val,{manual:true}));
+  m[key]=cur;saveMeta();
+  closeManual();if(isL){renderLex()}else{renderChars()}if(curNovel)renderNovel();toast(item?'تم الحفظ':'أُضيف بنجاح');
+}
+function deleteManual(kind,item){
+  const btn=$('#mDel');if(btn.dataset.arm!=='1'){btn.dataset.arm='1';btn.textContent='اضغط للتأكيد';return}
+  const isL=kind==='lex',key=isL?'lex':'chars';const m=meta.novels[curNovel]||{};
+  if(m[key]&&m[key].list)m[key].list=m[key].list.filter(x=>x!==item);
+  saveMeta();closeManual();if(isL){renderLex()}else{renderChars()}if(curNovel)renderNovel();toast('حُذف');
+}
+$('#lxAdd').onclick=()=>openManual('lex',null);
+$('#chAdd').onclick=()=>openManual('chars',null);
 $('#nLex').onclick=()=>{$('#lxFind').value='';lexCat='all';renderLex();showSheet($('#lexSheet'))};
 $('#lxFind').addEventListener('input',renderLex);
 async function updateLex(novel,quiet){
@@ -3467,6 +3520,7 @@ ${(m.glossary||'').trim()?`قاموس الأسماء (الأصل = العربي)
 ${batch.map(it=>`${batchHead(it)}\n${kbText(it)}`).join('\n\n')}`;
       const res=await sample.json(prompt,{cache:false,...ecoTier()});trackUse('lex',0);
       const list=(res&&Array.isArray(res.list)?res.list:[]).filter(x=>x&&x.term).slice(0,100).map(x=>({term:applyTerms(String(x.term).trim().slice(0,60)),src:String(x.src||'').slice(0,40),cat:LEX_CATS.includes(x.cat)?x.cat:'أخرى',desc:applyTerms(String(x.desc||'').slice(0,300)),first:+x.first||null}));
+      cur.list.forEach(x=>{if(x.manual){const i=list.findIndex(y=>y.term===x.term);if(i>=0)list[i]=x;else list.push(x)}});
       const terms=new Set(list.map(x=>x.term));cur.list.forEach(x=>{if(!terms.has(x.term))list.push(x)});
       cur=Object.assign(kbAdvance(cur,batch),{list:list.slice(0,120)});
       meta.novels[novel]=Object.assign({},meta.novels[novel]||{},{lex:cur});saveMeta();
@@ -6832,6 +6886,12 @@ nav h3{font-family:"Readex Pro",sans-serif;margin:32px 0 10px}nav ol{padding-inl
 .ch{padding-top:36px;margin-top:36px;border-top:1px solid #e5e2da;page-break-before:always}h2{font-family:"Readex Pro",sans-serif;text-align:center;font-size:24px;line-height:1.5;margin:0 0 24px}
 h2::after{content:"";display:block;width:50px;height:2px;background:var(--a);margin:14px auto 0}p{margin:0 0 1em}.up{display:block;text-align:center;font-size:14px;color:#8a909a;text-decoration:none;margin-top:20px}
 @media(prefers-color-scheme:dark){body{background:#12151b;color:#dde2ea}header,.ch{border-color:#272c36}header p,.up{color:#8f97a6}nav a{border-color:#333}}
+.manf{display:grid;gap:5px;margin:10px 0;font-size:13px;color:var(--dim)}
+.manf input,.manf textarea{width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:14px}
+.manf input:focus,.manf textarea:focus{outline:none;border-color:var(--plasma)}
+.manbtns{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px}
+.manbtns .btn{flex:none;height:44px;padding:0 16px}
+.lxcard.manual,.chcard.manual{border-color:color-mix(in srgb,var(--plasma) 45%,var(--line))}
 /* home effects: soft sheen on the main cards, press feedback, glowing section titles */
 .herocard,.hgoal,.hready button,.halert{position:relative;overflow:hidden;transition:transform .2s,box-shadow .3s}
 .herocard::after,.hgoal::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(110deg,transparent 35%,color-mix(in srgb,var(--plasma) 16%,transparent) 50%,transparent 65%);transform:translateX(-120%);animation:fxSheen 7s ease-in-out infinite}
