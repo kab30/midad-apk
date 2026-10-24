@@ -1146,7 +1146,29 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 @keyframes spark{0%{opacity:1;transform:translate(-50%,-50%) scale(.6)}100%{opacity:0;transform:translate(calc(-50% + var(--x)),calc(-50% + var(--y))) scale(.2)}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}.powev,.donecard.in{opacity:1;transform:none}}
 .nsrc{display:flex;flex-wrap:wrap;gap:4px 12px;margin:6px 0 0;font-size:12.5px;color:var(--dim)}.nsrc a{color:var(--plasma);text-decoration:none}
-.pcard{display:grid;gap:10px;padding:12px;border-radius:16px;background:var(--panel);border:1px solid var(--line)}.pnext{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.pnext b{font-size:15px}.pnext span{color:var(--plasma);font-weight:700}.ptimes{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}.pt{display:grid;justify-items:center;padding:6px 2px;border-radius:12px;background:var(--bg-2,transparent);border:1px solid var(--line)}.pt.on{border-color:var(--plasma)}.pt small{font-size:11px;color:var(--dim)}.pt b{font-size:13px}.pfoot{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:11.5px;color:var(--dim)}.pbtn{border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:4px 10px;font-size:12px}
+.pcard{position:relative;overflow:hidden;display:grid;gap:12px;padding:14px;border-radius:20px;background:linear-gradient(135deg,color-mix(in srgb,var(--plasma) 14%,var(--panel)),var(--panel) 55%,color-mix(in srgb,var(--plasma) 8%,var(--panel)));background-size:200% 200%;border:1px solid color-mix(in srgb,var(--plasma) 30%,var(--line));box-shadow:0 10px 30px -18px var(--plasma);animation:pDrift 14s ease-in-out infinite}
+.pcard::before{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(110deg,transparent 30%,color-mix(in srgb,var(--plasma) 22%,transparent) 50%,transparent 70%);transform:translateX(-100%);animation:pSheen 6s ease-in-out infinite}
+.pcard>*{position:relative}
+.pnext{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.pnext b{font-size:15px;font-weight:800}
+.pnext span{font-weight:800;font-variant-numeric:tabular-nums;padding:4px 10px;border-radius:999px;background:color-mix(in srgb,var(--plasma) 16%,transparent);color:var(--plasma);animation:pBlink 2.4s ease-in-out infinite}
+.ptimes{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.pt{display:grid;justify-items:center;gap:1px;padding:8px 2px 7px;border-radius:14px;background:color-mix(in srgb,var(--panel) 80%,transparent);border:1px solid var(--line);transition:transform .25s}
+.pt:active{transform:scale(.96)}
+.pt i{font-style:normal;font-size:17px;line-height:1.1;display:inline-block;animation:pFloat 4s ease-in-out infinite}
+.pt:nth-child(2) i{animation-delay:-.6s}.pt:nth-child(3) i{animation-delay:-1.2s}.pt:nth-child(4) i{animation-delay:-1.8s}.pt:nth-child(5) i{animation-delay:-2.4s}
+.pt small{font-size:11px;color:var(--dim)}
+.pt b{font-size:13px;font-variant-numeric:tabular-nums}
+.pt.on{background:linear-gradient(160deg,var(--plasma),color-mix(in srgb,var(--plasma) 55%,#000));border-color:transparent;color:#fff;box-shadow:0 6px 18px -8px var(--plasma);animation:pPulse 2.4s ease-in-out infinite}
+.pt.on small{color:rgba(255,255,255,.85)}
+.pfoot{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:11.5px;color:var(--dim)}
+.pbtn{border:1px solid var(--plasma);background:color-mix(in srgb,var(--plasma) 10%,transparent);color:var(--plasma);border-radius:999px;padding:5px 12px;font-size:12px;font-weight:700}
+@keyframes pDrift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+@keyframes pSheen{0%{transform:translateX(-100%)}55%,100%{transform:translateX(100%)}}
+@keyframes pFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes pPulse{0%,100%{box-shadow:0 6px 18px -8px var(--plasma)}50%{box-shadow:0 6px 26px 2px color-mix(in srgb,var(--plasma) 55%,transparent)}}
+@keyframes pBlink{0%,100%{opacity:1}50%{opacity:.7}}
+@media (prefers-reduced-motion:reduce){.pcard,.pcard::before,.pt i,.pt.on,.pnext span{animation:none}}
 .ppill{margin:4px auto 10px;width:max-content;max-width:90%;padding:5px 12px;border-radius:999px;background:var(--panel);border:1px solid var(--line);color:var(--plasma);font-size:12.5px;font-weight:700;text-align:center}
 </style>
 
@@ -2559,6 +2581,7 @@ function ranges(arr){const out=[];for(let i=0;i<arr.length;i++){let j=i;while(ar
    from a public prayer-times service and that answer is used instead. Angles: 12° for Fajr and Isha (the French
    standard, UOIF). Every time is kept as "HH:MM" in Paris time. */
 const PRAY={lat:50.6292,lon:3.0573,fajr:12,isha:12,city:'Lille',country:'France',method:12};
+const PRAY_ICON={fajr:'🌄',dhuhr:'☀️',asr:'🌤️',maghrib:'🌇',isha:'🌌'};
 const PRAY_LIST=[['fajr','الفجر'],['dhuhr','الظهر'],['asr','العصر'],['maghrib','المغرب'],['isha','العشاء']];
 function parisParts(ms){const p={};new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(new Date(ms)).forEach(x=>p[x.type]=x.value);return {y:+p.year,mo:+p.month,d:+p.day,h:+p.hour%24,mi:+p.minute}}
 function prayCalc(y,mo,d){
@@ -2618,7 +2641,7 @@ function prayCard(box){
   sec.querySelector('.pnext b').textContent='الصلاة القادمة: '+nx.label;
   sec.querySelector('.pnext span').textContent=`${times[nx.k]} · بعد ${h?h+' س ':''}${m} د`;
   const grid=sec.querySelector('.ptimes');
-  PRAY_LIST.forEach(([k,label])=>{const d=document.createElement('div');d.className='pt'+(k===nx.k?' on':'');d.innerHTML='<small></small><b></b>';d.querySelector('small').textContent=label;d.querySelector('b').textContent=times[k];grid.appendChild(d)});
+  PRAY_LIST.forEach(([k,label])=>{const d=document.createElement('div');d.className='pt'+(k===nx.k?' on':'');d.innerHTML='<i></i><small></small><b></b>';d.querySelector('i').textContent=PRAY_ICON[k]||'🕌';d.querySelector('small').textContent=label;d.querySelector('b').textContent=times[k];grid.appendChild(d)});
   sec.querySelector('.pfoot small').textContent=times.online?'من خادم مواقيت الصلاة':'محسوب على جهازك، بدون إنترنت';
   const pb=sec.querySelector('.pbtn');
   if(pb)pb.onclick=async()=>{try{const r=await Notification.requestPermission();toast(r==='granted'?'سيُنبّهك مداد قبل كل صلاة بـ 5 دقائق':'لم تُفعَّل التنبيهات')}catch(e){toast('التنبيهات غير متاحة هنا')}pb.remove()};
@@ -2748,16 +2771,6 @@ function renderHome(){
   if(today>=goal&&LS.get('midad.goalDay','')!==dayKey()&&wasGoalBelow){LS.set('midad.goalDay',dayKey());toast('🎉 حققت هدفك اليومي!');buzz([20,60,30,60,40])}
   wasGoalBelow=today<goal;
   prayCard(box);
-  // 2) ready to read: unread translated chapters, by novel
-  const names=[...allNovelNames()].filter(n=>n!==SAMPLE.novel);
-  const ready=names.map(n=>{const list=chapters.filter(c=>nv(c)===n&&(c.progress||0)<=.97);if(!list.length)return null;const t=continueTarget(n);return t&&t.c?{n,cnt:list.length,c:t.c,at:Math.max(0,...chapters.filter(c=>nv(c)===n).map(c=>c.lastAt||c.createdAt||0))}:null}).filter(Boolean).sort((a,b)=>b.at-a.at).slice(0,10);
-  if(ready.length){const sec=document.createElement('section');sec.className='hsec';sec.innerHTML=`<h3>📖 جاهز للقراءة <small>${ready.reduce((s,r)=>s+r.cnt,0)} فصل</small></h3><div class="hready"></div>`;
-    const row=sec.querySelector('.hready');
-    ready.forEach(r=>{const b=document.createElement('button');b.type='button';const m=novelMeta(r.n);b.style.setProperty('--hcol',m.color||'var(--plasma)');
-      b.innerHTML=`<span class="hc"></span><b></b><span class="hn">${r.cnt} ${r.cnt===1?'فصل جاهز':r.cnt<=10?'فصول جاهزة':'فصلاً جاهزاً'}</span><small></small>`;
-      b.querySelector('b').textContent=r.n;b.querySelector('small').textContent=(r.c.progress||0)>.02?`تابع الفصل ${r.c.num??''} · ${Math.round((r.c.progress||0)*100)}%`:`ابدأ الفصل ${r.c.num??''}`;
-      b.onclick=()=>{curNovel=r.n;openReader(r.c.id)};row.appendChild(b)});
-    box.appendChild(sec)}
   // 3) raw store running low on novels you are reading now
   const dis=LS.get('midad.rawAlertOff',{});
   names.forEach(n=>{
