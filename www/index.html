@@ -6399,11 +6399,11 @@ $('#bkFile').addEventListener('change',async e=>{
     for(const [n,m] of Object.entries(j.meta.novels)){if(!m||typeof m!=='object')continue;
       const full=Object.assign({},m,{color:+m.color||0,icon:ICONS.hasOwnProperty(m.icon)?m.icon:'letter',desc:String(m.desc||'').slice(0,400),glossary:String(m.glossary||'').slice(0,6000)});
       if(m.cover)full.cover=String(m.cover);else delete full.cover;
-      const cur=meta.novels[n];
-      if(!cur){meta.novels[n]=full;continue}
-      // the newer copy wins; what only the other copy holds is kept
-      if((+m._u||0)>(+cur._u||0))meta.novels[n]=Object.assign({},cur,full,cur.cover&&!full.cover?{cover:cur.cover}:{});
-      else meta.novels[n]=Object.assign({},full,cur)}
+      // restoring means the backup's copy is the one to keep: it wins over this device's copy (anything only here stays)
+      // and gets a fresh time, so the account and the other devices take it instead of the older copy they hold
+      const cur=meta.novels[n]||{};
+      const keep=cur.cover&&!full.cover?{cover:cur.cover}:{};
+      meta.novels[n]=Object.assign({},cur,full,keep,{_u:Date.now()})}
   }
   if(j.covers&&typeof j.covers==='object'){
     for(const [k,v] of Object.entries(j.covers)){
