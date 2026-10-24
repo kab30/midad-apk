@@ -1182,6 +1182,19 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 @keyframes pBlink{0%,100%{opacity:1}50%{opacity:.7}}
 @media (prefers-reduced-motion:reduce){.pcard,.pcard::before,.pt i,.pt.on,.pnext span{animation:none}}
 .ppill{margin:4px auto 10px;width:max-content;max-width:90%;padding:5px 12px;border-radius:999px;background:var(--panel);border:1px solid var(--line);color:var(--plasma);font-size:12.5px;font-weight:700;text-align:center}
+#numBody .numh{font-size:13px;color:var(--dim);margin:14px 0 6px;font-weight:700}
+#numBody .numrow{padding:12px 14px;border-radius:16px;background:var(--panel);border:1px solid var(--line);margin:8px 0}
+#numBody .numrow.ok{border-color:color-mix(in srgb,#3fb37f 45%,var(--line))}
+#numBody .numrow.bad{border-color:color-mix(in srgb,var(--danger,#e5484d) 50%,var(--line))}
+#numBody .nn{font-size:15px;line-height:1.7}
+#numBody .nn .zh{font-family:var(--ui);color:var(--dim)}
+#numBody .nn em{font-style:normal;font-size:12px;font-weight:700;margin-inline-start:6px}
+#numBody .numrow.ok em{color:#3fb37f}
+#numBody .numrow.bad em{color:var(--danger,#e5484d)}
+#numBody .nfix{display:flex;gap:8px;margin-top:10px;align-items:center}
+#numBody select{flex:1;min-height:44px;border-radius:14px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:0 10px;font:inherit}
+#numBody .nfix .btn{flex:none;height:44px;padding:0 18px;border-radius:14px}
+#numBody .numedit{width:100%;margin-top:14px;height:48px;border-radius:16px}
 .shx{position:absolute;top:14px;inset-inline-end:14px;z-index:3;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--deck);color:var(--dim);font-size:15px;line-height:1;display:grid;place-items:center;cursor:pointer}
 .sheet>.shx:active{transform:scale(.92)}
 #manForm{display:grid;gap:14px;padding:4px 2px 14px;direction:rtl}
@@ -1932,6 +1945,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
   <button type="button" data-act="ask" id="pmAsk"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 1 3.1 6.3L4 19.5l1.2-3A7.9 7.9 0 0 1 4 12z"/><path d="M10 10a2 2 0 1 1 2.5 1.9c-.3.1-.5.4-.5.7V13M12 15.5h.01"/></svg><span>اسأل</span></button>
   <button type="button" data-act="hl" id="pmHl"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11-6 6v3h3l6-6"/><path d="m22 5-3-3-9 9 3 3z"/></svg><span>تظليل</span></button>
   <button type="button" data-act="bm" id="pmBm"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg><span>علامة</span></button>
+  <button type="button" data-act="nums" id="pmNums" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h10M4 17h7"/><path d="m16 15 2 2 4-4"/></svg><span>تأكد من الأرقام</span></button>
   <button type="button" data-act="edit"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></svg><span>تعديل</span></button>
   <button type="button" data-act="redo" id="pmRedo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.2L3 16M3 21v-5h5"/></svg><span>أعد الترجمة</span></button>
   <button type="button" data-act="speak" id="pmSpeak"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg><span>اقرأ من هنا</span></button>
@@ -1942,6 +1956,13 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 </div>
 
 <div class="wordpop" id="wordPop" dir="rtl" hidden role="dialog" aria-label="معنى الكلمة"><button type="button" class="wx" id="wpX" aria-label="إغلاق">✕</button><b class="w" id="wpW"></b><div class="wm" id="wpM"></div></div>
+
+<section class="sheet" id="numSheet" dir="rtl" aria-label="تأكد من الأرقام">
+  <div class="grab"></div>
+  <h3>تأكد من الأرقام</h3>
+  <button type="button" class="shx" aria-label="إغلاق">✕</button>
+  <div class="scroll"><p class="cpnote" id="numNote"></p><div id="numBody"></div></div>
+</section>
 
 <section class="sheet" id="frSheet" dir="rtl" aria-label="بحث واستبدال">
   <div class="grab"></div>
@@ -5657,6 +5678,7 @@ function showPMenu(p){
   const m=$('#pMenu');$('#pmSrc').hidden=!current.src;
   $('#pmWord').hidden=!lpWord;$('#pmRepl').hidden=!lpWord||current.sample;$('#pmWord').querySelector('span').textContent=lpWord?'معنى «'+(lpWord.length>7?lpWord.slice(0,7)+'…':lpWord)+'»':'معنى';
   const i=+p.dataset.i,h=hasMark(current,i,'hl'),b=hasMark(current,i,'bm');
+  $('#pmNums').hidden=!numHint(p);
   $('#pmHl').classList.toggle('on',h);$('#pmHl').querySelector('span').textContent=h?'إزالة التظليل':'تظليل';
   $('#pmBm').classList.toggle('on',b);$('#pmBm').querySelector('span').textContent=b?'إزالة العلامة':'علامة';
   $('#pmRedo').querySelector('span').textContent=current.src?'أعد الترجمة':'حسّن الصياغة';
@@ -5671,6 +5693,7 @@ document.addEventListener('pointerdown',e=>{if(!$('#pMenu').hidden&&!e.target.cl
 $('#pMenu').addEventListener('click',async e=>{
   const b=e.target.closest('button');if(!b||!lpP)return;const p=lpP,act=b.dataset.act;hidePMenu();
   const i=+p.dataset.i,lines=(current.text||'').split('\n').filter(Boolean);
+  if(act==='nums'){openNums(i);return}
   if(act==='scene'){openScene(current,i);return}
   if(act==='quote'){openQuote(lines[i]);return}
   if(act==='copy'){try{await navigator.clipboard.writeText(lines[i]);toast('تم نسخ الفقرة')}catch(_){const rg=document.createRange();rg.selectNodeContents(p);const s=getSelection();s.removeAllRanges();s.addRange(rg);toast('حدّد النص، انسخه يدوياً')}return}
@@ -5683,6 +5706,61 @@ $('#pMenu').addEventListener('click',async e=>{
   if(act==='repl'){openFR(lpWord);return}
   if(act==='redo')redoParagraph(p,i,lines);
 });
+
+/* ---------- تأكد من الأرقام: compares the numbers in the Chinese original with the Arabic paragraph ---------- */
+const NUM_SCALE=/^(تريليونات|تريليونان|تريليون|مليارات|ملياران|مليار|ملايين|مليونان|مليون|آلاف|ألفان|ألف)[ً-ْ]*$/;
+const NUM_WORDS=new Set(['واحد','اثنان','اثنا','اثنين','ثلاثة','ثلاث','أربعة','أربع','خمسة','خمس','ستة','ست','سبعة','سبع','ثمانية','ثماني','تسعة','تسع','عشرة','عشر','عشرون','عشرين','ثلاثون','ثلاثين','أربعون','أربعين','خمسون','خمسين','ستون','ستين','سبعون','سبعين','ثمانون','ثمانين','تسعون','تسعين','مئة','مائة','مئتان','مئتا','مئات','أحد','إحدى']);
+const NUM_STOP=['و','من','في','على','إلى','عن','مع','ب','ل','أن','ما','هو','هي','كان'];
+const normAr=s=>String(s||'').replace(/[ً-ٟـ]/g,'').replace(/[إأآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/\s+/g,' ').trim();
+const numClean=w=>String(w||'').replace(/[،;:!?؟"'«»()\[\]“”‘’]/g,'').replace(/[.,]+$/,'');
+function isNumWord(w){const x=w.replace(/^[وف]/,'');return NUM_WORDS.has(x)||NUM_WORDS.has(w)||/(مئة|مئتان|مئتا|مئات)$/.test(x)||/^\d+(\.\d+)?$/.test(x)}
+function arPhrases(text){
+  const ws=(String(text||'').match(/\S+/g)||[]).map(numClean);const out=[];
+  ws.forEach((c,i)=>{
+    if(NUM_SCALE.test(c)){const parts=[];let j=i-1;while(j>=0&&parts.length<3&&isNumWord(ws[j])){parts.unshift(ws[j]);j--}parts.push(c);if(parts.length>1)parts[0]=parts[0].replace(/^[وف](?=.)/,'');out.push(parts.join(' '))}
+    else if(/^\d+(\.\d+)?$/.test(c)&&i+1<ws.length&&NUM_SCALE.test(ws[i+1]))out.push(c+' '+ws[i+1])});
+  return [...new Set(out)]}
+function srcNums(text){
+  const out=[];String(text||'').replace(/[\d.零〇一二两三四五六七八九十百千万亿]+/g,(tok,off,str)=>{
+    if(!/[万亿]/.test(tok)||tok[0]==='万'||tok[0]==='亿'||/^\.|\.$/.test(tok))return tok;
+    const prev=off>0?str[off-1]:'';if(prev&&'几数多余约'.includes(prev))return tok;
+    let v;try{v=zhVal(tok)}catch(e){return tok}
+    if(!isFinite(v)||v<=0)return tok;out.push({tok,ar:arNum(v)});return tok});
+  return out}
+function numHint(p){
+  if(!current||current.sample)return false;
+  if(arPhrases(p.textContent).length)return true;
+  const win=srcWindow(+p.dataset.i,(current.text||'').split('\n').filter(Boolean).length);return /[万亿]/.test(win)}
+function openNums(i){
+  const ch=current;if(!ch)return;const L=(ch.text||'').split('\n').filter(Boolean);const para=L[i]||'';
+  const body=$('#numBody'),note=$('#numNote');
+  const win=srcWindow(i,L.length),src=srcNums(win),found=[...new Set(arPhrases(para))],np=normAr(para);
+  note.textContent=win?'الأصل الصيني تقريبي (من الفقرات حول هذه الفقرة)، تحقّق قبل الاستبدال.':'لا يوجد أصل صيني لهذا الفصل، لذلك تُعرض أرقام الترجمة فقط.';
+  const row=(cls,inner)=>`<div class="numrow ${cls}">${inner}</div>`;
+  let h='';
+  h+=`<h4 class="numh">الأرقام في الترجمة</h4>`;
+  h+=found.length?found.map(f=>row('',`<b>${manEsc(f)}</b>`)).join(''):'<div class="empty">لا توجد أرقام في هذه الفقرة</div>';
+  h+=`<h4 class="numh">الأرقام الصحيحة من الأصل</h4>`;
+  if(!src.length)h+='<div class="empty">لم أجد أرقاماً بالصينية (万 أو 亿) قرب هذه الفقرة</div>';
+  else h+=src.map((x,k)=>{const ok=np.includes(normAr(x.ar));
+    return row(ok?'ok':'bad',`<div class="nn"><span class="zh">${manEsc(x.tok)}</span> ⟶ <b>${manEsc(x.ar)}</b> <em>${ok?'✓ موجود':'✕ غير موجود'}</em></div>`+
+      (ok||!found.length?'':`<div class="nfix"><select id="nsel${k}">${found.map(f=>`<option value="${manEsc(f)}">${manEsc(f)}</option>`).join('')}</select><button type="button" class="btn primary" data-fix="${k}">استبدل</button></div>`))}).join('');
+  h+=`<button type="button" class="btn numedit" id="numEdit">تعديل الفقرة يدوياً</button>`;
+  body.innerHTML=h;
+  body.querySelectorAll('[data-fix]').forEach(b=>b.onclick=()=>{const k=+b.dataset.fix,old=$('#nsel'+k).value;applyNumFix(i,old,src[k].ar)});
+  $('#numEdit').onclick=()=>{closeNums();const pp=document.querySelector(`#article p[data-i="${i}"]`);if(pp)editParagraph(pp,i)};
+  showSheet($('#numSheet'));
+}
+function closeNums(){hideSheet()}
+document.querySelectorAll('#numSheet .shx').forEach(b=>b.onclick=closeNums);
+function applyNumFix(i,oldT,newT){
+  const ch=current;const L=(ch.text||'').split('\n').filter(Boolean);
+  if(!L[i]||!L[i].includes(oldT)){toast('لم أجد الرقم في الفقرة');return}
+  L[i]=L[i].replace(oldT,newT);ch.text=L.join('\n');persistLocal();
+  if(col&&!ch.pending)col.doc(ch.id).update({text:ch.text}).catch(()=>{});
+  const pp=document.querySelector(`#article p[data-i="${i}"]`);if(pp){pp.innerHTML=fmtPara(L[i]);applyMarks()}
+  toast('تم تصحيح الرقم');openNums(i);
+}
 function srcWindow(i,n){const src=(current.src||'').split('\n').filter(Boolean);if(!src.length)return '';const c=Math.round(i*(src.length-1)/Math.max(1,n-1));return src.slice(Math.max(0,c-1),c+2).join('\n')}
 function showSource(p,i,n){
   const nx=p.nextElementSibling;if(nx&&nx.classList.contains('srcp')){nx.remove();return}
