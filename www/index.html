@@ -6395,7 +6395,15 @@ $('#bkFile').addEventListener('change',async e=>{
     ids.add(ch.id);if(num!=null)keys.add(novel+'#'+num);add.push(ch);
   }
   if(j.meta&&j.meta.novels&&typeof j.meta.novels==='object'){
-    for(const [n,m] of Object.entries(j.meta.novels)){if(!meta.novels[n]&&m&&typeof m==='object')meta.novels[n]={color:+m.color||0,icon:ICONS.hasOwnProperty(m.icon)?m.icon:'letter',desc:String(m.desc||'').slice(0,400),glossary:String(m.glossary||'').slice(0,4000),...(m.cover?{cover:String(m.cover)}:{})}}
+    // every novel keeps everything the backup holds (characters, terms, power ladder, relations, glossary, notes...)
+    for(const [n,m] of Object.entries(j.meta.novels)){if(!m||typeof m!=='object')continue;
+      const full=Object.assign({},m,{color:+m.color||0,icon:ICONS.hasOwnProperty(m.icon)?m.icon:'letter',desc:String(m.desc||'').slice(0,400),glossary:String(m.glossary||'').slice(0,6000)});
+      if(m.cover)full.cover=String(m.cover);else delete full.cover;
+      const cur=meta.novels[n];
+      if(!cur){meta.novels[n]=full;continue}
+      // the newer copy wins; what only the other copy holds is kept
+      if((+m._u||0)>(+cur._u||0))meta.novels[n]=Object.assign({},cur,full,cur.cover&&!full.cover?{cover:cur.cover}:{});
+      else meta.novels[n]=Object.assign({},full,cur)}
   }
   if(j.covers&&typeof j.covers==='object'){
     for(const [k,v] of Object.entries(j.covers)){
