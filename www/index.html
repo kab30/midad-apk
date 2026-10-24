@@ -5713,13 +5713,13 @@ const NUM_WORDS=new Set(['واحد','اثنان','اثنا','اثنين','ثلا
 const NUM_STOP=['و','من','في','على','إلى','عن','مع','ب','ل','أن','ما','هو','هي','كان'];
 const normAr=s=>String(s||'').replace(/[ً-ٟـ]/g,'').replace(/[إأآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/\s+/g,' ').trim();
 const numClean=w=>String(w||'').replace(/[،;:!?؟"'«»()\[\]“”‘’]/g,'').replace(/[.,]+$/,'');
-function isNumWord(w){const x=w.replace(/^[وف]/,'');return NUM_WORDS.has(x)||NUM_WORDS.has(w)||/(مئة|مئتان|مئتا|مئات)$/.test(x)||/^\d+(\.\d+)?$/.test(x)}
+function isNumWord(w){const x=w.replace(/^[وف]/,'');return NUM_WORDS.has(x)||NUM_WORDS.has(w)||NUM_SCALE.test(x)||/(مئة|مئتان|مئتا|مئات)$/.test(x)||/^\d+(\.\d+)?$/.test(x)}
 function arPhrases(text){
   const ws=(String(text||'').match(/\S+/g)||[]).map(numClean);const out=[];
   ws.forEach((c,i)=>{
-    if(NUM_SCALE.test(c)){const parts=[];let j=i-1;while(j>=0&&parts.length<3&&isNumWord(ws[j])){parts.unshift(ws[j]);j--}parts.push(c);if(parts.length>1)parts[0]=parts[0].replace(/^[وف](?=.)/,'');out.push(parts.join(' '))}
+    if(NUM_SCALE.test(c)){const parts=[];let j=i-1;if(j>=0&&NUM_SCALE.test(ws[j])){parts.unshift(ws[j]);j--}const plain=w=>isNumWord(w)&&!NUM_SCALE.test(w.replace(/^[وف]/,''));while(j>=0&&parts.length<3&&plain(ws[j])){parts.unshift(ws[j]);j--}parts.push(c);if(parts.length>1)parts[0]=parts[0].replace(/^[وف](?=.)/,'');out.push(parts.join(' '))}
     else if(/^\d+(\.\d+)?$/.test(c)&&i+1<ws.length&&NUM_SCALE.test(ws[i+1]))out.push(c+' '+ws[i+1])});
-  return [...new Set(out)]}
+  const uniq=[...new Set(out)];return uniq.filter(a=>!uniq.some(b=>b!==a&&b.includes(a)))}
 function srcNums(text){
   const out=[];String(text||'').replace(/[\d.零〇一二两三四五六七八九十百千万亿]+/g,(tok,off,str)=>{
     if(!/[万亿]/.test(tok)||tok[0]==='万'||tok[0]==='亿'||/^\.|\.$/.test(tok))return tok;
