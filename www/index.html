@@ -6886,11 +6886,20 @@ nav h3{font-family:"Readex Pro",sans-serif;margin:32px 0 10px}nav ol{padding-inl
 .ch{padding-top:36px;margin-top:36px;border-top:1px solid #e5e2da;page-break-before:always}h2{font-family:"Readex Pro",sans-serif;text-align:center;font-size:24px;line-height:1.5;margin:0 0 24px}
 h2::after{content:"";display:block;width:50px;height:2px;background:var(--a);margin:14px auto 0}p{margin:0 0 1em}.up{display:block;text-align:center;font-size:14px;color:#8a909a;text-decoration:none;margin-top:20px}
 @media(prefers-color-scheme:dark){body{background:#12151b;color:#dde2ea}header,.ch{border-color:#272c36}header p,.up{color:#8f97a6}nav a{border-color:#333}}
-.manf{display:grid;gap:5px;margin:10px 0;font-size:13px;color:var(--dim)}
-.manf input,.manf textarea{width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:14px}
-.manf input:focus,.manf textarea:focus{outline:none;border-color:var(--plasma)}
-.manbtns{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px}
-.manbtns .btn{flex:none;height:44px;padding:0 16px}
+#manForm{display:grid;gap:14px;padding:4px 2px 14px;direction:rtl}
+#manForm label.manf{display:flex;flex-direction:column;gap:7px;margin:0}
+#manForm label.manf>span{font-size:13px;font-weight:600;color:var(--dim);padding-inline-start:4px}
+#manForm label.manf input,#manForm label.manf textarea{display:block;width:100%;box-sizing:border-box;min-height:48px;padding:12px 15px;border-radius:16px;border:1px solid var(--line);background:color-mix(in srgb,var(--panel) 92%,var(--plasma) 8%);color:var(--ink);font:500 15px var(--ui);text-align:start;box-shadow:inset 0 1px 2px rgba(0,0,0,.04);transition:border-color .2s,box-shadow .2s,background .2s;-webkit-appearance:none;appearance:none}
+#manForm label.manf textarea{min-height:96px;resize:vertical;line-height:1.7}
+#manForm label.manf input::placeholder,#manForm label.manf textarea::placeholder{color:var(--dim);opacity:.7}
+#manForm label.manf input:focus,#manForm label.manf textarea:focus{outline:none;border-color:var(--plasma);box-shadow:0 0 0 4px color-mix(in srgb,var(--plasma) 18%,transparent);background:var(--panel)}
+#manForm .manbtns{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-top:6px;align-items:center}
+#manForm .manbtns .btn{flex:none;width:100%;height:50px;border-radius:16px;font-size:15px;font-weight:700;margin:0;cursor:pointer;transition:transform .15s,filter .2s}
+#manForm .manbtns .btn:active{transform:scale(.97)}
+#manForm .manbtns .btn.primary{background:linear-gradient(135deg,var(--plasma),color-mix(in srgb,var(--plasma) 60%,#000));color:var(--onacc);box-shadow:0 10px 22px -12px var(--plasma)}
+#manForm .manbtns .btn:not(.primary){background:var(--panel);color:var(--ink);border:1px solid var(--line)}
+#manForm .manbtns #mDel{grid-column:1 / -1;order:3;background:transparent;border:1px dashed color-mix(in srgb,var(--danger,#e5484d) 55%,transparent);color:var(--danger,#e5484d)}
+#manForm .manbtns #mDel[data-arm="1"]{background:color-mix(in srgb,var(--danger,#e5484d) 14%,transparent)}
 .lxcard.manual,.chcard.manual{border-color:color-mix(in srgb,var(--plasma) 45%,var(--line))}
 /* home effects: soft sheen on the main cards, press feedback, glowing section titles */
 .herocard,.hgoal,.hready button,.halert{position:relative;overflow:hidden;transition:transform .2s,box-shadow .3s}
