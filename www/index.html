@@ -6815,7 +6815,21 @@ h1{font-family:"Readex Pro",sans-serif;font-size:32px;margin:20px 0 8px;line-hei
 nav h3{font-family:"Readex Pro",sans-serif;margin:32px 0 10px}nav ol{padding-inline-start:22px;margin:0}nav a{color:inherit;text-decoration:none;border-bottom:1px solid #ddd}
 .ch{padding-top:36px;margin-top:36px;border-top:1px solid #e5e2da;page-break-before:always}h2{font-family:"Readex Pro",sans-serif;text-align:center;font-size:24px;line-height:1.5;margin:0 0 24px}
 h2::after{content:"";display:block;width:50px;height:2px;background:var(--a);margin:14px auto 0}p{margin:0 0 1em}.up{display:block;text-align:center;font-size:14px;color:#8a909a;text-decoration:none;margin-top:20px}
-@media(prefers-color-scheme:dark){body{background:#12151b;color:#dde2ea}header,.ch{border-color:#272c36}header p,.up{color:#8f97a6}nav a{border-color:#333}}</style></head>
+@media(prefers-color-scheme:dark){body{background:#12151b;color:#dde2ea}header,.ch{border-color:#272c36}header p,.up{color:#8f97a6}nav a{border-color:#333}}
+/* home effects: soft sheen on the main cards, press feedback, glowing section titles */
+.herocard,.hgoal,.hready button,.halert{position:relative;overflow:hidden;transition:transform .2s,box-shadow .3s}
+.herocard::after,.hgoal::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(110deg,transparent 35%,color-mix(in srgb,var(--plasma) 16%,transparent) 50%,transparent 65%);transform:translateX(-120%);animation:fxSheen 7s ease-in-out infinite}
+.herocard:active,.hgoal:active,.hready button:active{transform:scale(.97)}
+.herocard:hover,.hgoal:hover{box-shadow:0 10px 26px -16px var(--plasma)}
+.hready button{animation:fxRise .5s ease both}
+.hready button:nth-child(2){animation-delay:.06s}.hready button:nth-child(3){animation-delay:.12s}.hready button:nth-child(4){animation-delay:.18s}
+.hsec h3{position:relative;display:inline-block}
+.hsec h3::after{content:'';position:absolute;inset-inline:0;bottom:-4px;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,var(--plasma),transparent);background-size:200% 100%;animation:fxLine 4s linear infinite}
+@keyframes fxSheen{0%,40%{transform:translateX(-120%)}70%,100%{transform:translateX(120%)}}
+@keyframes fxRise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes fxLine{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.herocard::after,.hgoal::after,.hready button,.hsec h3::after{animation:none}}
+</style></head>
 <body><main><header>${img?`<img src="${img}" alt="">`:'<div class="ph"></div>'}<h1>${xesc(name)}</h1>${m.desc?`<p>${xesc(m.desc)}</p>`:''}</header>
 <nav id="toc"><h3>الفهرس</h3><ol>${toc}</ol></nav>${chs}</main></body></html>`;
 }
