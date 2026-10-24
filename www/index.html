@@ -137,10 +137,18 @@ body.selmode #nList .card::after,body.selmode #nReadList .card::after{content:""
 body.selmode .card.sel::after{background:var(--danger);border-color:var(--danger)!important}
 /* new novels slider */
 .nslider{margin-top:18px}
-.nstrack{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;border-radius:18px}
+.nstrack{position:relative;display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:10px 17% 14px;scroll-padding-inline:0}
 .nstrack::-webkit-scrollbar{display:none}
-.nslide.cover{flex:0 0 100%;aspect-ratio:auto;min-height:168px;scroll-snap-align:center;padding:16px;text-align:start;flex-direction:row;align-items:stretch;gap:14px;justify-content:flex-start}
+.nslide.cover{flex:0 0 66%;position:relative;overflow:hidden;aspect-ratio:3/4.3;padding:0;border-radius:22px;border:1px solid rgba(255,255,255,.12);background:linear-gradient(165deg,var(--c1,#1d2a3f),#04070d 92%);box-shadow:0 14px 34px -14px rgba(0,0,0,.6);scroll-snap-align:center;transform:scale(.86);opacity:.55;filter:saturate(.75);transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .45s,filter .45s,box-shadow .45s;display:block;text-align:start}
+.nslide.cover.on{transform:none;opacity:1;filter:none;box-shadow:0 22px 46px -16px color-mix(in srgb,var(--c2,#4ea1ff) 55%,transparent),0 0 0 1px rgba(255,255,255,.18)}
+.nslide.cover::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(to top,rgba(4,7,13,.94) 0%,rgba(4,7,13,.55) 38%,rgba(4,7,13,0) 62%)}
+.nslide.cover .stag{position:absolute;top:12px;inset-inline-start:12px;z-index:2;align-self:auto;background:rgba(0,0,0,.45);backdrop-filter:blur(6px)}
+.nslide.cover .stx{position:absolute;z-index:2;inset-inline:16px;bottom:16px;gap:4px}
+.nslide.cover .sth{display:none}
+.nslide.cover .stn{font-size:19px;font-weight:800;text-shadow:0 2px 10px rgba(0,0,0,.6)}
+.nslide.cover .stm{font-size:11px}
 .nslide.cover.img{background-size:cover;background-position:center}
+.nslide.cover.img::before{content:'';position:absolute;inset:0;background-size:cover;background-position:center}
 .nslide .sth{flex:none;width:84px;aspect-ratio:3/4;border-radius:12px;position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.14);background:radial-gradient(90% 60% at 75% 18%,color-mix(in srgb,var(--c2) 38%,transparent),transparent 70%),linear-gradient(165deg,var(--c1),#04070d 92%);display:grid;place-items:center;color:var(--c2)}
 .nslide .sth.img{background-size:cover;background-position:center}
 .nslide .sth .letter{font-size:34px;font-weight:700}
@@ -2708,22 +2716,21 @@ function renderNewSlider(names){
   list.forEach(([n,at],i)=>{
     const m=novelMeta(n),st=novelStats(n);
     const b=document.createElement('button');b.type='button';b.className='nslide cover';
-    b.innerHTML=`<div class="sth"><div class="ico">${iconHTML(m.icon,n,34)}</div></div><div class="stx"><span class="stag">${i===0?'الأحدث':'جديدة'}</span><b class="stn"></b><span class="std"></span><span class="stm"></span></div>`;
+    b.innerHTML=`<span class="stag">${i===0?'الأحدث':'جديدة'}</span><div class="stx"><b class="stn"></b><span class="stm"></span></div>`;
     b.querySelector('.stn').textContent=n;
-    const d=b.querySelector('.std');if(m.desc)d.textContent=m.desc;else d.remove();
     const rl=rawsOf(n).length;
     b.querySelector('.stm').textContent=`${st.count} فصل${rl?' · '+rl+' خام':''} · أُضيفت ${fmtAgo(at)}`;
-    paintCover(b,n,m);const th=b.querySelector('.sth');paintCover(th,n,m);
+    paintCover(b,n,m);
     b.onclick=()=>openNovel(n);T.appendChild(b);
     const dot=document.createElement('button');dot.type='button';dot.setAttribute('aria-label','الرواية '+(i+1));dot.onclick=()=>nsGo(i,true);D.appendChild(dot);
   });
   nsIdx=Math.min(nsIdx,list.length-1);nsMark();
-  T.onscroll=()=>{const w=T.clientWidth+10;const i=Math.round(Math.abs(T.scrollLeft)/w);if(i!==nsIdx){nsIdx=i;nsMark()}};
+  T.onscroll=()=>{const mid=T.scrollLeft+T.clientWidth/2;let best=0,bd=Infinity;[...T.children].forEach((c,i)=>{const d=Math.abs(c.offsetLeft+c.offsetWidth/2-mid);if(d<bd){bd=d;best=i}});if(best!==nsIdx){nsIdx=best;nsMark()}};
   T.ontouchstart=T.onpointerdown=()=>{nsHold=Date.now()};
   nsTimer=setInterval(()=>{if(document.hidden||Date.now()-nsHold<8000||!$('#newSlider').offsetParent)return;nsGo((nsIdx+1)%list.length)},5000);
 }
-function nsMark(){[...$('#nsDots').children].forEach((d,i)=>d.setAttribute('aria-current',String(i===nsIdx)))}
-function nsGo(i,user){const T=$('#nsTrack'),el=T.children[i];if(!el)return;if(user)nsHold=Date.now();nsIdx=i;nsMark();T.scrollBy({left:el.getBoundingClientRect().left-T.getBoundingClientRect().left,behavior:'smooth'})}
+function nsMark(){[...$('#nsDots').children].forEach((d,i)=>d.setAttribute('aria-current',String(i===nsIdx)));[...$('#nsTrack').children].forEach((c,i)=>c.classList.toggle('on',i===nsIdx))}
+function nsGo(i,user){const T=$('#nsTrack'),el=T.children[i];if(!el)return;if(user)nsHold=Date.now();nsIdx=i;nsMark();T.scrollTo({left:el.offsetLeft-(T.clientWidth-el.offsetWidth)/2,behavior:'smooth'})}
 function paintCover(el,name,m,data){
   const [c1,c2]=COLORS[m.color]||COLORS[0];el.style.setProperty('--c1',c1);el.style.setProperty('--c2',c2);
   const img=data!==undefined?data:(m.cover&&covers[m.cover]);
