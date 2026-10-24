@@ -2767,14 +2767,8 @@ const kfmt=n=>n>999?(n/1000).toFixed(n>99999?0:1)+'k':String(n);
 const GOALS=[3,5,7,10,15,20];
 function renderHome(){
   const box=$('#homeX');if(!box)return;box.innerHTML='';if(!chapters.length)return;
-  // 1) daily goal ring
+  // daily goal: no card on home; the completion toast still fires
   const goal=prefs.goal||5,today=(stats.days[dayKey()]||{}).rc||0,streak=readStreak(),pct=Math.min(1,today/goal);
-  const g=document.createElement('button');g.type='button';g.className='hgoal'+(today>=goal?' done':'');
-  g.innerHTML=`<span class="gr"><svg viewBox="0 0 62 62"><circle class="t" cx="31" cy="31" r="26"/><circle class="v" cx="31" cy="31" r="26" style="stroke-dashoffset:163.4"/></svg><b>${today}/${goal}</b></span>
-    <span class="gt"><b>${today>=goal?'حققت هدف اليوم 🎉':'هدف اليوم'}</b><small>${today>=goal?`قرأت ${today} ${today===1?'فصلاً':'فصول'} اليوم`:`باقي ${goal-today} ${goal-today===1?'فصل':'فصول'} · اضغط لتغيير الهدف`}</small></span>
-    <span class="fire${streak>1?' on':''}"><b>${streak>1?'🔥':'·'}</b>${streak>1?streak+' يوم':'ابدأ سلسلتك'}</span>`;
-  g.onclick=()=>{prefs.goal=GOALS[(GOALS.indexOf(goal)+1)%GOALS.length];LS.set('midad.prefs',prefs);queuePrefsSave();toast(`هدفك اليومي: ${prefs.goal} فصول`);renderHome()};
-  box.appendChild(g);requestAnimationFrame(()=>requestAnimationFrame(()=>{const v=g.querySelector('.v');if(v)v.style.strokeDashoffset=String(163.4*(1-pct))}));
   if(today>=goal&&LS.get('midad.goalDay','')!==dayKey()&&wasGoalBelow){LS.set('midad.goalDay',dayKey());toast('🎉 حققت هدفك اليومي!');buzz([20,60,30,60,40])}
   wasGoalBelow=today<goal;
   prayCard(box);
