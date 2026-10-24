@@ -1182,6 +1182,37 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 @keyframes pBlink{0%,100%{opacity:1}50%{opacity:.7}}
 @media (prefers-reduced-motion:reduce){.pcard,.pcard::before,.pt i,.pt.on,.pnext span{animation:none}}
 .ppill{margin:4px auto 10px;width:max-content;max-width:90%;padding:5px 12px;border-radius:999px;background:var(--panel);border:1px solid var(--line);color:var(--plasma);font-size:12.5px;font-weight:700;text-align:center}
+.shx{position:absolute;top:14px;inset-inline-end:14px;z-index:3;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--deck);color:var(--dim);font-size:15px;line-height:1;display:grid;place-items:center;cursor:pointer}
+.sheet>.shx:active{transform:scale(.92)}
+#manForm{display:grid;gap:14px;padding:4px 2px 14px;direction:rtl}
+#manForm label.manf{display:flex;flex-direction:column;gap:7px;margin:0}
+#manForm label.manf>span{font-size:12.5px;font-weight:700;letter-spacing:.2px;color:var(--dim);transition:color .25s}
+#manForm label.manf input,#manForm label.manf textarea{display:block;width:100%;box-sizing:border-box;padding:10px 2px 11px;border:0;border-bottom:1.5px solid var(--line);border-radius:0;background:transparent;color:var(--ink);font:500 16px var(--ui);text-align:start;transition:border-color .25s,box-shadow .25s;-webkit-appearance:none;appearance:none}
+#manForm label.manf textarea{resize:vertical;min-height:80px;line-height:1.75;font-size:15px}
+#manForm label.manf input::placeholder,#manForm label.manf textarea::placeholder{color:var(--dim);opacity:.6}
+#manForm label.manf input:focus,#manForm label.manf textarea:focus{outline:none;border-bottom-color:var(--plasma);box-shadow:0 2px 0 -1px color-mix(in srgb,var(--plasma) 45%,transparent)}
+#manForm label.manf:focus-within>span{color:var(--plasma)}
+#manForm .manbtns{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-top:6px;align-items:center}
+#manForm .manbtns .btn{flex:none;width:100%;height:50px;border-radius:16px;font-size:15px;font-weight:700;margin:0;cursor:pointer;transition:transform .15s,filter .2s}
+#manForm .manbtns .btn:active{transform:scale(.97)}
+#manForm .manbtns .btn.primary{background:linear-gradient(135deg,var(--plasma),color-mix(in srgb,var(--plasma) 60%,#000));color:var(--onacc);box-shadow:0 10px 22px -12px var(--plasma)}
+#manForm .manbtns .btn:not(.primary){background:var(--panel);color:var(--ink);border:1px solid var(--line)}
+#manForm .manbtns #mDel{grid-column:1 / -1;order:3;background:transparent;border:1px dashed color-mix(in srgb,var(--danger,#e5484d) 55%,transparent);color:var(--danger,#e5484d)}
+#manForm .manbtns #mDel[data-arm="1"]{background:color-mix(in srgb,var(--danger,#e5484d) 14%,transparent)}
+.lxcard.manual,.chcard.manual{border-color:color-mix(in srgb,var(--plasma) 45%,var(--line))}
+/* home effects: soft sheen on the main cards, press feedback, glowing section titles */
+.herocard,.hgoal,.hready button,.halert{position:relative;overflow:hidden;transition:transform .2s,box-shadow .3s}
+.herocard::after,.hgoal::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(110deg,transparent 35%,color-mix(in srgb,var(--plasma) 16%,transparent) 50%,transparent 65%);transform:translateX(-120%);animation:fxSheen 7s ease-in-out infinite}
+.herocard:active,.hgoal:active,.hready button:active{transform:scale(.97)}
+.herocard:hover,.hgoal:hover{box-shadow:0 10px 26px -16px var(--plasma)}
+.hready button{animation:fxRise .5s ease both}
+.hready button:nth-child(2){animation-delay:.06s}.hready button:nth-child(3){animation-delay:.12s}.hready button:nth-child(4){animation-delay:.18s}
+.hsec h3{position:relative;display:inline-block}
+.hsec h3::after{content:'';position:absolute;inset-inline:0;bottom:-4px;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,var(--plasma),transparent);background-size:200% 100%;animation:fxLine 4s linear infinite}
+@keyframes fxSheen{0%,40%{transform:translateX(-120%)}70%,100%{transform:translateX(120%)}}
+@keyframes fxRise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes fxLine{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.herocard::after,.hgoal::after,.hready button,.hsec h3::after{animation:none}}
 </style>
 
 <div id="library" class="view" dir="rtl">
@@ -1617,6 +1648,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 <section class="sheet" id="lexSheet" dir="rtl" aria-label="مسرد المصطلحات">
   <div class="grab"></div>
   <h3>مسرد المصطلحات</h3>
+  <button type="button" class="shx" aria-label="إغلاق">✕</button>
   <div class="scroll">
     <small class="cpnote" id="lxInfo"></small>
     <button class="opcard" id="lxUpdate" type="button">
@@ -1765,6 +1797,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 <section class="sheet" id="charSheet" dir="rtl" aria-label="الشخصيات">
   <div class="grab"></div>
   <h3>الشخصيات</h3>
+  <button type="button" class="shx" aria-label="إغلاق">✕</button>
   <div class="scroll">
     <small class="cpnote" id="chInfo"></small>
     <button class="opcard" id="chUpdate" type="button">
@@ -1780,6 +1813,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 <section class="sheet" id="manSheet" dir="rtl" aria-label="إضافة يدوية">
   <div class="grab"></div>
   <h3 id="manTitle"></h3>
+  <button type="button" class="shx" aria-label="إغلاق">✕</button>
   <div class="scroll"><form id="manForm" autocomplete="off"></form></div>
 </section>
 
@@ -4522,7 +4556,9 @@ function animateNums(root){
   ['#pwHero b','#pmHero'].forEach(q=>{const e=root.querySelector(q);if(e&&/\d{2,}/.test(e.textContent))countUp(e,0,1000)});
 }
 function hideSheet(){if(!openSheet)return;openSheet.classList.remove('open');$('#scrim').classList.remove('open');openSheet=null;$('#delBtn').classList.remove('arm');$('#delBtn').textContent='حذف هذا الفصل';$('#redoBtn').classList.remove('arm');$('#redoBtn').textContent='أعد ترجمة الفصل كاملاً'}
-$('#scrim').onclick=hideSheet;
+$('#scrim').onclick=()=>{if(openSheet&&openSheet.id==='manSheet')closeManual();else hideSheet()};
+document.querySelectorAll('#lexSheet .shx,#charSheet .shx').forEach(b=>b.onclick=hideSheet);
+document.querySelectorAll('#manSheet .shx').forEach(b=>b.onclick=closeManual);
 
 /* add */
 function openAdd(novel){
@@ -6886,35 +6922,6 @@ nav h3{font-family:"Readex Pro",sans-serif;margin:32px 0 10px}nav ol{padding-inl
 .ch{padding-top:36px;margin-top:36px;border-top:1px solid #e5e2da;page-break-before:always}h2{font-family:"Readex Pro",sans-serif;text-align:center;font-size:24px;line-height:1.5;margin:0 0 24px}
 h2::after{content:"";display:block;width:50px;height:2px;background:var(--a);margin:14px auto 0}p{margin:0 0 1em}.up{display:block;text-align:center;font-size:14px;color:#8a909a;text-decoration:none;margin-top:20px}
 @media(prefers-color-scheme:dark){body{background:#12151b;color:#dde2ea}header,.ch{border-color:#272c36}header p,.up{color:#8f97a6}nav a{border-color:#333}}
-#manForm{display:grid;gap:14px;padding:4px 2px 14px;direction:rtl}
-#manForm label.manf{display:flex;flex-direction:column;gap:7px;margin:0}
-#manForm label.manf>span{font-size:12.5px;font-weight:700;letter-spacing:.2px;color:var(--dim);transition:color .25s}
-#manForm label.manf input,#manForm label.manf textarea{display:block;width:100%;box-sizing:border-box;padding:10px 2px 11px;border:0;border-bottom:1.5px solid var(--line);border-radius:0;background:transparent;color:var(--ink);font:500 16px var(--ui);text-align:start;transition:border-color .25s,box-shadow .25s;-webkit-appearance:none;appearance:none}
-#manForm label.manf textarea{resize:vertical;min-height:80px;line-height:1.75;font-size:15px}
-#manForm label.manf input::placeholder,#manForm label.manf textarea::placeholder{color:var(--dim);opacity:.6}
-#manForm label.manf input:focus,#manForm label.manf textarea:focus{outline:none;border-bottom-color:var(--plasma);box-shadow:0 2px 0 -1px color-mix(in srgb,var(--plasma) 45%,transparent)}
-#manForm label.manf:focus-within>span{color:var(--plasma)}
-#manForm .manbtns{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-top:6px;align-items:center}
-#manForm .manbtns .btn{flex:none;width:100%;height:50px;border-radius:16px;font-size:15px;font-weight:700;margin:0;cursor:pointer;transition:transform .15s,filter .2s}
-#manForm .manbtns .btn:active{transform:scale(.97)}
-#manForm .manbtns .btn.primary{background:linear-gradient(135deg,var(--plasma),color-mix(in srgb,var(--plasma) 60%,#000));color:var(--onacc);box-shadow:0 10px 22px -12px var(--plasma)}
-#manForm .manbtns .btn:not(.primary){background:var(--panel);color:var(--ink);border:1px solid var(--line)}
-#manForm .manbtns #mDel{grid-column:1 / -1;order:3;background:transparent;border:1px dashed color-mix(in srgb,var(--danger,#e5484d) 55%,transparent);color:var(--danger,#e5484d)}
-#manForm .manbtns #mDel[data-arm="1"]{background:color-mix(in srgb,var(--danger,#e5484d) 14%,transparent)}
-.lxcard.manual,.chcard.manual{border-color:color-mix(in srgb,var(--plasma) 45%,var(--line))}
-/* home effects: soft sheen on the main cards, press feedback, glowing section titles */
-.herocard,.hgoal,.hready button,.halert{position:relative;overflow:hidden;transition:transform .2s,box-shadow .3s}
-.herocard::after,.hgoal::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(110deg,transparent 35%,color-mix(in srgb,var(--plasma) 16%,transparent) 50%,transparent 65%);transform:translateX(-120%);animation:fxSheen 7s ease-in-out infinite}
-.herocard:active,.hgoal:active,.hready button:active{transform:scale(.97)}
-.herocard:hover,.hgoal:hover{box-shadow:0 10px 26px -16px var(--plasma)}
-.hready button{animation:fxRise .5s ease both}
-.hready button:nth-child(2){animation-delay:.06s}.hready button:nth-child(3){animation-delay:.12s}.hready button:nth-child(4){animation-delay:.18s}
-.hsec h3{position:relative;display:inline-block}
-.hsec h3::after{content:'';position:absolute;inset-inline:0;bottom:-4px;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,var(--plasma),transparent);background-size:200% 100%;animation:fxLine 4s linear infinite}
-@keyframes fxSheen{0%,40%{transform:translateX(-120%)}70%,100%{transform:translateX(120%)}}
-@keyframes fxRise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-@keyframes fxLine{0%{background-position:200% 0}100%{background-position:-200% 0}}
-@media (prefers-reduced-motion:reduce){.herocard::after,.hgoal::after,.hready button,.hsec h3::after{animation:none}}
 </style></head>
 <body><main><header>${img?`<img src="${img}" alt="">`:'<div class="ph"></div>'}<h1>${xesc(name)}</h1>${m.desc?`<p>${xesc(m.desc)}</p>`:''}</header>
 <nav id="toc"><h3>الفهرس</h3><ol>${toc}</ol></nav>${chs}</main></body></html>`;
