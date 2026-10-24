@@ -2239,6 +2239,7 @@ function saveCoversLocal(){LS.set('midad.covers',covers)}
 /* novel info is one shared document. Each novel carries the time it was last changed (_u) and deleted names leave a
    tombstone (gone), so a phone holding an older copy merges instead of overwriting (no lost edits, no novels coming back). */
 const hstr=t=>{let h=5381;for(let i=0;i<t.length;i++)h=(h*33+t.charCodeAt(i))|0;return (h>>>0).toString(36)+t.length};
+const glossLines=t=>new Set((t||'').split('\n').map(l=>l.trim()).filter(Boolean));
 const metaSigOf=o=>{const {_u,...r}=o||{};return hstr(JSON.stringify(r))};
 let metaSig=LS.get('midad.metaSig',null);
 if(!metaSig){metaSig={};Object.entries(meta.novels).forEach(([n,o])=>metaSig[n]=metaSigOf(o));LS.set('midad.metaSig',metaSig)}
@@ -2261,6 +2262,11 @@ function applyRemoteMeta(d){
     const a=LN[n],b=RN[n];let pick;
     if(!a)pick=b;else if(!b)pick=a._u?a:null; // a legacy entry missing remotely was deleted elsewhere
     else pick=(b._u||0)>=(a._u||0)?b:a;
+    /* glossary: if this device holds only some of the names the account has (an older copy that was stamped as newer), the account's fuller list wins so no name is lost */
+    if(a&&b&&a.glossary!==b.glossary){
+      const L=glossLines(a.glossary),R=glossLines(b.glossary);
+      if(R.size>L.size&&[...L].every(x=>R.has(x))) pick=Object.assign({},pick,{glossary:b.glossary,_u:Math.max(a._u||0,b._u||0)});
+    }
     if(!pick)continue;
     if(gone[n]&&gone[n]>=(pick._u||0))continue;
     out[n]=pick;
