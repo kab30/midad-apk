@@ -4752,7 +4752,49 @@ function styleText(novel){
   const m=meta.novels[novel]||{};const st=STYLES[m.style]||STYLES.general;
   return (st[1]?'\n'+st[1]+'\n':'')+(m.styleNote&&m.styleNote.trim()?`\nملاحظات أسلوب خاصة بهذه الرواية:\n${m.styleNote.trim()}\n`:'');
 }
+/* ---------- Chinese numbers: computed here, not by the model ----------
+   万 = 10^4, 亿 = 10^8, so 千亿 = 100 billion (مئة مليار), 万亿 = trillion. The model used to guess these; now each
+   number is worked out and handed over as ready Arabic inside ⟦ ⟧, and the markers are removed after translation. */
+const ZH_D={'零':0,'〇':0,'一':1,'二':2,'两':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9};
+const ZH_U={'十':10,'百':100,'千':1000};
+function zhSmall(s){let total=0,cur=0,lastU=0,afterZero=false;for(const ch of s){
+  if(ch==='零'){afterZero=true;cur=0}
+  else if(ch in ZH_D){cur=ZH_D[ch]}
+  else if(ch in ZH_U){const u=ZH_U[ch];if(cur===0)cur=1;total+=cur*u;cur=0;lastU=u;afterZero=false}}
+  if(cur)total+=(lastU>=10&&!afterZero)?cur*(lastU/10):cur;return total}
+function zhVal(s){
+  let i=s.indexOf('亿');
+  if(i>-1){let h=s.slice(0,i),t=s.slice(i+1),m=1e8;if(h.endsWith('万')){h=h.slice(0,-1);m=1e12}return (h?zhVal(h):1)*m+(t?zhVal(t):0)}
+  i=s.indexOf('万');
+  if(i>-1){const h=s.slice(0,i),t=s.slice(i+1);return (h?zhVal(h):1)*1e4+(t?zhVal(t):0)}
+  if(/^[\d.]+$/.test(s))return parseFloat(s);
+  return zhSmall(s)}
+function arWord(n){
+  const U=['','واحد','اثنان','ثلاثة','أربعة','خمسة','ستة','سبعة','ثمانية','تسعة'],T=['','عشرة','عشرون','ثلاثون','أربعون','خمسون','ستون','سبعون','ثمانون','تسعون'],
+    Tn=['عشرة','أحد عشر','اثنا عشر','ثلاثة عشر','أربعة عشر','خمسة عشر','ستة عشر','سبعة عشر','ثمانية عشر','تسعة عشر'],
+    H=['','مئة','مئتان','ثلاثمئة','أربعمئة','خمسمئة','ستمئة','سبعمئة','ثمانمئة','تسعمئة'];
+  const h=Math.floor(n/100),r=n%100;let out=H[h]||'';
+  if(r){const rp=r<10?U[r]:r<20?Tn[r-10]:(r%10?U[r%10]+' و'+T[Math.floor(r/10)]:T[Math.floor(r/10)]);out=out?out+' و'+rp:rp}
+  return out||'صفر'}
+function arScaled(n,S,P,D){
+  if(Number.isInteger(n)&&n<1000){if(n===1)return S;if(n===2)return D;if(n===200)return 'مئتا '+S;if(n<=10)return arWord(n)+' '+P;return arWord(n)+' '+S}
+  return (+n.toFixed(2))+' '+S}
+function arNum(v){
+  if(v>=1e12)return arScaled(v/1e12,'تريليون','تريليونات','تريليونان');
+  if(v>=1e9)return arScaled(v/1e9,'مليار','مليارات','ملياران');
+  if(v>=1e6)return arScaled(v/1e6,'مليون','ملايين','مليونان');
+  if(v>=1e3)return arScaled(v/1e3,'ألف','آلاف','ألفان');
+  return Number.isInteger(v)?arWord(v):String(v)}
+function numFix(line){
+  return line.replace(/[\d.零〇一二两三四五六七八九十百千万亿]+/g,(tok,off,str)=>{
+    if(!/[万亿]/.test(tok)||tok[0]==='万'||tok[0]==='亿'||/^\.|\.$/.test(tok))return tok;
+    const prev=off>0?str[off-1]:'';if(prev&&'几数多余约'.includes(prev))return tok;
+    let v;try{v=zhVal(tok)}catch(e){return tok}
+    if(!isFinite(v)||v<=0)return tok;
+    return '⟦'+arNum(v)+'⟧'})}
 function buildPrompt(r,partIdx,partCount,lines,gloss,prevTail,novel){
+  lines=lines.map(numFix);
+  const hasNum=lines.some(x=>x.includes('⟦'));
   const origTitle=r.title.replace(/^الفصل\s*[0-9٠-٩]+\s*:?\s*/,'').trim();
   let p=trRules()+'\n'+(novel?styleText(novel):'')+termsPrompt();
   if(prefs.eco&&gloss.trim()){const tx=lines.join('\n');gloss=gloss.split('\n').filter(l=>{const k=l.split(/\s*[=:：]\s*/)[0].trim();return k&&tx.includes(k)}).join('\n')}
@@ -4760,6 +4802,7 @@ function buildPrompt(r,partIdx,partCount,lines,gloss,prevTail,novel){
   if(partIdx===0)p+=`\nابدأ الترجمة بسطر العنوان بهذا الشكل تماماً: الفصل ${r.num}: [عنوان الفصل مترجماً]${origTitle?`\nعنوان الفصل الأصلي: ${origTitle}`:''}\n`;
   else p+=`\nهذا الجزء ${partIdx+1} من ${partCount} من نفس الفصل. لا تكتب عنواناً، تابع الترجمة مباشرة.${prevTail?`\nللسياق فقط (لا تكرره)، آخر ما تُرجم من الجزء السابق:\n${prevTail}`:''}\n`;
   if(partCount>1&&partIdx===0)p+=`(هذا الجزء 1 من ${partCount} من الفصل.)\n`;
+  if(hasNum)p+=`\nالنص بين ⟦ و⟧ أرقام محسوبة مسبقاً بالعربية: انقلها كما هي بالضبط داخل ⟦ ⟧ دون أي تغيير، ولا تحسب الأرقام بنفسك، ثم أكمل الجملة بالعربية.\n`;
   return p+`\nالنص الأصلي:\n<<<\n${lines.join('\n')}\n>>>`;
 }
 function finalTitle(arTitle,num){
@@ -4853,7 +4896,7 @@ async function runQueue(){
       trErr=TR_ERR[code]||'انقطع الاتصال أثناء الترجمة.';trErrCode=code||'';if(useGem&&e&&e.message&&code!=='gem_blocked')trErr+=' ('+String(e.message).slice(0,120)+')';
       renderPill();if(current)updateNav();return;
     }
-    acc=applyTerms(acc);
+    acc=applyTerms(acc.replace(/[⟦⟧]/g,''));
     const p=parse(acc);
     const src=r.lines.join('\n');
     {const qi=trQueue.indexOf(job);if(qi>-1)trQueue.splice(qi,1)}trLive='';
