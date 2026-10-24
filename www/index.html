@@ -1057,6 +1057,10 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 .rnode.dim,.redge.dim{opacity:.12}
 .redge{transition:opacity .25s}
 .redge text{font-size:10px;opacity:0;transition:opacity .2s}
+.redge rect{opacity:0;transition:opacity .2s}
+.redge.hot rect,.redge.all rect{opacity:.94}
+.redge.all text{opacity:1;font-size:10px}
+.rnode text{paint-order:stroke;stroke:var(--panel);stroke-width:3px;stroke-linejoin:round}
 .redge.hot text{opacity:1;font-size:11.5px;font-weight:600}
 .rnode.hero circle.bg{filter:drop-shadow(0 0 10px var(--plasma))}
 .rnode.sel circle.bg{stroke-width:4}
@@ -3289,9 +3293,13 @@ let relEls={n:[],e:[]},relCur={};
 function relDraw(){
   const k=relT.k,at=n=>{const p=relCur[n]||{x:0,y:0};return {x:p.x*k,y:p.y*k}};
   relEls.n.forEach(({v,g})=>{const p=at(v.n);g.setAttribute('transform',`translate(${p.x},${p.y})`)});
-  relEls.e.forEach(({e,ln,tx})=>{const a=at(e.a),b=at(e.b);ln.setAttribute('x1',a.x);ln.setAttribute('y1',a.y);ln.setAttribute('x2',b.x);ln.setAttribute('y2',b.y);
-    // the label sits on the far half of the line, away from the selected person
-    const f=relSel===e.b?.38:.62;tx.setAttribute('x',a.x+(b.x-a.x)*f);tx.setAttribute('y',a.y+(b.y-a.y)*f)});
+  relEls.e.forEach(({e,ln,tx,rc,off})=>{const a=at(e.a),b=at(e.b);const dx=b.x-a.x,dy=b.y-a.y,L=Math.hypot(dx,dy)||1;
+    const cx=(a.x+b.x)/2-dy/L*off*k,cy=(a.y+b.y)/2+dx/L*off*k;
+    ln.setAttribute('d',`M${a.x},${a.y} Q${cx},${cy} ${b.x},${b.y}`);
+    // the label sits on the far part of the curve, away from the selected person
+    const t=relSel===e.b?.38:.62,u=1-t;const lx=u*u*a.x+2*u*t*cx+t*t*b.x,ly=u*u*a.y+2*u*t*cy+t*t*b.y;
+    tx.setAttribute('x',lx);tx.setAttribute('y',ly);
+    const w=tx.textContent.length*6.4+10;rc.setAttribute('x',lx-w/2);rc.setAttribute('y',ly-11);rc.setAttribute('width',w)});
 }
 function relApplyT(){$('#relG').setAttribute('transform',`translate(${relT.x},${relT.y})`);relDraw()}
 function relFit(P,W,H){
@@ -3327,10 +3335,16 @@ function renderRels(relayout){
   const P=relLayout(N,E,hero,W,H);
   const from={};N.forEach(v=>{from[v.n]=relPos[v.n]||{x:W/2,y:H/2}});
   const GE=$('#relE'),GN=$('#relN');GE.innerHTML='';GN.innerHTML='';
-  const eEls=E.map(e=>{const col=REL_T[e.t][1],g=sv('g',{class:'redge'});g.dataset.a=e.a;g.dataset.b=e.b;
-    const ln=sv('line',{stroke:col,'stroke-width':e.t==='enemy'||e.t==='love'?2.4:1.8,'stroke-opacity':.75,'stroke-dasharray':e.t==='rival'?'6 4':e.t==='enemy'?'2 3':''});
-    const tx=sv('text',{fill:col,'text-anchor':'middle',dy:'-3'});tx.textContent=e.l||REL_T[e.t][0];g.append(ln,tx);GE.appendChild(g);return {e,ln,tx,g}});
-  const nEls=N.map(v=>{const r0=v.hero?24:Math.min(19,11+v.d*1.6),col=v.hero?'var(--plasma)':'#cfd8ea',g=sv('g',{class:'rnode'+(v.hero?' hero':'')+(v.isNew&&!v.hero?' new':'')});g.dataset.n=v.n;
+  // edges between the same two people fan out as arcs instead of lying on top of each other
+  const pairKey=e=>[e.a,e.b].sort().join('\u0001'),pairN={},pairC={};
+  E.forEach(e=>{const k=pairKey(e);pairN[k]=(pairN[k]||0)+1});
+  const few=E.length<=8;
+  const eEls=E.map(e=>{const col=REL_T[e.t][1],g=sv('g',{class:'redge'+(few?' all':'')});g.dataset.a=e.a;g.dataset.b=e.b;
+    const pk=pairKey(e),i=pairC[pk]||0;pairC[pk]=i+1;const off=(i-(pairN[pk]-1)/2)*30;
+    const ln=sv('path',{fill:'none',stroke:col,'stroke-width':e.t==='enemy'||e.t==='love'?2.4:1.8,'stroke-opacity':.8,'stroke-dasharray':e.t==='rival'?'6 4':e.t==='enemy'?'2 3':''});
+    const rc=sv('rect',{rx:8,ry:8,height:16,fill:'var(--panel)',stroke:col,'stroke-width':1,'stroke-opacity':.55});
+    const tx=sv('text',{fill:col,'text-anchor':'middle',dy:'-3'});tx.textContent=e.l||REL_T[e.t][0];g.append(ln,rc,tx);GE.appendChild(g);return {e,ln,tx,rc,off,g}});
+  const nEls=N.map(v=>{const r0=v.hero?24:Math.min(19,11+v.d*1.6),col=v.hero?'var(--plasma)':`hsl(${nameHue(v.n)} 62% 58%)`,g=sv('g',{class:'rnode'+(v.hero?' hero':'')+(v.isNew&&!v.hero?' new':'')});g.dataset.n=v.n;
     const ring=sv('circle',{class:'ring',r:r0,fill:'none',stroke:'var(--plasma)','stroke-width':2,opacity:0});
     const c=sv('circle',{class:'bg',r:r0,fill:v.hero?'color-mix(in srgb,var(--plasma) 30%,var(--panel))':'var(--panel)',stroke:col});
     const t1=sv('text',{'text-anchor':'middle',dy:'.36em',fill:'var(--ink)','font-size':v.hero?17:Math.max(11,r0*.85),'font-weight':700});t1.textContent=(v.n.trim()[0]||'؟');
@@ -3346,6 +3360,7 @@ function renderRels(relayout){
   const stale=r.sig!==relSig(ch);$('#relUpd').title=stale?'ملف الشخصيات تغيّر، حدّث الخريطة':'';
   if(stale&&!relBusy&&r.edges)buildRels(relNovel,true);
 }
+function nameHue(s){let h=0;for(const ch of s)h=(h*31+ch.charCodeAt(0))%360;return h}
 function relSelect(n,keep){
   relSel=n;const card=$('#relCard');
   document.querySelectorAll('#relN .rnode').forEach(g=>{g.classList.toggle('sel',g.dataset.n===n);g.classList.remove('dim')});
