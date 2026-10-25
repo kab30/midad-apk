@@ -1197,6 +1197,16 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 #numBody .numedit{width:100%;margin-top:14px;height:48px;border-radius:16px}
 .shx{position:absolute;top:14px;inset-inline-end:14px;z-index:3;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--deck);color:var(--dim);font-size:15px;line-height:1;display:grid;place-items:center;cursor:pointer}
 .sheet>.shx:active{transform:scale(.92)}
+.palarm{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);left:50%;transform:translate(-50%,-160%);z-index:300;width:min(92vw,380px);display:flex;align-items:center;gap:12px;padding:14px;border-radius:20px;color:#fff;background:linear-gradient(135deg,var(--plasma),color-mix(in srgb,var(--plasma) 55%,#000));box-shadow:0 18px 40px -14px var(--plasma);transition:transform .5s cubic-bezier(.2,.8,.2,1);overflow:hidden;pointer-events:auto}
+.palarm.show{transform:translate(-50%,0)}
+.palarm .pa-ic{flex:none;width:44px;height:44px;border-radius:14px;background:rgba(255,255,255,.22);display:grid;place-items:center;font-size:22px;animation:pFloat 3s ease-in-out infinite}
+.palarm .pa-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.palarm .pa-tx b{font-size:16px;font-weight:800}
+.palarm .pa-tx small{font-size:13px;opacity:.9;font-variant-numeric:tabular-nums}
+.palarm .pa-x{flex:none;width:30px;height:30px;border-radius:50%;border:0;background:rgba(255,255,255,.2);color:#fff;font-size:14px;cursor:pointer}
+.palarm .pa-bar{position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,.85);transform-origin:right;animation:paBar 10s linear forwards}
+@keyframes paBar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+@media (prefers-reduced-motion:reduce){.palarm .pa-ic{animation:none}}
 #manForm{display:grid;gap:14px;padding:4px 2px 14px;direction:rtl}
 #manForm label.manf{display:flex;flex-direction:column;gap:7px;margin:0}
 #manForm label.manf>span{font-size:12.5px;font-weight:700;letter-spacing:.2px;color:var(--dim);transition:color .25s}
@@ -2741,14 +2751,31 @@ function prayCard(box){
   if(pb)pb.onclick=async()=>{try{const r=await Notification.requestPermission();toast(r==='granted'?'سيُنبّهك مداد قبل كل صلاة بـ 5 دقائق':'لم تُفعَّل التنبيهات')}catch(e){toast('التنبيهات غير متاحة هنا')}pb.remove()};
   box.appendChild(sec);
 }
+/* the "time for prayer" banner: stays for 10 seconds, then goes away by itself */
+function prayAlarm(label,time){
+  let el=document.getElementById('prayAlarm');
+  if(!el){el=document.createElement('div');el.id='prayAlarm';el.className='palarm';el.setAttribute('role','alert');document.body.appendChild(el)}
+  el.innerHTML=`<div class="pa-ic">🕌</div><div class="pa-tx"><b>حان وقت صلاة ${label}</b><small>${time}</small></div><button type="button" class="pa-x" aria-label="إغلاق">✕</button><div class="pa-bar"></div>`;
+  el.querySelector('.pa-x').onclick=()=>{el.classList.remove('show');clearTimeout(el._t)};
+  el.classList.remove('show');void el.offsetWidth;el.classList.add('show');
+  clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),10000);
+  buzz([60,80,60,80,60]);
+}
 function prayTick(){
   const {now,key,times}=prayDay();const nowM=now.h*60+now.mi;
   for(const [k,label] of PRAY_LIST){
-    const at=pm(times[k]);if(nowM<at-5||nowM>=at)continue;
-    const mark='midad.pnote.'+key+'.'+k;if(LS.get(mark,false))continue;LS.set(mark,true);
-    const body=`بعد 5 دقائق صلاة ${label} (${times[k]})`;
-    if('Notification' in window&&Notification.permission==='granted'){try{new Notification('مداد',{body})}catch(e){}}
-    toast('🕌 '+body);buzz([30,80,30]);
+    const at=pm(times[k]);
+    if(nowM>=at-5&&nowM<at){
+      const mark='midad.pnote.'+key+'.'+k;if(LS.get(mark,false))continue;LS.set(mark,true);
+      const body=`بعد 5 دقائق صلاة ${label} (${times[k]})`;
+      if('Notification' in window&&Notification.permission==='granted'){try{new Notification('مداد',{body})}catch(e){}}
+      toast('🕌 '+body);buzz([30,80,30]);
+    }else if(nowM>=at&&nowM<at+2){
+      // at the exact time: show the banner once (the check runs every 30 seconds, so a 2-minute window is enough)
+      const mk='midad.palarm.'+key+'.'+k;if(LS.get(mk,false))continue;LS.set(mk,true);
+      if('Notification' in window&&Notification.permission==='granted'){try{new Notification('حان وقت الصلاة',{body:`صلاة ${label} · ${times[k]}`})}catch(e){}}
+      prayAlarm(label,times[k]);
+    }
   }
 }
 
