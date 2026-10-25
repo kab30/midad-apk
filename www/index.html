@@ -3208,7 +3208,7 @@ ${batch.map(it=>`${batchHead(it)}\n${kbText(it)}`).join('\n\n')}`;
       cur.list.forEach(c=>{if(c.manual){const i=list.findIndex(x=>x.name===c.name);if(i>=0)list[i]=c;else list.push(c)}});
       const names=new Set(list.map(c=>c.name));cur.list.forEach(c=>{if(!names.has(c.name))list.push(c)});
       list.forEach(c=>{if(!before.has(c.name)){c.isNew=true}else delete c.isNew});
-      cur=Object.assign(kbAdvance(cur,batch),{list:capKeepManual(list,400)});
+      cur=Object.assign(kbAdvance(cur,batch),{list:capKeepManual(list,6000)});
       meta.novels[novel]=Object.assign({},meta.novels[novel]||{},{chars:cur});saveMeta();
       if(curNovel===novel){renderChars();renderNovel()}
     }
