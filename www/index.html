@@ -1229,17 +1229,17 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 
 /* novel page tools: colourful tiles, each with its own accent */
 #nGloss{--tc:#d9a441}#nRaw{--tc:#a7784a}#nChars{--tc:#3fb37f}#nRels{--tc:#5b8cff}#nMarks{--tc:#e5708a}#nLex{--tc:#22b3c4}#nTl{--tc:#9b7cf6}#nChats{--tc:#3d9cf0}#nGal{--tc:#f08a4b}#nPow{--tc:#e5484d}#nTerms{--tc:#6fbf5f}
-.tools{gap:12px}
-.tools .tool{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:stretch;gap:12px;min-height:150px;padding:14px;border-radius:22px;border:1px solid color-mix(in srgb,var(--tc) 28%,var(--line));background:linear-gradient(160deg,color-mix(in srgb,var(--tc) 17%,var(--panel)),var(--panel) 62%);box-shadow:0 12px 26px -20px var(--tc);transition:transform .2s,box-shadow .3s,border-color .3s;animation:tIn .55s cubic-bezier(.2,.8,.2,1) both}
+.tools{gap:9px}
+.tools .tool{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:stretch;gap:8px;min-height:112px;padding:11px;border-radius:18px;border:1px solid color-mix(in srgb,var(--tc) 28%,var(--line));background:linear-gradient(160deg,color-mix(in srgb,var(--tc) 17%,var(--panel)),var(--panel) 62%);box-shadow:0 12px 26px -20px var(--tc);transition:transform .2s,box-shadow .3s,border-color .3s;animation:tIn .55s cubic-bezier(.2,.8,.2,1) both}
 .tools .tool:nth-child(2){animation-delay:.04s}.tools .tool:nth-child(3){animation-delay:.08s}.tools .tool:nth-child(4){animation-delay:.12s}.tools .tool:nth-child(5){animation-delay:.16s}.tools .tool:nth-child(6){animation-delay:.2s}.tools .tool:nth-child(7){animation-delay:.24s}.tools .tool:nth-child(8){animation-delay:.28s}.tools .tool:nth-child(9){animation-delay:.32s}.tools .tool:nth-child(10){animation-delay:.36s}.tools .tool:nth-child(11){animation-delay:.4s}.tools .tool:nth-child(12){animation-delay:.44s}
 .tools .tool::before{content:'';position:absolute;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--tc) 30%,transparent),transparent 70%);inset-inline-end:-46px;top:-46px;pointer-events:none}
 .tools .tool:active{transform:scale(.97)}
 .tools .tool:hover{box-shadow:0 18px 34px -18px var(--tc)}
-.tools .tool .ti{width:46px;height:46px;border-radius:16px;border:0;background:linear-gradient(135deg,var(--tc),color-mix(in srgb,var(--tc) 55%,#000));color:#fff;box-shadow:0 12px 22px -12px var(--tc);position:relative;z-index:1}
-.tools .tool .ti svg{width:22px;height:22px}
+.tools .tool .ti{width:36px;height:36px;border-radius:12px;border:0;background:linear-gradient(135deg,var(--tc),color-mix(in srgb,var(--tc) 55%,#000));color:#fff;box-shadow:0 12px 22px -12px var(--tc);position:relative;z-index:1}
+.tools .tool .ti svg{width:18px;height:18px}
 .tools .tool .tt{position:relative;z-index:1;margin-top:auto;gap:3px}
-.tools .tool .tt b{font-size:15px;font-weight:800;line-height:1.35;color:var(--ink)}
-.tools .tool .tt small{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;font-size:12px;font-weight:600;color:color-mix(in srgb,var(--tc) 70%,var(--ink));line-height:1.5}
+.tools .tool .tt b{font-size:13.5px;font-weight:800;line-height:1.35;color:var(--ink)}
+.tools .tool .tt small{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;font-size:11px;font-weight:600;color:color-mix(in srgb,var(--tc) 70%,var(--ink));line-height:1.5}
 .tools .tool .dot{top:10px;left:auto;inset-inline-end:10px;z-index:2;box-shadow:0 0 0 3px var(--panel)}
 .tools .tool.wide{grid-column:1/-1}
 @keyframes tIn{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
@@ -3188,7 +3188,7 @@ async function updateChars(novel,quiet){
   const m=meta.novels[novel]||{};let cur=m.chars&&Array.isArray(m.chars.list)?m.chars:{list:[],upTo:0};
   const todo=kbTodo(novel,cur);if(!todo.length)return;
   charsBusy=true;if(curNovel===novel)renderChars();
-  const gloss=(m.glossary||'').slice(0,1500);
+  const gloss=(m.glossary||'').slice(0,6000);
   const before=new Set(cur.list.map(c=>c.name));let added=0;
   try{
     const batches=kbBatches(todo);let done=0;
@@ -3208,7 +3208,7 @@ ${batch.map(it=>`${batchHead(it)}\n${kbText(it)}`).join('\n\n')}`;
       cur.list.forEach(c=>{if(c.manual){const i=list.findIndex(x=>x.name===c.name);if(i>=0)list[i]=c;else list.push(c)}});
       const names=new Set(list.map(c=>c.name));cur.list.forEach(c=>{if(!names.has(c.name))list.push(c)});
       list.forEach(c=>{if(!before.has(c.name)){c.isNew=true}else delete c.isNew});
-      cur=Object.assign(kbAdvance(cur,batch),{list:list.slice(0,100)});
+      cur=Object.assign(kbAdvance(cur,batch),{list:capKeepManual(list,400)});
       meta.novels[novel]=Object.assign({},meta.novels[novel]||{},{chars:cur});saveMeta();
       if(curNovel===novel){renderChars();renderNovel()}
     }
@@ -3507,6 +3507,11 @@ function autoKnowledge(novel){
 }
 
 /* ---------- lexicon (world terms) & timeline, built only from chapters already read ---------- */
+/* keeps the list within a size, but a term or character the user added by hand is never the one that gets cut */
+function capKeepManual(list,max){
+  if(list.length<=max)return list;
+  const man=list.filter(x=>x.manual),rest=list.filter(x=>!x.manual);
+  return [...rest.slice(0,Math.max(0,max-man.length)),...man]}
 const LEX_CATS=['مراحل وقوى','تقنيات ومهارات','منظمات','أماكن','أدوات وكنوز','مفاهيم','أخرى'];
 let lexBusy=false,lexMsg='',lexCat='all',tlBusy=false,tlMsg='';
 const readChaps=novel=>sorted(chapters.filter(c=>nv(c)===novel&&(c.progress||0)>.97&&c.num!=null));
@@ -3585,7 +3590,7 @@ async function updateLex(novel,quiet){
       done+=batch.length;lexMsg=`${kbPending(batch)} (${done} من ${todo.length})`;if(curNovel===novel)renderLex();
       const prompt=`أنت تبني مسرد مصطلحات لعالم رواية مترجمة إلى العربية، لقارئ يريد تذكّر معاني المصطلحات.
 المسرد الحالي (JSON): ${JSON.stringify(cur.list)}
-${(m.glossary||'').trim()?`قاموس الأسماء (الأصل = العربي):\n${(m.glossary||'').slice(0,1500)}\n`:''}${termsPrompt()}
+${(m.glossary||'').trim()?`قاموس الأسماء (الأصل = العربي):\n${(m.glossary||'').slice(0,6000)}\n`:''}${termsPrompt()}
 اقرأ النصوص الجديدة التالية (قد يكون بعضها جزءاً من فصل لم يكتمل) وحدّث المسرد: أضف المصطلحات الخاصة بعالم الرواية (مراحل القوة والزراعة، التقنيات والمهارات، المنظمات والطوائف والشركات، الأماكن، الأدوات والكنوز، المفاهيم الخاصة)، وحدّث شرح الموجودة بما ورد فقط. لا تحذف شيئاً من المسرد الحالي. لا تضف أسماء الشخصيات، ولا الكلمات العادية. لا تذكر شيئاً لم يرد في النصوص.
 اكتب term كما ورد في الترجمة العربية حرفياً.
 أعد فقط كائن JSON: {"list":[{"term":"المصطلح كما في الترجمة","src":"الأصل إن عُرف أو فارغ","cat":"واحد من: ${LEX_CATS.join('، ')}","desc":"شرح قصير جملة أو جملتان","first":رقم أول فصل}]} حتى 100 مصطلح، الأهم أولاً.
@@ -3595,7 +3600,7 @@ ${batch.map(it=>`${batchHead(it)}\n${kbText(it)}`).join('\n\n')}`;
       const list=(res&&Array.isArray(res.list)?res.list:[]).filter(x=>x&&x.term).slice(0,100).map(x=>({term:applyTerms(String(x.term).trim().slice(0,60)),src:String(x.src||'').slice(0,40),cat:LEX_CATS.includes(x.cat)?x.cat:'أخرى',desc:applyTerms(String(x.desc||'').slice(0,300)),first:+x.first||null}));
       cur.list.forEach(x=>{if(x.manual){const i=list.findIndex(y=>y.term===x.term);if(i>=0)list[i]=x;else list.push(x)}});
       const terms=new Set(list.map(x=>x.term));cur.list.forEach(x=>{if(!terms.has(x.term))list.push(x)});
-      cur=Object.assign(kbAdvance(cur,batch),{list:list.slice(0,120)});
+      cur=Object.assign(kbAdvance(cur,batch),{list:capKeepManual(list,600)});
       meta.novels[novel]=Object.assign({},meta.novels[novel]||{},{lex:cur});saveMeta();
       if(curNovel===novel){renderLex();renderNovel()}
     }
@@ -4881,7 +4886,7 @@ function cleanRaw(lines){
 async function startTranslate(){
   const sample=await getTr();if(!sample){toast('الترجمة غير متاحة في هذا العرض');return}
   const novel=novelVal();
-  const gloss=$('#trGloss').value.slice(0,4000);
+  const gloss=$('#trGloss').value.slice(0,12000);
   meta.novels[novel]=Object.assign({},meta.novels[novel]||{},{glossary:gloss});saveMeta();LS.set('midad.novel',novel);
   const have=existingNums(novel);
   if($('#trStore').checked){rawsOf(novel).forEach(r=>have.add(r.num))}
@@ -4914,7 +4919,7 @@ async function runQueue(){
   while(trQueue.length){
     const job=trQueue[0];const {r,novel}=job;
     // read the glossary when the job starts, so names added while it waited in the queue are used too
-    const gloss=((meta.novels[novel]||{}).glossary||job.gloss||'').slice(0,4000);
+    const gloss=((meta.novels[novel]||{}).glossary||job.gloss||'').slice(0,12000);
     const cl=prefs.trClean!==false?cleanRaw(r.lines):{lines:r.lines,removed:0};job.cleaned=cl.removed;
     const chunks=chunkLines(cl.lines.length?cl.lines:r.lines,prefs.eco?7000:3200);let acc='';job.done=0;job.parts=chunks.length;
     trCtl=new AbortController();
@@ -5423,7 +5428,7 @@ async function translateRawTitles(novel,manual){
       const batch=todo.slice(i,i+150);
       const prompt=`ترجم عناوين فصول الرواية التالية إلى العربية الفصحى، عنواناً قصيراً لكل فصل.
 - انقل أسماء الشخصيات والأماكن صوتياً، والأسماء الساخرة لدول وشركات حقيقية بأسمائها الحقيقية (大夏 = الصين، 夏为 = هواوي…).
-${gloss.trim()?`- التزم بهذه الترجمات الثابتة للأسماء:\n${gloss.trim().slice(0,2000)}\n`:''}${styleText(novel)}${termsPrompt()}
+${gloss.trim()?`- التزم بهذه الترجمات الثابتة للأسماء:\n${gloss.trim().slice(0,8000)}\n`:''}${styleText(novel)}${termsPrompt()}
 أعد فقط مصفوفة JSON بهذا الشكل: [{"n":17,"t":"العنوان بالعربية"}]
 
 العناوين:
@@ -5610,7 +5615,7 @@ function renderSugg(){
 $('#nGloss').onclick=openGloss;
 $('#gsCancel').onclick=hideSheet;
 $('#gsAll').onclick=()=>{const cbs=[...document.querySelectorAll('#gsList input')];const all=cbs.every(c=>c.checked);cbs.forEach(c=>c.checked=!all)};
-function saveGlossText(t){meta.novels[curNovel]=Object.assign({},meta.novels[curNovel]||{},{glossary:t.slice(0,6000)});saveMeta()}
+function saveGlossText(t){meta.novels[curNovel]=Object.assign({},meta.novels[curNovel]||{},{glossary:t.slice(0,60000)});saveMeta()}
 $('#gsSave').onclick=()=>{saveGlossText($('#gsText').value.trim());hideSheet();renderNovel();toast('تم حفظ القاموس')};
 $('#gsAdd').onclick=()=>{
   const picked=[...document.querySelectorAll('#gsList input')].filter(c=>c.checked).map(c=>gsSugg[+c.dataset.i]);
@@ -5842,7 +5847,7 @@ function chContext(ch){
 
 الرواية: ${n}
 الفصل الحالي: ${ch.title}
-${prev.length?`فصول سابقة قرأها: ${prev.join('، ')}\n`:''}${m.glossary?`قاموس الأسماء:\n${m.glossary.slice(0,1500)}\n`:''}
+${prev.length?`فصول سابقة قرأها: ${prev.join('، ')}\n`:''}${m.glossary?`قاموس الأسماء:\n${m.glossary.slice(0,6000)}\n`:''}
 نص الفصل:
 <<<
 ${text}${(ch.text||'').length>16000?'\n[…بقية الفصل مختصرة]':''}
@@ -6661,7 +6666,7 @@ $('#bkFile').addEventListener('change',async e=>{
   if(j.meta&&j.meta.novels&&typeof j.meta.novels==='object'){
     // every novel keeps everything the backup holds (characters, terms, power ladder, relations, glossary, notes...)
     for(const [n,m] of Object.entries(j.meta.novels)){if(!m||typeof m!=='object')continue;
-      const full=Object.assign({},m,{color:+m.color||0,icon:ICONS.hasOwnProperty(m.icon)?m.icon:'letter',desc:String(m.desc||'').slice(0,400),glossary:String(m.glossary||'').slice(0,6000)});
+      const full=Object.assign({},m,{color:+m.color||0,icon:ICONS.hasOwnProperty(m.icon)?m.icon:'letter',desc:String(m.desc||'').slice(0,400),glossary:String(m.glossary||'').slice(0,60000)});
       if(m.cover)full.cover=String(m.cover);else delete full.cover;
       // restoring means the backup's copy is the one to keep: it wins over this device's copy (anything only here stays)
       // and gets a fresh time, so the account and the other devices take it instead of the older copy they hold
