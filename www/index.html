@@ -996,7 +996,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 .plact button{flex:1;height:38px;border-radius:10px;font-size:13px;font-weight:600;background:var(--deck);border:1px solid var(--line)}
 .plact button:first-child{background:var(--plasma);color:var(--onacc);border:0}
 .rnav button.pending{opacity:.75}
-.toast{position:fixed;left:50%;top:calc(16px + env(safe-area-inset-top,0px));transform:translate(-50%,-20px);background:var(--ink);color:var(--void);
+.toast{position:fixed;left:50%;top:calc(16px + env(safe-area-inset-top,0px));transform:translate(-50%,-20px);background:var(--tbg,var(--ink));color:var(--tfg,var(--void));border:1px solid var(--tbd,transparent);
   padding:10px 18px;border-radius:12px;font-size:14px;font-weight:500;opacity:0;pointer-events:none;transition:.25s;z-index:40;max-width:calc(100% - 32px);text-align:center}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 
@@ -7165,9 +7165,16 @@ async function buildEPUB(name,m,list,img){
 async function lockWake(){try{if('wakeLock' in navigator&&!wakeLock){wakeLock=await navigator.wakeLock.request('screen');wakeLock.addEventListener('release',()=>{wakeLock=null})}}catch(e){wakeLock=null}}
 function releaseWake(){try{wakeLock&&wakeLock.release()}catch(e){}wakeLock=null}
 
-let tT;function toast(m){const t=$('#toast');t.textContent=m;
-  /* while the reader is open the toast takes the reading theme, so it doesn't clash with the page */
-  const R=$('#reader');if(R&&R.classList.contains('show')){const cs=getComputedStyle(R);t.style.background=cs.getPropertyValue('--rb').trim();t.style.color=cs.getPropertyValue('--rf').trim();t.style.border='1px solid '+cs.getPropertyValue('--ra').trim();t.style.boxShadow='0 10px 30px -12px rgba(0,0,0,.45)'}else{t.style.background='';t.style.color='';t.style.border='';t.style.boxShadow=''}
+let tT;/* the reader covers the app, but the pill, ring, alarm and toast sit outside it: while reading they take the reading theme through the app's own colour variables; they go back to the app's colours on closing */
+function syncReaderTheme(){
+  const R=$('#reader'),st=document.documentElement.style;
+  if(!R||!R.classList.contains('show')){['--plasma','--ink','--panel','--tbg','--tfg','--tbd'].forEach(v=>st.removeProperty(v));return}
+  const cs=getComputedStyle(R),g=v=>cs.getPropertyValue(v).trim();
+  st.setProperty('--plasma',g('--ra'));st.setProperty('--ink',g('--rf'));st.setProperty('--panel',g('--rb'));
+  st.setProperty('--tbg',g('--rb'));st.setProperty('--tfg',g('--rf'));st.setProperty('--tbd',g('--ra'));
+}
+if($('#reader'))new MutationObserver(syncReaderTheme).observe($('#reader'),{attributes:true,attributeFilter:['class','data-rt']});
+function toast(m){const t=$('#toast');t.textContent=m;
   t.classList.add('show');clearTimeout(tT);tT=setTimeout(()=>t.classList.remove('show'),2200)}
 
 /* app (library) light / dark mode */
