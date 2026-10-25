@@ -1229,18 +1229,18 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 
 /* novel page tools: colourful tiles, each with its own accent */
 #nGloss{--tc:#d9a441}#nRaw{--tc:#a7784a}#nChars{--tc:#3fb37f}#nRels{--tc:#5b8cff}#nMarks{--tc:#e5708a}#nLex{--tc:#22b3c4}#nTl{--tc:#9b7cf6}#nChats{--tc:#3d9cf0}#nGal{--tc:#f08a4b}#nPow{--tc:#e5484d}#nTerms{--tc:#6fbf5f}
-.tools{gap:9px}
-.tools .tool{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:stretch;gap:8px;min-height:112px;padding:11px;border-radius:18px;border:1px solid color-mix(in srgb,var(--tc) 28%,var(--line));background:linear-gradient(160deg,color-mix(in srgb,var(--tc) 17%,var(--panel)),var(--panel) 62%);box-shadow:0 12px 26px -20px var(--tc);transition:transform .2s,box-shadow .3s,border-color .3s;animation:tIn .55s cubic-bezier(.2,.8,.2,1) both}
+.tools{gap:8px}
+.tools .tool{position:relative;overflow:hidden;display:flex;flex-direction:row;align-items:center;gap:9px;min-height:0;padding:9px 10px;border-radius:16px;flex-direction:row;border:1px solid color-mix(in srgb,var(--tc) 28%,var(--line));background:linear-gradient(160deg,color-mix(in srgb,var(--tc) 17%,var(--panel)),var(--panel) 62%);box-shadow:0 12px 26px -20px var(--tc);transition:transform .2s,box-shadow .3s,border-color .3s;animation:tIn .55s cubic-bezier(.2,.8,.2,1) both}
 .tools .tool:nth-child(2){animation-delay:.04s}.tools .tool:nth-child(3){animation-delay:.08s}.tools .tool:nth-child(4){animation-delay:.12s}.tools .tool:nth-child(5){animation-delay:.16s}.tools .tool:nth-child(6){animation-delay:.2s}.tools .tool:nth-child(7){animation-delay:.24s}.tools .tool:nth-child(8){animation-delay:.28s}.tools .tool:nth-child(9){animation-delay:.32s}.tools .tool:nth-child(10){animation-delay:.36s}.tools .tool:nth-child(11){animation-delay:.4s}.tools .tool:nth-child(12){animation-delay:.44s}
-.tools .tool::before{content:'';position:absolute;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--tc) 30%,transparent),transparent 70%);inset-inline-end:-46px;top:-46px;pointer-events:none}
+.tools .tool::before{content:'';position:absolute;width:70px;height:70px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--tc) 28%,transparent),transparent 70%);inset-inline-end:-30px;top:-30px;pointer-events:none}
 .tools .tool:active{transform:scale(.97)}
 .tools .tool:hover{box-shadow:0 18px 34px -18px var(--tc)}
-.tools .tool .ti{width:36px;height:36px;border-radius:12px;border:0;background:linear-gradient(135deg,var(--tc),color-mix(in srgb,var(--tc) 55%,#000));color:#fff;box-shadow:0 12px 22px -12px var(--tc);position:relative;z-index:1}
-.tools .tool .ti svg{width:18px;height:18px}
-.tools .tool .tt{position:relative;z-index:1;margin-top:auto;gap:3px}
-.tools .tool .tt b{font-size:13.5px;font-weight:800;line-height:1.35;color:var(--ink)}
-.tools .tool .tt small{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;font-size:11px;font-weight:600;color:color-mix(in srgb,var(--tc) 70%,var(--ink));line-height:1.5}
-.tools .tool .dot{top:10px;left:auto;inset-inline-end:10px;z-index:2;box-shadow:0 0 0 3px var(--panel)}
+.tools .tool .ti{flex:none;width:32px;height:32px;border-radius:10px;border:0;background:linear-gradient(135deg,var(--tc),color-mix(in srgb,var(--tc) 55%,#000));color:#fff;box-shadow:0 12px 22px -12px var(--tc);position:relative;z-index:1}
+.tools .tool .ti svg{width:16px;height:16px}
+.tools .tool .tt{position:relative;z-index:1;min-width:0;gap:1px}
+.tools .tool .tt b{font-size:13px;font-weight:800;line-height:1.35;color:var(--ink)}
+.tools .tool .tt small{white-space:normal;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;font-size:10.5px;font-weight:600;color:color-mix(in srgb,var(--tc) 70%,var(--ink));line-height:1.5}
+.tools .tool .dot{top:6px;left:auto;inset-inline-end:6px;z-index:2;box-shadow:0 0 0 3px var(--panel)}
 .tools .tool.wide{grid-column:1/-1}
 @keyframes tIn{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.tools .tool{animation:none}}
