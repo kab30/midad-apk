@@ -981,6 +981,18 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 .plring .rn small{font-family:var(--ui);font-size:9.5px;opacity:.75;margin-top:2px}
 .plring .rq{position:absolute;top:-3px;right:-3px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--plasma);color:var(--void,#05070d);font:700 11px/20px var(--ui);text-align:center}
 @media (prefers-reduced-motion:reduce){.plring .rv{transition:none}}
+/* inside the reader, the floating pieces take the reading theme's accent (--ra) and surface (--rb), so they match the page instead of the app's cyan */
+#reader .ppill{color:var(--ra);background:color-mix(in srgb,var(--ra) 10%,var(--rb));border-color:color-mix(in srgb,var(--ra) 38%,transparent)}
+#reader .trpill{background:color-mix(in srgb,var(--ra) 6%,var(--rb));border-color:color-mix(in srgb,var(--ra) 38%,transparent)}
+#reader .trpill .spin{border-color:color-mix(in srgb,var(--ra) 30%,transparent);border-top-color:var(--ra)}
+#reader .trpill .plpct{color:var(--ra)}
+#reader .trpill .plbar i{background:var(--ra)}
+#reader .plring{background:color-mix(in srgb,var(--ra) 10%,var(--rb));border:1px solid color-mix(in srgb,var(--ra) 38%,transparent)}
+#reader .plring .rt{stroke:color-mix(in srgb,var(--ra) 18%,transparent)}
+#reader .plring .rv{stroke:var(--ra)}
+#reader .plring .rn b{color:var(--ra)}
+#reader .plring .rq{background:var(--ra);color:var(--rb)}
+
 .plact button{flex:1;height:38px;border-radius:10px;font-size:13px;font-weight:600;background:var(--deck);border:1px solid var(--line)}
 .plact button:first-child{background:var(--plasma);color:var(--onacc);border:0}
 .rnav button.pending{opacity:.75}
