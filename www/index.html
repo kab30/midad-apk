@@ -2379,6 +2379,25 @@ function stampMeta(){
 function pushMeta(){LS.set('midad.meta',meta);if(col)col.doc(META_ID).set({kind:'meta',novels:meta.novels,renames:meta.renames||{},gone:meta.gone||{}}).catch(()=>{})}
 function saveMeta(){stampMeta();pushMeta()}
 let metaPushT=null;
+/* a novel is one object in the account, so two devices can't each keep only what they know: the terms, characters, relations and glossary are merged field by field.
+   Lists are united by name/term (the newer copy wins on the same name); names the user deleted are kept in `del` so they stay deleted. */
+function mergeNovelFields(p,o){
+  const r=Object.assign({},p);let changed=false;
+  for(const [f,key] of [['lex','term'],['chars','name']]){
+    if(!p[f]&&!o[f])continue;
+    const P=p[f]||{},O=o[f]||{};
+    const del=new Set([...(P.del||[]),...(O.del||[])]);
+    const map=new Map();
+    [...(O.list||[]),...(P.list||[])].forEach(x=>{if(x&&x[key]&&!del.has(x[key]))map.set(x[key],x)});
+    const res=Object.assign({},P,{list:[...map.values()],upTo:Math.max(P.upTo||0,O.upTo||0)});
+    if(del.size)res.del=[...del];else delete res.del;
+    if(JSON.stringify(res)!==JSON.stringify(P))changed=true;
+    r[f]=res;
+  }
+  if(!(p.rels&&p.rels.edges&&p.rels.edges.length)&&o.rels&&o.rels.edges&&o.rels.edges.length){r.rels=o.rels;changed=true}
+  if(!(p.glossary||'').trim()&&(o.glossary||'').trim()){r.glossary=o.glossary;changed=true}
+  if(changed)r._u=Math.max(p._u||0,o._u||0,Date.now());
+  return r}
 function applyRemoteMeta(d){
   stampMeta(); // local edits not yet sent get their time first
   const RN=d.novels||{},LN=meta.novels||{},gone=Object.assign({},d.gone||{});
@@ -2393,6 +2412,7 @@ function applyRemoteMeta(d){
       const L=glossLines(a.glossary),R=glossLines(b.glossary);
       if(R.size>L.size&&[...L].every(x=>R.has(x))) pick=Object.assign({},pick,{glossary:b.glossary,_u:Math.max(a._u||0,b._u||0)});
     }
+    if(a&&b&&pick)pick=mergeNovelFields(pick,pick===a?b:a);
     if(!pick)continue;
     if(gone[n]&&gone[n]>=(pick._u||0))continue;
     out[n]=pick;
@@ -3593,6 +3613,7 @@ function saveManual(kind,item){
   const m=meta.novels[curNovel]=meta.novels[curNovel]||{};
   const cur=m[key]&&Array.isArray(m[key].list)?m[key]:{list:[],upTo:0};
   if(cur.list.some(x=>x[nk]===val[nk]&&x!==item)){toast('هذا الاسم موجود بالفعل');return}
+  if(cur.del)cur.del=cur.del.filter(x=>x!==val[nk]);
   if(item)Object.assign(item,val,{manual:true});else cur.list.push(Object.assign(val,{manual:true}));
   m[key]=cur;saveMeta();
   closeManual();if(isL){renderLex()}else{renderChars()}if(curNovel)renderNovel();toast(item?'تم الحفظ':'أُضيف بنجاح');
@@ -3600,7 +3621,7 @@ function saveManual(kind,item){
 function deleteManual(kind,item){
   const btn=$('#mDel');if(btn.dataset.arm!=='1'){btn.dataset.arm='1';btn.textContent='اضغط للتأكيد';return}
   const isL=kind==='lex',key=isL?'lex':'chars';const m=meta.novels[curNovel]||{};
-  if(m[key]&&m[key].list)m[key].list=m[key].list.filter(x=>x!==item);
+  if(m[key]&&m[key].list){const gone=item[isL?'term':'name'];m[key].del=[...new Set([...(m[key].del||[]),gone])];m[key].list=m[key].list.filter(x=>x!==item)}
   saveMeta();closeManual();if(isL){renderLex()}else{renderChars()}if(curNovel)renderNovel();toast('حُذف');
 }
 $('#lxAdd').onclick=()=>openManual('lex',null);
