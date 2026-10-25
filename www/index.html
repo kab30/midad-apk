@@ -3600,7 +3600,7 @@ ${batch.map(it=>`${batchHead(it)}\n${kbText(it)}`).join('\n\n')}`;
       const list=(res&&Array.isArray(res.list)?res.list:[]).filter(x=>x&&x.term).slice(0,100).map(x=>({term:applyTerms(String(x.term).trim().slice(0,60)),src:String(x.src||'').slice(0,40),cat:LEX_CATS.includes(x.cat)?x.cat:'أخرى',desc:applyTerms(String(x.desc||'').slice(0,300)),first:+x.first||null}));
       cur.list.forEach(x=>{if(x.manual){const i=list.findIndex(y=>y.term===x.term);if(i>=0)list[i]=x;else list.push(x)}});
       const terms=new Set(list.map(x=>x.term));cur.list.forEach(x=>{if(!terms.has(x.term))list.push(x)});
-      cur=Object.assign(kbAdvance(cur,batch),{list:capKeepManual(list,600)});
+      cur=Object.assign(kbAdvance(cur,batch),{list:capKeepManual(list,6000)});
       meta.novels[novel]=Object.assign({},meta.novels[novel]||{},{lex:cur});saveMeta();
       if(curNovel===novel){renderLex();renderNovel()}
     }
