@@ -2392,17 +2392,15 @@ function stampMeta(){
   if(ch)LS.set('midad.metaSig',metaSig);
 }
 /* every novel's info is its own row (nov:<name>), so a device only writes the novels it changed: it can't overwrite the others.
-   sentU = the change time last confirmed in the account per novel; sentGone = deletions already sent */
+   sentU = the change time last confirmed in the account per novel. A deletion is only a tombstone (gone): rows are never removed, so a wrong tombstone hides a novel but can't destroy it */
 async function pushMeta(){
   LS.set('midad.meta',meta);if(!col)return;
   const todo=Object.entries(meta.novels||{}).filter(([n,o])=>o&&(o._u||0)>(sentU[n]||0));
-  const dels=Object.keys(meta.gone||{}).filter(n=>!sentGone[n]);
   let ok=true;
   await Promise.all([
     ...todo.map(([n,o])=>col.doc(NOV+n).set(Object.assign({kind:'novel'},o)).then(()=>{sentU[n]=o._u||0;delete sentGone[n]}).catch(()=>{ok=false})),
-    ...dels.map(n=>col.doc(NOV+n).delete().then(()=>{sentGone[n]=1;delete sentU[n]}).catch(()=>{ok=false}))
   ]);
-  LS.set('midad.sentU',sentU);LS.set('midad.sentGone',sentGone);
+  LS.set('midad.sentU',sentU);
   // the old single-document copy of the novels is dropped only after every row was confirmed
   if(!ok){setTimeout(pushMeta,5000);return}
   col.doc(META_ID).set({kind:'meta',renames:meta.renames||{},gone:meta.gone||{}}).catch(()=>{});
