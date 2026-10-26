@@ -47,13 +47,23 @@
     async function auth(path,body){
       const r=await fetch(SBC.url+'/auth/v1/'+path,{method:'POST',headers:{'Content-Type':'application/json',apikey:SBC.key},body:JSON.stringify(body)});
       const j=await r.json().catch(()=>({}));
-      if(!r.ok)throw {code:'auth',message:j.error_description||j.msg||j.message||('HTTP '+r.status)};
+      if(!r.ok)throw {code:'auth',status:r.status,message:j.error_description||j.msg||j.message||('HTTP '+r.status)};
       return j;
     }
     function keep(j,email){ses={access:j.access_token,refresh:j.refresh_token,exp:Date.now()+(j.expires_in||3600)*1000,uid:j.user&&j.user.id||(ses&&ses.uid),email:email||(ses&&ses.email)};LSS('midad.sbSession',ses)}
+    /* one refresh at a time: the sync calls run together, and a refresh token can be used only once, so a second refresh would
+       fail and look like a sign-out. A network failure keeps the session (it is retried later); only a rejection by the server ends it. */
+    let refreshP=null;
+    async function refreshNow(){
+      try{keep(await auth('token?grant_type=refresh_token',{refresh_token:ses.refresh}))}
+      catch(e){
+        if(e&&e.code==='auth'&&e.status>=400&&e.status<500)throw {code:'signed_out',message:'انتهت الجلسة، سجّل الدخول من جديد'};
+        throw {code:'offline',message:'تعذّر الاتصال، ستُعاد المزامنة لاحقاً'};
+      }
+    }
     async function token(){
       if(!ses)throw {code:'signed_out'};
-      if(Date.now()>ses.exp-60000){try{keep(await auth('token?grant_type=refresh_token',{refresh_token:ses.refresh}))}catch(e){throw {code:'signed_out',message:'انتهت الجلسة، سجّل الدخول من جديد'}}}
+      if(Date.now()>ses.exp-60000){if(!refreshP)refreshP=refreshNow().finally(()=>{refreshP=null});await refreshP}
       return ses.access;
     }
     async function rest(path,opt={}){
@@ -79,7 +89,7 @@
       }catch(e){st.err=msg(e);clearTimeout(timer);timer=setTimeout(flush,30000)}
       st.busy=false;emit();
     }
-    function msg(e){return e&&e.code==='signed_out'?(e.message||'سجّل الدخول'):e&&e.name==='TypeError'?'لا يوجد اتصال بالإنترنت':'تعذّرت المزامنة'+(e&&e.message?': '+String(e.message).slice(0,90):'')}
+    function msg(e){return e&&e.code==='signed_out'?(e.message||'سجّل الدخول'):e&&e.code==='offline'?e.message:e&&e.name==='TypeError'?'لا يوجد اتصال بالإنترنت':'تعذّرت المزامنة'+(e&&e.message?': '+String(e.message).slice(0,90):'')}
     const CH_GROUPS=[['progress','pAt'],['rate','note','rAt'],['marks','mAt']];
     // returns the merged chapter when this device has a newer group, otherwise null
     function chapMerge(cur,remote){
