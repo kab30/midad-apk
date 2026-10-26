@@ -6971,20 +6971,30 @@ function sbRawPut(r){r.pending=true;rawOut.set(r.id,r);persistRaw();clearTimeout
 async function rawFlush(){
   if(!rawOut.size||!sbUid())return;const uid=sbUid();
   const items=[...rawOut.values()];rawOut.clear();
-  let stm=[],size=0;
-  const send=async()=>{if(!stm.length)return;await sbSql(stm.join(';\n')+';\nselect 1 as ok');stm=[];size=0};
+  const qOf=r=>{const {id,pending,_loading,len,text,...b}=r;
+    if(text!=null){const j=sbq(JSON.stringify(Object.assign({kind:'raw',text},b)).replace(/\\u0000/g,''));
+      return `insert into public.docs(user_id,id,data,deleted) values('${uid}',${sbq(id)},${j}::jsonb,false) on conflict(user_id,id) do update set data=excluded.data,deleted=false`}
+    const j=sbq(JSON.stringify(b)); // only the fields that changed (a title, say): the text in the account stays as it is
+    return `update public.docs set data=coalesce(data,'{}'::jsonb)||${j}::jsonb where user_id='${uid}' and id=${sbq(id)}`};
+  const offline=e=>e&&(e.name==='TypeError'||navigator.onLine===false);
+  const runBatch=async list=>{if(!list.length)return;await sbSql(list.map(x=>x.q).join(';\n')+';\nselect 1 as ok');list.forEach(x=>{delete x.r.pending;sb.pushed[x.r.id]=undefined})};
+  const refused=[];
   try{
-    for(const r of items){
-      const {id,pending,_loading,len,text,...b}=r;let q;
-      if(text!=null){const j=sbq(JSON.stringify(Object.assign({kind:'raw',text},b)).replace(/\\u0000/g,''));
-        q=`insert into public.docs(user_id,id,data,deleted) values('${uid}',${sbq(id)},${j}::jsonb,false) on conflict(user_id,id) do update set data=excluded.data,deleted=false`}
-      else{const j=sbq(JSON.stringify(b)); // only the fields that changed (a title, say): the text in the account stays as it is
-        q=`update public.docs set data=coalesce(data,'{}'::jsonb)||${j}::jsonb where user_id='${uid}' and id=${sbq(id)}`}
-      if(stm.length&&size+q.length>40000)await send();
-      stm.push(q);size+=q.length;sb.pushed[id]=undefined;
+    const jobs=items.map(r=>({r,q:qOf(r)}));
+    const chunks=[];let cur=[],size=0;
+    for(const j of jobs){if(cur.length&&size+j.q.length>40000){chunks.push(cur);cur=[];size=0}cur.push(j);size+=j.q.length}
+    if(cur.length)chunks.push(cur);
+    for(const c of chunks){
+      try{await runBatch(c)}
+      catch(e){
+        if(offline(e))throw e;
+        // one chapter the account refuses must not block the rest: send them one by one, and set that one aside
+        for(const j of c){try{await runBatch([j])}catch(e2){if(offline(e2))throw e2;refused.push(j.r.id)}}
+      }
     }
-    await send();items.forEach(r=>{delete r.pending});persistRaw();
-  }catch(e){items.forEach(r=>rawOut.set(r.id,r));clearTimeout(rawOutT);rawOutT=setTimeout(rawFlush,20000);sb.err=sbErrText(e);renderSb()}
+    persistRaw();
+    if(refused.length){LS.set('midad.rawRefused',refused);sb.err=`تعذّر حفظ ${refused.length} فصل خام في الحساب، وبقيت نسخته على هذا الجهاز`;renderSb()}
+  }catch(e){items.filter(r=>!refused.includes(r.id)).forEach(r=>rawOut.set(r.id,r));clearTimeout(rawOutT);rawOutT=setTimeout(rawFlush,20000);sb.err=sbErrText(e);renderSb()}
 }
 /* a novel's raw store looks empty here but the account still has it: fetch just those chapters back */
 const rawTried=new Set();
