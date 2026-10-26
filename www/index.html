@@ -2282,6 +2282,9 @@ let meta=LS.get('midad.meta',{novels:{}});if(!meta.novels)meta.novels={};
 let renameBusy=false,sbRaw=null;
 let col=null, current=null, wakeLock=null, curNovel=null;
 const META_ID='_meta';
+const NOV='nov:';const isNovId=id=>typeof id==='string'&&id.startsWith(NOV);
+var sentU=LS.get('midad.sentU',{})||{},sentGone=LS.get('midad.sentGone',{})||{};
+
 /* reading settings + light/dark mode are kept in the account too, so every device and every visit opens with them */
 /* Gemini usage the user copies from their settings, plus what Midad itself used */
 const USAGE_ID='_usage';
@@ -2388,13 +2391,32 @@ function stampMeta(){
   for(const [n,t] of Object.entries(meta.gone))if(now-t>60*864e5)delete meta.gone[n];
   if(ch)LS.set('midad.metaSig',metaSig);
 }
-/* the novel info is one document shared by every device: before writing, read the account copy and merge it in,
-   so a device with an older copy can't overwrite changes made elsewhere (its own newer edits win by their time) */
+/* every novel's info is its own row (nov:<name>), so a device only writes the novels it changed: it can't overwrite the others.
+   sentU = the change time last confirmed in the account per novel; sentGone = deletions already sent */
 async function pushMeta(){
   LS.set('midad.meta',meta);if(!col)return;
-  try{const srv=await col.doc(META_ID).get();const d=srv&&srv.exists&&srv.data?srv.data():null;if(d&&d.novels)applyRemoteMeta(d)}catch(e){}
-  LS.set('midad.meta',meta);
-  col.doc(META_ID).set({kind:'meta',novels:meta.novels,renames:meta.renames||{},gone:meta.gone||{}}).catch(()=>{});
+  const todo=Object.entries(meta.novels||{}).filter(([n,o])=>o&&(o._u||0)>(sentU[n]||0));
+  const dels=Object.keys(meta.gone||{}).filter(n=>!sentGone[n]);
+  let ok=true;
+  await Promise.all([
+    ...todo.map(([n,o])=>col.doc(NOV+n).set(Object.assign({kind:'novel'},o)).then(()=>{sentU[n]=o._u||0;delete sentGone[n]}).catch(()=>{ok=false})),
+    ...dels.map(n=>col.doc(NOV+n).delete().then(()=>{sentGone[n]=1;delete sentU[n]}).catch(()=>{ok=false}))
+  ]);
+  LS.set('midad.sentU',sentU);LS.set('midad.sentGone',sentGone);
+  // the old single-document copy of the novels is dropped only after every row was confirmed
+  if(!ok){setTimeout(pushMeta,5000);return}
+  col.doc(META_ID).set({kind:'meta',renames:meta.renames||{},gone:meta.gone||{}}).catch(()=>{});
+}
+/* reads the novel rows and the meta document (renames, deletions and the older copy of the novels) and merges them */
+function applyMetaDocs(docs){
+  const m=docs.find(x=>x.id===META_ID);const md=m&&m.data?(m.data()||{}):{};
+  const rows=docs.filter(x=>isNovId(x.id));
+  if(!m&&!rows.length)return;
+  const N=Object.assign({},md.novels||{});
+  rows.forEach(x=>{const d=Object.assign({},x.data());delete d.kind;const n=x.id.slice(NOV.length);const o=N[n];if(!o||(d._u||0)>=(o._u||0))N[n]=d});
+  rows.forEach(x=>{const n=x.id.slice(NOV.length);sentU[n]=Math.max(sentU[n]||0,(x.data()||{})._u||0);delete sentGone[n]});
+  applyRemoteMeta({novels:N,renames:md.renames||{},gone:md.gone||{}});
+  LS.set('midad.sentU',sentU);LS.set('midad.sentGone',sentGone);
 }
 function saveMeta(){stampMeta();pushMeta()}
 let metaPushT=null;
@@ -2544,9 +2566,9 @@ async function connectDb(){
     const first=await Promise.race([ref.get(),new Promise((_,rej)=>setTimeout(()=>rej({code:'timeout'}),45000))]);
     connTry=0;
     // the account is the source of truth: show its chapters right away, before the live snapshot arrives
-    {const pend=chapters.filter(x=>x.pending);const docs=first.docs.filter(x=>{const k=x.id;return k!==META_ID&&k!==PREFS_ID&&k!==USAGE_ID&&k!==STATS_ID&&k!==DISC_ID&&!isCoverId(k)&&!isRawId(k)&&!isChatId(k)&&!isImgId(k)&&!isTrashId(k)});
+    {const pend=chapters.filter(x=>x.pending);const docs=first.docs.filter(x=>{const k=x.id;return !isNovId(k)&&k!==META_ID&&k!==PREFS_ID&&k!==USAGE_ID&&k!==STATS_ID&&k!==DISC_ID&&!isCoverId(k)&&!isRawId(k)&&!isChatId(k)&&!isImgId(k)&&!isTrashId(k)});
      const ids=new Set(docs.map(x=>x.id));chapters=docs.map(x=>Object.assign({id:x.id},x.data())).concat(pend.filter(p=>!ids.has(p.id)));
-     const m=first.docs.find(x=>x.id===META_ID);if(m&&m.data().novels)applyRemoteMeta(m.data())
+     applyMetaDocs(first.docs)
      if(!rawLazy){const rp=raws.filter(r=>r.pending);const rd=first.docs.filter(x=>isRawId(x.id)).map(x=>{const v=Object.assign({},x.data());delete v.kind;return Object.assign({id:x.id},v)});const rids=new Set(rd.map(r=>r.id));raws=rd.concat(rp.filter(r=>!rids.has(r.id)));}
      {const t={};first.docs.filter(x=>isTrashId(x.id)).forEach(x=>t[x.id]=x.data());trash=t;renderTrashInfo()}
      persistLocal();persistRaw();setSyncState('ok');renderLibrary();if(curNovel)renderNovel();healRenames()}
@@ -2591,10 +2613,9 @@ async function connectDb(){
       for(const cid of Object.keys(chatStore)){if(!remoteChats[cid]&&!chatT[cid]&&chatStore[cid]&&chatStore[cid].synced)delete chatStore[cid]}
       Object.keys(remoteChats).forEach(cid=>{if(chatStore[cid])chatStore[cid].synced=true});
       LS.set('midad.chats',chatStore);
-      const docs=s.docs.filter(x=>x.id!==META_ID&&x.id!==PREFS_ID&&x.id!==USAGE_ID&&x.id!==STATS_ID&&x.id!==DISC_ID&&!isCoverId(x.id)&&!isRawId(x.id)&&!isChatId(x.id)&&!isImgId(x.id)&&!isTrashId(x.id));
+      const docs=s.docs.filter(x=>!isNovId(x.id)&&x.id!==META_ID&&x.id!==PREFS_ID&&x.id!==USAGE_ID&&x.id!==STATS_ID&&x.id!==DISC_ID&&!isCoverId(x.id)&&!isRawId(x.id)&&!isChatId(x.id)&&!isImgId(x.id)&&!isTrashId(x.id));
       {const t={};s.docs.filter(x=>isTrashId(x.id)).forEach(x=>t[x.id]=x.data());trash=t;trashExpire();renderTrashInfo()}
-      const m=s.docs.find(x=>x.id===META_ID);
-      if(m&&m.data().novels)applyRemoteMeta(m.data())
+      applyMetaDocs(s.docs)
       const ids=new Set(docs.map(x=>x.id));
       chapters=docs.map(x=>Object.assign({id:x.id},x.data())).concat(pend.filter(p=>!ids.has(p.id)));
       persistLocal();setSync(true);renderLibrary();if(curNovel)renderNovel();if(current){updateNav();maybeAutoNext()}
