@@ -2388,7 +2388,14 @@ function stampMeta(){
   for(const [n,t] of Object.entries(meta.gone))if(now-t>60*864e5)delete meta.gone[n];
   if(ch)LS.set('midad.metaSig',metaSig);
 }
-function pushMeta(){LS.set('midad.meta',meta);if(col)col.doc(META_ID).set({kind:'meta',novels:meta.novels,renames:meta.renames||{},gone:meta.gone||{}}).catch(()=>{})}
+/* the novel info is one document shared by every device: before writing, read the account copy and merge it in,
+   so a device with an older copy can't overwrite changes made elsewhere (its own newer edits win by their time) */
+async function pushMeta(){
+  LS.set('midad.meta',meta);if(!col)return;
+  try{const srv=await col.doc(META_ID).get();const d=srv&&srv.exists&&srv.data?srv.data():null;if(d&&d.novels)applyRemoteMeta(d)}catch(e){}
+  LS.set('midad.meta',meta);
+  col.doc(META_ID).set({kind:'meta',novels:meta.novels,renames:meta.renames||{},gone:meta.gone||{}}).catch(()=>{});
+}
 function saveMeta(){stampMeta();pushMeta()}
 let metaPushT=null;
 /* a novel is one object in the account, so two devices can't each keep only what they know: the terms, characters, relations and glossary are merged field by field.
