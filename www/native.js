@@ -40,7 +40,9 @@
     const LSG=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},LSS=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
     function deq(a,b){if(a===b)return true;if(typeof a!=='object'||typeof b!=='object'||!a||!b)return false;if(Array.isArray(a)!==Array.isArray(b))return false;
       const ka=Object.keys(a),kb=Object.keys(b);if(ka.length!==kb.length)return false;return ka.every(k=>deq(a[k],b[k]))}
-    let ses=LSG('midad.sbSession',null);const q=new Set(LSG('midad.sbQueue',[]));const pushed={};
+    /* single-owner library: no account and no password. The publishable key is used directly; the policies limit it to this owner's rows */
+    const OWNER='eec2047f-e952-4458-83a2-1e49e5357096';
+    let ses={uid:OWNER,email:'',access:'',refresh:'',exp:Infinity};LSS('midad.sbSession',null);const q=new Set(LSG('midad.sbQueue',[]));const pushed={};
     let st={busy:false,pulling:false,err:'',lastAt:0};const listeners=new Set();
     const emit=()=>listeners.forEach(f=>{try{f()}catch(e){}});
     const saveQ=()=>LSS('midad.sbQueue',[...q]);
@@ -68,7 +70,7 @@
     }
     async function rest(path,opt={}){
       const t=await token();
-      const r=await fetch(SBC.url+'/rest/v1/'+path,Object.assign({},opt,{headers:Object.assign({apikey:SBC.key,Authorization:'Bearer '+t,'Content-Type':'application/json'},opt.headers||{})}));
+      const r=await fetch(SBC.url+'/rest/v1/'+path,Object.assign({},opt,{headers:Object.assign({apikey:SBC.key,'Content-Type':'application/json'},opt.headers||{})}));
       if(!r.ok){const j=await r.json().catch(()=>({}));throw {code:'rest',message:j.message||('HTTP '+r.status)}}
       return r.status===204?null:r.json().catch(()=>null);
     }
@@ -179,7 +181,7 @@
       }catch(e){st.err=msg(e)}
       mirroring=false;emit();return n;
     }
-    function unlink(){ses=null;LSS('midad.sbSession',null);q.clear();saveQ();st.err='';brSend({on:false});LSS('midad.notify',false);emit()}
+    function unlink(){st.err='';emit()}
     // live while the app is open: small checks every few seconds, a full comparison every few minutes
     setInterval(()=>{if(ses&&!document.hidden&&!st.busy)pull()},5000);
     setInterval(()=>{if(ses&&!document.hidden)mirror()},5*60000);
@@ -308,4 +310,30 @@
   window.midadCheckUpdate=()=>check(true);
   setTimeout(()=>check(false),8000);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)check(false)});
+})();
+
+/* device lock: a PIN is asked on first launch, and again after each update or reinstall (the key is the build number) */
+(function pinGate(){
+  const PIN='041994',KEY='midad.pinBuild';
+  const build=()=>String(window.MIDAD_BUILD||'0');
+  const need=()=>{try{return localStorage.getItem(KEY)!==build()}catch(e){return true}};
+  const show=()=>{
+    const ov=document.createElement('div');ov.id='pinGate';ov.setAttribute('dir','rtl');
+    ov.style.cssText='position:fixed;inset:0;z-index:2147483646;background:#0b1120;color:#e7eefc;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;font-family:system-ui,sans-serif;padding:24px';
+    ov.innerHTML='<div style="font-size:20px;font-weight:700">أدخل رمز الدخول</div>'+
+      '<input id="pinIn" type="password" inputmode="numeric" maxlength="12" autocomplete="off" style="width:min(70vw,260px);padding:12px;border-radius:12px;border:1px solid #21304f;background:#111a2e;color:#e7eefc;font-size:20px;text-align:center;letter-spacing:6px">'+
+      '<button id="pinOk" type="button" style="padding:10px 28px;border-radius:12px;border:0;background:#0583ad;color:#fff;font-size:16px;font-weight:700">دخول</button>'+
+      '<div id="pinErr" style="min-height:20px;color:#ff6b7d;font-size:14px"></div>';
+    document.body.appendChild(ov);
+    const inp=ov.querySelector('#pinIn');
+    const check=()=>{
+      if(inp.value===PIN){try{localStorage.setItem(KEY,build())}catch(e){}ov.remove()}
+      else{ov.querySelector('#pinErr').textContent='الرمز غير صحيح';inp.value='';inp.focus()}
+    };
+    ov.querySelector('#pinOk').onclick=check;
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter')check()});
+    setTimeout(()=>inp.focus(),200);
+  };
+  const go=()=>{if(need())show()};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go);else go();
 })();
