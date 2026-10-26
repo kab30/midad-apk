@@ -71,21 +71,31 @@
     async function rest(path,opt={}){
       const t=await token();
       const r=await fetch(SBC.url+'/rest/v1/'+path,Object.assign({},opt,{headers:Object.assign({apikey:SBC.key,'Content-Type':'application/json'},opt.headers||{})}));
-      if(!r.ok){const j=await r.json().catch(()=>({}));throw {code:'rest',message:j.message||('HTTP '+r.status)}}
+      if(!r.ok){const j=await r.json().catch(()=>({}));throw {code:'rest',status:r.status,message:j.message||('HTTP '+r.status)}}
       return r.status===204?null:r.json().catch(()=>null);
     }
     const local=id=>tx('readonly',s=>req(s.get(PRE+id)));
     let timer=null;
     function queue(pre,id){if(pre!==PRE||!ses||applying.has(id))return;q.add(id);saveQ();clearTimeout(timer);timer=setTimeout(flush,400);emit()}
     const applying=new Set();
+    const refused=new Set(LSG('midad.sbRefused',[]));
+    async function sendRows(rows){
+      try{await rest('docs?on_conflict=user_id,id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(rows)});return []}
+      catch(e){
+        if(!(e&&e.code==='rest'&&e.status>=400&&e.status<500))throw e;
+        if(rows.length===1)return [rows[0].id];
+        const bad=[];for(const r of rows)bad.push(...await sendRows([r]));return bad;
+      }
+    }
     async function flush(){
       if(st.busy||!q.size||!ses)return;st.busy=true;emit();
       try{
         while(q.size){
           const ids=[];const rows=[];let size=0;
           for(const id of q){const v=await local(id);const row={user_id:ses.uid,id,data:v===undefined?null:v,deleted:v===undefined};const n=JSON.stringify(row).length;if(rows.length&&size+n>800000)break;rows.push(row);ids.push(id);size+=n}
-          await rest('docs?on_conflict=user_id,id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(rows)});
-          rows.forEach(r=>{q.delete(r.id);pushed[r.id]=r.deleted?'del':r.data});saveQ();
+          const bad=await sendRows(rows);
+          rows.forEach(r=>{q.delete(r.id);if(bad.includes(r.id))refused.add(r.id);else pushed[r.id]=r.deleted?'del':r.data});saveQ();
+          if(bad.length)LSS('midad.sbRefused',[...refused]);
         }
         st.err='';st.lastAt=Date.now();
       }catch(e){st.err=msg(e);clearTimeout(timer);timer=setTimeout(flush,30000)}
