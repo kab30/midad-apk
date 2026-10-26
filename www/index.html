@@ -2387,7 +2387,7 @@ if(!metaSig){metaSig={};Object.entries(meta.novels).forEach(([n,o])=>metaSig[n]=
 function stampMeta(){
   const now=Date.now();let ch=false;meta.gone=meta.gone||{};
   for(const [n,o] of Object.entries(meta.novels)){if(!o)continue;const h=metaSigOf(o);if(metaSig[n]!==h){o._u=now;metaSig[n]=h;ch=true;if(meta.gone[n])delete meta.gone[n]}}
-  for(const n of Object.keys(metaSig)){if(!meta.novels[n]){meta.gone[n]=now;delete metaSig[n];ch=true}}
+  for(const n of Object.keys(metaSig)){if(!meta.novels[n]){delete metaSig[n];ch=true}}
   for(const [n,t] of Object.entries(meta.gone))if(now-t>60*864e5)delete meta.gone[n];
   if(ch)LS.set('midad.metaSig',metaSig);
 }
@@ -4570,7 +4570,7 @@ $('#eDelete').onclick=async()=>{
     im.forEach(k=>delete imgs[k]);persistImgs();
     chats.forEach(k=>delete chatStore[k]);LS.set('midad.chats',chatStore);
     if(m.cover){delete covers[m.cover];saveCoversLocal()}
-    delete meta.novels[n];saveMeta();
+    delete meta.novels[n];meta.gone=meta.gone||{};meta.gone[n]=Date.now();saveMeta();
     if(current&&ids.has(current.id))closeReader();
     hideSheet();closeNovel();renderLibrary();renderPill();
     if(col){
@@ -4653,7 +4653,7 @@ $('#eSave').onclick=async()=>{
     // Snapshots are ignored meanwhile, so a half-finished sync can't bring the old name (and an empty novel) back.
     renameBusy=true;
     try{
-      delete meta.novels[old];
+      delete meta.novels[old];meta.gone=meta.gone||{};if(old!==NONAME)meta.gone[old]=Date.now();
       if(old!==NONAME){meta.renames=meta.renames||{};Object.keys(meta.renames).forEach(k=>{if(meta.renames[k]===old)meta.renames[k]=newName});meta.renames[old]=newName;delete meta.renames[newName]}
       const affected=chapters.filter(c=>nv(c)===old);affected.forEach(c=>c.novel=newName);persistLocal();
       const rw=raws.filter(r=>r.novel===old);rw.forEach(r=>r.novel=newName);persistRaw();
