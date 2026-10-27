@@ -6857,12 +6857,20 @@ const sbUid=()=>NC?'':(prefs.sbUid||(LS.get('midad.sbLink',{})||{}).uid||'');
 const sbLast=()=>LS.get('midad.sbLast:'+sbUid(),'');
 function sbTag(t){let g;do{g='$m'+Math.random().toString(36).slice(2,8)+'$'}while(t.includes(g));return g}
 const sbq=t=>{const g=sbTag(t);return g+t+g};
+let sbPauseUntil=0;
+/* the connector pauses calls when there are too many; every caller waits out the pause instead of adding more calls */
 async function sbSql(query){
+  const w=sbPauseUntil-Date.now();if(w>0)await new Promise(r=>setTimeout(r,w));
+  try{return await sbSqlRaw(query)}
+  catch(e){const txt=`${e&&e.message||''} ${e&&e.secs!=null?'paused for '+e.secs+'s':''} ${String(e)}`;const m=/paused for (\d+)\s*s/i.exec(txt);if(m)sbPauseUntil=Date.now()+(+m[1]+1)*1000;throw e}
+}
+async function sbSqlRaw(query){
   const mcp=await getMcp();if(!mcp)throw {code:'unavailable'};
   const r=await mcp.callTool(SB_SERVER,'execute_sql',{project_id:SB_PROJECT,query},{cache:false});
   let t=r&&r.payload;if(t&&typeof t==='object'&&!Array.isArray(t))t=t.result!==undefined?t.result:JSON.stringify(t);
   if(Array.isArray(t))return t;
   t=String(t||'');
+  {const pm=/paused for (\d+)\s*s/i.exec(t.slice(0,300));if(pm)throw {code:'paused',secs:+pm[1],message:t.slice(0,200)}}
   // the connector wraps rows as: "...the below <untrusted-data-X> boundaries. <untrusted-data-X> [rows] </untrusted-data-X> ..."
   let body=t;const ci=t.lastIndexOf('</untrusted-data-');
   if(ci>-1){const oi=t.lastIndexOf('<untrusted-data-',ci);body=t.slice(t.indexOf('>',oi)+1,ci)}
@@ -6982,7 +6990,7 @@ async function rawFlush(){
   try{
     const jobs=items.map(r=>({r,q:qOf(r)}));
     const chunks=[];let cur=[],size=0;
-    for(const j of jobs){if(cur.length&&size+j.q.length>40000){chunks.push(cur);cur=[];size=0}cur.push(j);size+=j.q.length}
+    for(const j of jobs){if(cur.length&&size+j.q.length>120000){chunks.push(cur);cur=[];size=0}cur.push(j);size+=j.q.length}
     if(cur.length)chunks.push(cur);
     for(const c of chunks){
       try{await runBatch(c)}
@@ -7108,8 +7116,8 @@ $('#sbNow').onclick=async()=>{if(NC){await NC.flush();await NC.pull();return}
 $('#sbOff').onclick=()=>{const b=$('#sbOff');if(!b.classList.contains('arm')){b.classList.add('arm');b.textContent='تأكيد';setTimeout(()=>{b.classList.remove('arm');b.textContent='افصل'},4000);return}
   if(NC){NC.unlink();renderSb();toast('فُصل التطبيق عن Supabase. لم يُحذف شيء');return}
   prefs.sbUid='';LS.set('midad.prefs',prefs);LS.set('midad.sbLink',null);LS.set('midad.sbOffHere',true);queuePrefsSave();sb.q.clear();rawLazy=false;localColObj=null;connTry=0;connectDb();renderSb();toast('فُصلت المكتبة عن Supabase. لم يُحذف شيء')};
-setInterval(()=>{if(!document.hidden&&sbUid()&&!sb.busy)sbPull()},10000);
-setInterval(()=>{if(!document.hidden&&sbUid())sbReconcile()},5*60000);
+setInterval(()=>{if(!document.hidden&&sbUid()&&!sb.busy)sbPull()},30000);
+setInterval(()=>{if(!document.hidden&&sbUid())sbReconcile()},15*60000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&sbUid()){setTimeout(sbPull,800);if(Date.now()-(sb.mirrorAt||0)>60000)setTimeout(sbReconcile,3000)}});
 setTimeout(async()=>{renderSb();
   if(!NC&&!sbUid()&&prefs.sbEmail&&!LS.get('midad.sbOffHere',false)){try{await sbLinkNow(prefs.sbEmail);if(sbUid())toast('رُبط هذا الجهاز بحسابك تلقائياً')}catch(e){}return}
