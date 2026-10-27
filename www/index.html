@@ -4934,7 +4934,8 @@ function buildPrompt(r,partIdx,partCount,lines,gloss,prevTail,novel){
   else p+=`\nهذا الجزء ${partIdx+1} من ${partCount} من نفس الفصل. لا تكتب عنواناً، تابع الترجمة مباشرة.${prevTail?`\nللسياق فقط (لا تكرره)، آخر ما تُرجم من الجزء السابق:\n${prevTail}`:''}\n`;
   if(partCount>1&&partIdx===0)p+=`(هذا الجزء 1 من ${partCount} من الفصل.)\n`;
   if(hasNum)p+=`\nالنص بين ⟦ و⟧ أرقام محسوبة مسبقاً بالعربية: انقلها كما هي بالضبط داخل ⟦ ⟧ دون أي تغيير، ولا تحسب الأرقام بنفسك، ثم أكمل الجملة بالعربية.\n`;
-  return p+`\nالنص الأصلي:\n<<<\n${lines.join('\n')}\n>>>`;
+  const cnt=lines.filter(x=>x.trim()).length;
+  return p+`\nالنص الأصلي:\n<<<\n${lines.join('\n')}\n>>>\n\nتعليمة أخيرة ملزمة: النص الأصلي أعلاه فيه ${cnt} سطراً غير فارغ. أخرج ترجمة لكل سطر منها، في سطر مقابل له وبنفس الترتيب، بدون أن تدمج سطرين ولا تختصر ولا تحذف جملة ولا تكتب ملخصاً أو مقدمة أو تعليقاً أو عبارة مثل "إليك الترجمة".\n`;
 }
 function finalTitle(arTitle,num){
   if(!arTitle)return 'الفصل '+num;
