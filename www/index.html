@@ -1579,6 +1579,14 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
         <div class="seg" id="trLang"><button type="button" data-l="easy">سهلة وواضحة</button><button type="button" data-l="literary">أدبية</button></div>
         <small class="cpnote" id="trLangHint"></small>
       </div>
+      <div class="opt">
+        <h4>تعليمات خاصة للترجمة</h4>
+        <textarea id="trCustom" dir="rtl" maxlength="1500" rows="4" placeholder="مثال: استخدم أنت للبطل، واحتفظ بالألقاب الصينية كما هي" style="width:100%;box-sizing:border-box;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:500 14px var(--ui);resize:vertical"></textarea>
+        <small class="cpnote">تُضاف إلى القواعد في كل ترجمة جديدة، ولا تغيّر الفصول المترجمة سابقاً.</small>
+        <div class="cpnote" id="trCurSum" style="margin-top:8px"></div>
+        <details style="margin-top:8px"><summary style="cursor:pointer;color:var(--dim);font-size:13px">عرض القواعد الكاملة التي تُرسل مع كل ترجمة</summary>
+          <pre id="trPromptTxt" dir="rtl" style="white-space:pre-wrap;font:12px/1.7 var(--mono);max-height:40vh;overflow:auto;padding:10px;border-radius:10px;background:var(--panel);border:1px solid var(--line)"></pre></details>
+      </div>
       <div class="trstyle" id="trStyleInfo"></div>
       <label class="tog" for="trEco" style="border:0;padding:0">
         <span>وضع التوفير<small>يرسل من القاموس الأسماء الموجودة في النص فقط، ويترجم الفصل في طلبات أقل، ويحدّث الشخصيات والمسرد وسلّم القوة كل 5 فصول بنموذج أخف. الترجمة نفسها بنفس الجودة</small></span>
@@ -4928,6 +4936,7 @@ function buildPrompt(r,partIdx,partCount,lines,gloss,prevTail,novel){
   const hasNum=lines.some(x=>x.includes('⟦'));
   const origTitle=r.title.replace(/^الفصل\s*[0-9٠-٩]+\s*:?\s*/,'').trim();
   let p=trRules()+'\n'+(novel?styleText(novel):'')+termsPrompt();
+  if(prefs.trCustom&&prefs.trCustom.trim())p+='\nتعليمات خاصة من القارئ، طبّقها مع القواعد السابقة:\n'+prefs.trCustom.trim()+'\n';
   if(prefs.eco&&gloss.trim()){const tx=lines.join('\n');gloss=gloss.split('\n').filter(l=>{const k=l.split(/\s*[=:：]\s*/)[0].trim();return k&&tx.includes(k)}).join('\n')}
   if(gloss.trim())p+=`\nالتزم بهذه الترجمات الثابتة للأسماء:\n${gloss.trim()}\n`;
   if(partIdx===0)p+=`\nابدأ الترجمة بسطر العنوان بهذا الشكل تماماً: الفصل ${r.num}: [عنوان الفصل مترجماً]${origTitle?`\nعنوان الفصل الأصلي: ${origTitle}`:''}\n`;
@@ -5381,6 +5390,7 @@ function renderRawSet(){
 }
 function setTrPref(k,v,msg){prefs[k]=v;LS.set('midad.prefs',prefs);queuePrefsSave();renderRawSet();if(typeof renderTrOpts==='function'&&addMode==='tr')renderTrOpts();toast(msg)}
 document.querySelectorAll('#rwLang button').forEach(b=>b.onclick=()=>setTrPref('trLang',b.dataset.l,b.dataset.l==='easy'?'الترجمة بلغة سهلة وواضحة':'الترجمة بلغة أدبية'));
+if($('#trCustom'))$('#trCustom').onchange=()=>setTrPref('trCustom',$('#trCustom').value.trim().slice(0,1500),'تم حفظ التعليمات الخاصة');
 document.querySelectorAll('#rwTier button').forEach(b=>b.onclick=()=>setTrPref('trTier',b.dataset.t,'جودة الترجمة: '+TIERS[b.dataset.t][0]));
 document.querySelectorAll('#rwEng button').forEach(b=>b.onclick=()=>{
   if(b.dataset.e==='gemini'&&!gemKey()){toast('أضف مفتاح Gemini أولاً من شاشة الإضافة ← ترجمة');return}
@@ -6405,6 +6415,9 @@ function renderTrOpts(){
   document.querySelectorAll('#trTier button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.t===prefs.trTier)));
   $('#trTierHint').textContent=(TIERS[prefs.trTier]||TIERS.default)[1];
   $('#trReview').checked=prefs.trReview!==false;$('#trClean').checked=prefs.trClean!==false;$('#trEco').checked=!!prefs.eco;
+  if($('#trCustom')&&document.activeElement!==$('#trCustom'))$('#trCustom').value=prefs.trCustom||'';
+  if($('#trPromptTxt'))$('#trPromptTxt').textContent=trRules()+(prefs.trCustom&&prefs.trCustom.trim()?'\n\nتعليمات خاصة من القارئ، طبّقها مع القواعد السابقة:\n'+prefs.trCustom.trim():'');
+  if($('#trCurSum'))$('#trCurSum').textContent=`المستوى: ${(TR_LANG[prefs.trLang]||TR_LANG.easy)[0]} · الجودة: ${(TIERS[prefs.trTier]||TIERS.default)[0]} · وضع التوفير: ${prefs.eco?'مفعّل':'معطّل'} · عدد التعليمات الخاصة: ${(prefs.trCustom||'').trim()?'نعم':'لا'}`;
   const lg=TR_LANG[prefs.trLang]?prefs.trLang:'easy';document.querySelectorAll('#trLang button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.l===lg)));$('#trLangHint').textContent=TR_LANG[lg][1];
   const m=meta.novels[novelVal()]||{};const st=STYLES[m.style]||STYLES.general;const gc=glossCount(novelVal());
   $('#trStyleInfo').innerHTML=`طابع الرواية: <b>${st[0]}</b>${m.styleNote?' + ملاحظات خاصة':''} · القاموس: <b>${gc}</b> اسم<br><span>تغيّرهما من صفحة الرواية ← زر التعديل وقاموس الأسماء</span>`;
