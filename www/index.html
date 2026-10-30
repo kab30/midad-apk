@@ -3597,6 +3597,7 @@ function autoKnowledge(novel){
     if(m.lex&&m.lex.list&&m.lex.list.length&&due(m.lex))await updateLex(novel,true);
     // the power / wealth ladder follows every chapter, even in economy mode (only the new chapter, quick model)
     if(m.power&&(m.power.upTo||m.power.part)&&kbTodo(novel,m.power).some(it=>it.f>=1))await updatePower(novel,true);
+    await autoGlossRead(novel);
   },1500);
 }
 
@@ -5725,9 +5726,9 @@ $('#gsAdd').onclick=()=>{
   toast(`أُضيف ${picked.length} اسم للقاموس`);
 };
 $('#gsSkip').onclick=()=>{gsSugg=[];meta.novels[curNovel]=Object.assign({},meta.novels[curNovel]||{},{glossSuggest:[]});saveMeta();renderSugg();renderNovel()};
-async function extractNames(novel){
+async function extractNames(novel,only){
   const sample=await getSample();if(!sample)throw {code:'unavailable'};
-  const list=sorted(chapters.filter(c=>nv(c)===novel&&c.src)).slice(-3);
+  const list=only||sorted(chapters.filter(c=>nv(c)===novel&&c.src)).slice(-3);
   if(!list.length)return [];
   const known=parseGloss((meta.novels[novel]||{}).glossary);
   let srcT='',arT='';
@@ -5759,6 +5760,27 @@ $('#gsExtract').onclick=async()=>{
   }catch(e){toast(e&&e.code==='rate_limited'?'وصلت لحد الاستخدام، حاول لاحقاً':'تعذّر استخراج الأسماء، حاول مرة أخرى')}
   b.removeAttribute('aria-busy');$('#gsExtractT').textContent='استخراج الأسماء من الفصول';
 };
+/* every finished chapter: add the new names it introduces straight into the novel's dictionary */
+let glossAutoBusy=false;
+async function autoGlossRead(novel){
+  if(glossAutoBusy)return;
+  const m=meta.novels[novel]||{},done=readChaps(novel).filter(c=>c.src&&c.text);
+  if(!done.length)return;
+  const up=m.glossUpTo,todo=(up==null?done.slice(-1):done.filter(c=>c.num>up)).slice(-3);
+  if(!todo.length)return;
+  glossAutoBusy=true;
+  try{
+    const s=await extractNames(novel,todo);
+    const m2=meta.novels[novel]||{},cur=parseGloss(m2.glossary);let n=0;
+    s.forEach(x=>{if(!cur.has(x.src)){cur.set(x.src,x.ar);n++}});
+    const upd={glossUpTo:Math.max(...todo.map(c=>c.num),up==null?-Infinity:up)};
+    if(n)upd.glossary=[...cur].map(([a,b])=>a+' = '+b).join('\n').slice(0,60000);
+    meta.novels[novel]=Object.assign({},m2,upd);saveMeta();
+    if(curNovel===novel)renderNovel();
+    if(n)toast(`أُضيف ${n} ${n===1?'اسم جديد':'أسماء جديدة'} لقاموس «${novel}» من ${todo.length>1?'الفصول المقروءة':'الفصل '+todo[todo.length-1].num}`);
+  }catch(e){}
+  glossAutoBusy=false;
+}
 async function autoSuggestNames(novel){
   const m=meta.novels[novel]||{};
   if(m.glossAsked||glossCount(novel)>=3)return;
