@@ -981,6 +981,40 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 .plring .rn small{font-family:var(--ui);font-size:9.5px;opacity:.75;margin-top:2px}
 .plring .rq{position:absolute;top:-3px;right:-3px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--plasma);color:var(--void,#05070d);font:700 11px/20px var(--ui);text-align:center}
 @media (prefers-reduced-motion:reduce){.plring .rv{transition:none}}
+/* ---------- full library page ---------- */
+#libView{display:none;overflow-y:auto;z-index:6;background:var(--void);padding-inline:16px;padding-block:0 60px}
+#libView.show{display:flex;animation:vin .28s cubic-bezier(.2,.8,.2,1)}
+#libView .wrap{width:100%}
+.lvsum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:4px 0 14px}
+.lvsum div{padding:10px 6px;border-radius:14px;background:var(--deck);border:1px solid var(--line);text-align:center;font-size:11px;color:var(--dim);display:flex;flex-direction:column;gap:2px}
+.lvsum b{font-size:18px;color:var(--ink);font-weight:700}
+.lvchips{display:flex;gap:6px;overflow-x:auto;padding:10px 0 4px;scrollbar-width:none}
+.lvchips::-webkit-scrollbar{display:none}
+.lvchips button{flex:none;height:32px;padding:0 13px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:12.5px;white-space:nowrap}
+.lvchips button[aria-pressed="true"]{background:var(--plasma);border-color:var(--plasma);color:var(--onacc);font-weight:700}
+.lvchips button i{font-style:normal;opacity:.7;margin-inline-start:4px}
+.lvbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 10px;font-size:12px;color:var(--dim)}
+.lvbar select{height:32px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:12.5px;padding:0 8px}
+.lvlist{display:flex;flex-direction:column;gap:10px}
+.lvrow{display:flex;gap:12px;align-items:stretch;width:100%;text-align:start;padding:10px;border-radius:16px;background:var(--deck);border:1px solid var(--line);color:inherit;font:inherit;cursor:pointer}
+.lvrow .cover{width:68px;flex:none;border-radius:10px;padding:6px}
+.lvrow .cover .ico{width:24px;height:24px}.lvrow .cover .ico svg{width:20px;height:20px}.lvrow .cover .ico .letter{font-size:20px!important}
+.lvrow .cover .cn{display:none}
+.lvb{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.lvb .t{font-size:15px;font-weight:700;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lvb .o{font-size:11.5px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lvb .d{font-size:12.5px;color:var(--dim);line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.lvb .m{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11.5px;color:var(--dim);margin-top:auto}
+.lvb .m b{color:var(--ink);font-weight:600}
+.lvb .pb{height:4px;border-radius:4px;background:var(--line);overflow:hidden}
+.lvb .pb i{display:block;height:100%;background:var(--plasma);border-radius:4px}
+.lvb .hit{font-size:11px;color:var(--plasma)}
+.lvb mark{background:none;color:var(--plasma);font-weight:700}
+.lvtag{font-size:10.5px;padding:1px 7px;border-radius:999px;border:1px solid var(--line)}
+.lvtag.warn{border-color:var(--danger);color:var(--danger)}
+.lvtag.ok{border-color:var(--plasma);color:var(--plasma)}
+.shelfall{background:none;border:0;color:var(--plasma);font:inherit;font-size:12.5px;cursor:pointer;padding:0}
+
 /* inside the reader, the floating pieces take the reading theme's accent (--ra) and surface (--rb), so they match the page instead of the app's cyan */
 #reader .ppill{color:var(--ra);background:color-mix(in srgb,var(--ra) 10%,var(--rb));border-color:color-mix(in srgb,var(--ra) 38%,transparent)}
 #reader .trpill{background:color-mix(in srgb,var(--ra) 6%,var(--rb));border-color:color-mix(in srgb,var(--ra) 38%,transparent)}
@@ -1281,6 +1315,9 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
           <span class="sdot" id="statDot" hidden></span>
         </button>
+        <button class="ib statbtn" id="libBtn" type="button" aria-label="مكتبة الروايات">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM9 19V7a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1z"/><path d="m14.5 6.6 2.9-.8a1 1 0 0 1 1.2.7l2.9 11a1 1 0 0 1-.7 1.2l-2.9.8a1 1 0 0 1-1.2-.7l-2.9-11a1 1 0 0 1 .7-1.2z"/></svg>
+        </button>
         <button class="ib statbtn" id="discBtn" type="button" aria-label="اكتشف رواية">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>
         </button>
@@ -1315,7 +1352,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
     <div class="nslider" id="newSlider" hidden><div class="sec" style="margin-top:0"><h2>أُضيفت حديثاً</h2></div><div class="nstrack" id="nsTrack"></div><div class="nsdots" id="nsDots"></div></div>
 
     <div id="shelfBox">
-      <div class="sec"><h2>رواياتي</h2><span class="sync" id="shelfInfo"></span></div>
+      <div class="sec"><h2>رواياتي</h2><span style="display:flex;gap:10px;align-items:baseline"><span class="sync" id="shelfInfo"></span><button type="button" class="shelfall" id="shelfAll">المكتبة ←</button></span></div>
       <div class="shelf" id="shelf"></div>
     </div>
     <div id="resultsBox" hidden>
@@ -1327,6 +1364,34 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
     فصل جديد
   </button>
+</div>
+
+<div id="libView" class="view" dir="rtl">
+  <div class="wrap">
+    <div class="nbar">
+      <button class="ib" id="lvBack" type="button" aria-label="رجوع">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+      </button>
+      <h2 class="vtitle">مكتبة الروايات</h2>
+      <span style="width:44px"></span>
+    </div>
+    <div class="lvsum" id="lvSum"></div>
+    <label class="search" for="lvQ">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="lvQ" type="search" placeholder="ابحث باسم الرواية أو الاسم الأصلي أو الوصف أو شخصية" autocomplete="off">
+    </label>
+    <div class="lvchips" id="lvChips"></div>
+    <div class="lvbar"><span id="lvCount"></span>
+      <select id="lvSort" aria-label="ترتيب">
+        <option value="recent">آخر قراءة</option>
+        <option value="added">أحدث إضافة</option>
+        <option value="name">الاسم</option>
+        <option value="chapters">عدد الفصول</option>
+        <option value="progress">نسبة التقدم</option>
+      </select>
+    </div>
+    <div class="lvlist" id="lvList"></div>
+  </div>
 </div>
 
 <div id="statsView" class="view" dir="rtl">
@@ -2973,6 +3038,7 @@ function renderLibrary(){
   const done=chapters.filter(c=>(c.progress||0)>.97).length;
   $('#stats').innerHTML=`<div><b>${chapters.length}</b>فصل محفوظ</div><div><b>${chapters.length?novels.length:0}</b>رواية</div><div><b>${done}</b>فصل مكتمل</div><div><b>${kfmt(totalW)}</b>كلمة</div>`;
   renderStatDot();if($('#statsView').classList.contains('show'))renderWeek();
+  if($('#libView').classList.contains('show'))try{renderLibView()}catch(e){}
   try{renderHome()}catch(e){}
   $('#novels').innerHTML=chapters.length?novels.map(n=>`<option value="${esc(n)}">`).join(''):'';
 
@@ -6673,6 +6739,71 @@ function renderWeek(){
 }
 function renderStatDot(){const {streak}=weekData();const d=$('#statDot');d.hidden=!streak;d.textContent=streak}
 function openStats(){$('#statsView').classList.add('show');$('#statsView').scrollTop=0;renderWeek();saveView();requestAnimationFrame(()=>$('#statsView').querySelectorAll('b').forEach(b=>{if(b.children.length===0&&/^\s*[\d,.]+/.test(b.textContent))countUp(b,0,800)}))}
+
+/* ---------- full library page: every novel, searchable and filterable ---------- */
+let lvFilter='all';
+const lvNorm=t=>String(t||'').toLowerCase().replace(/[ً-ٰٟـ]/g,'').replace(/[أإآٱ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/ؤ/g,'و').replace(/ئ/g,'ي');
+function lvLastRead(list){let t=0;for(const c of list){const v=c.pAt||0;if((c.progress||0)>0&&v>t)t=v}return t}
+function lvState(s){return !s.count?'empty':s.done>=s.count?'done':s.done>0||s.read>.02?'reading':'new'}
+function lvRows(){
+  return [...allNovelNames()].map(n=>{const s=novelStats(n),m=novelMeta(n),raw=meta.novels[n]||{};
+    const chars=((raw.chars&&raw.chars.list)||[]).map(x=>x&&x.name).filter(Boolean);
+    return {n,s,m,raw,chars,st:lvState(s),lr:lvLastRead(s.list)}});
+}
+function lvHit(r,q){
+  if(!q)return {ok:true,where:''};
+  const t=lvNorm(q);
+  if(lvNorm(r.n).includes(t))return {ok:true,where:''};
+  if(lvNorm(r.m.origName).includes(t))return {ok:true,where:'الاسم الأصلي'};
+  const ch=r.chars.find(x=>lvNorm(x).includes(t));if(ch)return {ok:true,where:'شخصية: '+ch};
+  if(lvNorm(r.m.desc).includes(t))return {ok:true,where:'الوصف'};
+  const g=[...parseGloss(r.raw.glossary)].find(([a,b])=>lvNorm(b).includes(t)||a.includes(q));if(g)return {ok:true,where:'القاموس: '+g[1]};
+  return {ok:false};
+}
+function lvMark(el,text,q){
+  const t=String(text||'');if(!q){el.textContent=t;return}
+  const N=lvNorm(t),k=lvNorm(q),i=N.indexOf(k);
+  if(i<0||N.length!==t.length){el.textContent=t;return}
+  el.append(t.slice(0,i));const mk=document.createElement('mark');mk.textContent=t.slice(i,i+q.length);el.append(mk,t.slice(i+q.length));
+}
+function renderLibView(){
+  const rows=lvRows(),q=$('#lvQ').value.trim();
+  const cnt={all:rows.length,reading:0,new:0,done:0,gaps:0};
+  rows.forEach(r=>{if(cnt[r.st]!=null)cnt[r.st]++;if(r.s.gaps.length)cnt.gaps++});
+  const totCh=rows.reduce((a,r)=>a+r.s.count,0),totDone=rows.reduce((a,r)=>a+r.s.done,0);
+  $('#lvSum').innerHTML=`<div><b>${rows.length}</b>رواية</div><div><b>${cnt.reading}</b>أقرأها الآن</div><div><b>${totCh}</b>فصل</div><div><b>${totDone}</b>فصل مقروء</div>`;
+  const F=[['all','الكل'],['reading','أقرأها الآن'],['new','لم أبدأها'],['done','أنهيت فصولها'],['gaps','فصول ناقصة']];
+  const C=$('#lvChips');C.innerHTML='';
+  F.forEach(([k,l])=>{const b=document.createElement('button');b.type='button';b.setAttribute('aria-pressed',String(lvFilter===k));b.innerHTML=`${l}<i>${cnt[k]}</i>`;b.onclick=()=>{lvFilter=k;renderLibView()};C.appendChild(b)});
+  let L=rows.map(r=>({...r,h:lvHit(r,q)})).filter(r=>r.h.ok&&(lvFilter==='all'||(lvFilter==='gaps'?r.s.gaps.length>0:r.st===lvFilter)));
+  const so=$('#lvSort').value;
+  const cmp={recent:(a,b)=>(b.lr||b.s.last)-(a.lr||a.s.last),added:(a,b)=>b.s.last-a.s.last,name:(a,b)=>a.n.localeCompare(b.n,'ar'),chapters:(a,b)=>b.s.count-a.s.count,progress:(a,b)=>(b.s.count?b.s.done/b.s.count:0)-(a.s.count?a.s.done/a.s.count:0)}[so]||(()=>0);
+  L.sort((a,b)=>cmp(a,b)||a.n.localeCompare(b.n,'ar'));
+  $('#lvCount').textContent=q||lvFilter!=='all'?`${L.length} من ${rows.length} رواية`:`${rows.length} رواية`;
+  const box=$('#lvList');box.innerHTML='';
+  if(!L.length){box.innerHTML=`<div class="empty">${q?'لا توجد رواية تطابق «'+esc(q)+'».':'لا توجد روايات في هذا القسم.'}</div>`;return}
+  L.forEach(r=>{
+    const {n,s,m}=r,pc=s.count?Math.round(s.done/s.count*100):0;
+    const b=document.createElement('button');b.type='button';b.className='lvrow';
+    b.innerHTML=`<div class="cover"><div class="ico">${iconHTML(m.icon,n,24)}</div><div class="cn"></div></div><div class="lvb"><div class="t"></div><div class="o"></div><div class="d"></div><div class="hit"></div><div class="m"></div><div class="pb"><i style="width:${pc}%"></i></div></div>`;
+    paintCover(b.querySelector('.cover'),n,m);
+    lvMark(b.querySelector('.t'),n,q);
+    const o=b.querySelector('.o');if(m.origName)lvMark(o,m.origName,q);else o.remove();
+    const d=b.querySelector('.d');if(m.desc)lvMark(d,m.desc,q);else d.remove();
+    const h=b.querySelector('.hit');if(r.h.where)h.textContent='وُجد في '+r.h.where;else h.remove();
+    const M=b.querySelector('.m');
+    M.innerHTML=`<span><b>${s.count}</b> فصل</span>${s.min!=null?`<span>${s.min===s.max?'الفصل '+s.min:'من '+s.min+' إلى '+s.max}</span>`:''}<span><b>${s.done}</b> مقروء · ${pc}%</span>`;
+    const tg=document.createElement('span');tg.className='lvtag'+(r.st==='done'?' ok':'');tg.textContent={done:'أنهيت فصولها',reading:'أقرأها الآن',new:'لم أبدأها',empty:'بلا فصول'}[r.st];M.appendChild(tg);
+    if(s.gaps.length){const g=document.createElement('span');g.className='lvtag warn';g.textContent='ناقص '+s.gaps.length;M.appendChild(g)}
+    b.onclick=()=>openNovel(n);box.appendChild(b);
+  });
+}
+function openLibView(){$('#libView').classList.add('show');$('#libView').scrollTop=0;renderLibView()}
+$('#libBtn').onclick=openLibView;$('#shelfAll').onclick=openLibView;
+$('#lvBack').onclick=()=>{$('#libView').classList.remove('show')};
+$('#lvQ').addEventListener('input',()=>renderLibView());
+$('#lvSort').onchange=()=>{try{localStorage.setItem('midad.lvSort',$('#lvSort').value)}catch(e){}renderLibView()};
+try{const v=localStorage.getItem('midad.lvSort');if(v)$('#lvSort').value=v}catch(e){}
 $('#statBtn').onclick=openStats;
 $('#stBack').onclick=()=>{$('#statsView').classList.remove('show');saveView()};
 function wkCap(d){if(!d)return;$('#wkCap').innerHTML=`${d.k===dayKey()?'اليوم':WD[d.t.getDay()]}: <b>${d.rw.toLocaleString('ar')}</b> <span>كلمة قرأتها</span> · <b>${d.rc}</b> <span>فصل أنهيته</span> · <b>${d.tc}</b> <span>فصل أضفته</span>`}
