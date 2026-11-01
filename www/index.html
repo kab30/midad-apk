@@ -860,7 +860,7 @@ body.selmode .card.sel::after{background:var(--danger);border-color:var(--danger
 #reader[data-rt=sepia]{--rb:#f2e6cd;--rf:#43341f;--ra:#a1471c;--rs:rgba(67,52,31,.08)}
 #reader[data-rt=paper]{--rb:#fbfaf6;--rf:#1d2127;--ra:#1f6fd1;--rs:rgba(0,0,0,.06)}
 #reader[data-rt=mint]{--rb:#e4f0ea;--rf:#173327;--ra:#0f7a5a;--rs:rgba(0,0,0,.06)}
-#rscroll{flex:1;overflow-y:auto;scroll-behavior:auto}
+#rscroll{flex:1;overflow-y:auto;scroll-behavior:auto;touch-action:manipulation}
 #article{max-width:760px;margin-inline:auto;padding-inline:var(--rpad);padding-block:90px 120px;
   font-family:var(--rfont);font-size:var(--rsize);line-height:var(--rlh);text-align:var(--ralign);font-weight:var(--rweight)}
 #article .kicker{font-family:var(--mono);font-size:12px;color:var(--ra);letter-spacing:.08em;text-align:center;opacity:.9}
@@ -5381,13 +5381,17 @@ function onScroll(){
   if(current&&!current.sample&&f>.97&&!wasDone&&Date.now()-openedAt>2500&&(sc.scrollTop>0||max<=0)){wasDone=true;bumpStat('rc',1);autoKnowledge(nv(current));chapterDone()}
   const r=$('#reader');
   if(sc.scrollTop>lastTop+8&&sc.scrollTop>80)r.classList.add('immersive');
-  else if(sc.scrollTop<lastTop-8||f>.98)r.classList.remove('immersive');
+  else if(f>.98&&sc.scrollTop>lastTop)r.classList.remove('immersive');
   lastTop=sc.scrollTop;
 }
 $('#rscroll').addEventListener('scroll',onScroll,{passive:true});
 $('#article').addEventListener('click',e=>{if(suppressClick){suppressClick=false;return}if(e.target.closest('button')||e.target.closest('.pedit'))return;
   const ent=e.target.closest('.ent');if(ent&&prefs.ents!==false&&!tts.on){showEnt(ent);return}
-  if(tts.on){const tp=e.target.closest('#article p');if(tp){tts.i=+tp.dataset.i;tts.paused=false;speakCur();return}}if(!$('#pMenu').hidden){hidePMenu();return}$('#reader').classList.toggle('immersive')});
+  if(tts.on){const tp=e.target.closest('#article p');if(tp){tts.i=+tp.dataset.i;tts.paused=false;speakCur();return}}if(!$('#pMenu').hidden){hidePMenu();return}
+  const now=Date.now(),near=tapPrev&&Math.hypot(e.clientX-tapPrev.x,e.clientY-tapPrev.y)<45;
+  if(tapPrev&&now-tapPrev.t<380&&near){tapPrev=null;$('#reader').classList.toggle('immersive');return}
+  tapPrev={t:now,x:e.clientX,y:e.clientY}});
+let tapPrev=null;
 function saveProgress(){
   clearTimeout(progT);if(!current||!dirty||current.sample)return;dirty=false;
   const ch=chapters.find(c=>c.id===current.id);if(!ch)return;ch.progress=current.progress;ch.pAt=Date.now();persistLocal();
