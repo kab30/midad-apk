@@ -2369,7 +2369,7 @@ function saveUsage(){LS.set('midad.usage',usage);if(!col)return;clearTimeout(usa
 const STATS_ID='_stats';
 let stats=LS.get('midad.stats',{days:{}});if(!stats.days)stats.days={};
 let statsT=null;
-function saveStats(){LS.set('midad.stats',stats);if(!col)return;clearTimeout(statsT);statsT=setTimeout(()=>{col.doc(STATS_ID).set({kind:'stats',days:stats.days}).catch(()=>{})},2500)}
+function saveStats(){LS.set('midad.stats',stats);if(!col)return;clearTimeout(statsT);statsT=setTimeout(()=>{col.doc(STATS_ID).set({kind:'stats',days:stats.days},{quiet:true}).catch(()=>{})},2500)}
 function mergeStats(days){let ch=false;for(const [k,v] of Object.entries(days||{})){const d=stats.days[k]=stats.days[k]||{rw:0,rc:0};for(const f of ['rw','rc','rs']){const nv_=+v[f]||0;if(nv_>(d[f]||0)){d[f]=nv_;ch=true}}}if(ch)LS.set('midad.stats',stats);return ch}
 const PREFS_ID='_prefs';let prefsSynced='',prefsT=null,prefsPending=false;
 function prefsJSON(){return JSON.stringify({prefs,ui})}
@@ -2618,8 +2618,8 @@ function localCol(){
     onSnapshot(ok,err){const e=[ok,err];subs.add(e);snap().then(ok).catch(x=>err&&err(x));return ()=>subs.delete(e)},
     doc(id){return {id,
       async get(){const v=await ltx('readonly',st=>lreq(st.get(id)));return {id,exists:v!==undefined,data:()=>v===undefined?undefined:clean(v)}},
-      async set(v){await ltx('readwrite',st=>lreq(st.put(clean(v),id)));notify()},
-      async update(p){await ltx('readwrite',async st=>{const o=await lreq(st.get(id));await lreq(st.put(Object.assign({},o||{},clean(p)),id))});notify()},
+      async set(v,o){await ltx('readwrite',st=>lreq(st.put(clean(v),id)));if(!(o&&o.quiet))notify()},
+      async update(p,o){await ltx('readwrite',async st=>{const x=await lreq(st.get(id));await lreq(st.put(Object.assign({},x||{},clean(p)),id))});if(!(o&&o.quiet))notify()},
       async delete(){await ltx('readwrite',st=>lreq(st.delete(id)));notify()}}}};
   return localColObj;
 }
@@ -5423,7 +5423,7 @@ let tapPrev=null;
 function saveProgress(){
   clearTimeout(progT);if(!current||!dirty||current.sample)return;dirty=false;
   const ch=chapters.find(c=>c.id===current.id);if(!ch)return;ch.progress=current.progress;ch.pAt=Date.now();saveProgLocal(ch);persistSoon();
-  if(col&&!ch.pending){col.doc(ch.id).update({progress:ch.progress,pAt:ch.pAt}).catch(()=>{})}
+  if(col&&!ch.pending){col.doc(ch.id).update({progress:ch.progress,pAt:ch.pAt},{quiet:true}).catch(()=>{})}
 }
 document.addEventListener('visibilitychange',()=>{if(document.hidden){saveProgress();if(persistT)persistLocal()}else{lastReadAt=Date.now();if(current&&prefs.wake)lockWake()}});
 
@@ -7084,7 +7084,7 @@ async function sbSqlRaw(query){
 function sbWrap(ref){
   return {get:(...a)=>ref.get(...a),onSnapshot:(...a)=>ref.onSnapshot(...a),
     doc(id){const d=ref.doc(id);return {id,get:(...a)=>d.get(...a),
-      set:v=>{const r=d.set(v);r.then(()=>sbPush(id),()=>{});return r},update:v=>{const r=d.update(v);r.then(()=>sbPush(id),()=>{});return r},delete:()=>{const r=d.delete();r.then(()=>sbPush(id),()=>{});return r}}}};
+      set:(v,o)=>{const r=d.set(v,o);r.then(()=>sbPush(id),()=>{});return r},update:(v,o)=>{const r=d.update(v,o);r.then(()=>sbPush(id),()=>{});return r},delete:()=>{const r=d.delete();r.then(()=>sbPush(id),()=>{});return r}}}};
 }
 // the queue keeps only ids (saved on the device, so a reload never loses it); the current document is read when it is sent,
 // so every row in Supabase is always a complete copy, never a partial update

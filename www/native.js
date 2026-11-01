@@ -27,8 +27,9 @@
       doc(id){const key=pre+id;return {
         id,
         async get(){const v=await tx('readonly',s=>req(s.get(key)));return {id,exists:v!==undefined,data:()=>v===undefined?undefined:clean(v)}},
-        async set(v){await tx('readwrite',s=>req(s.put(clean(v),key)));notify();cloud.queue(pre,id)},
-        async update(p){await tx('readwrite',async s=>{const o=await req(s.get(key));await req(s.put(Object.assign({},o||{},clean(p)),key))});notify();cloud.queue(pre,id)},
+        // quiet: a small write the app already holds in memory (reading progress, daily stats) is saved and sent without re-reading the whole library
+        async set(v,o){await tx('readwrite',s=>req(s.put(clean(v),key)));if(!(o&&o.quiet))notify();cloud.queue(pre,id)},
+        async update(p,o){await tx('readwrite',async s=>{const x=await req(s.get(key));await req(s.put(Object.assign({},x||{},clean(p)),key))});if(!(o&&o.quiet))notify();cloud.queue(pre,id)},
         async delete(){await tx('readwrite',s=>req(s.delete(key)));notify();cloud.queue(pre,id)}
       }}
     };
