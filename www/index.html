@@ -7379,9 +7379,13 @@ async function lockWake(){try{if('wakeLock' in navigator&&!wakeLock){wakeLock=aw
 function releaseWake(){try{wakeLock&&wakeLock.release()}catch(e){}wakeLock=null}
 
 let tT;/* the reader covers the app, but the pill, ring, alarm and toast sit outside it: while reading they take the reading theme through the app's own colour variables; they go back to the app's colours on closing */
+let rtSig=null;
 function syncReaderTheme(){
   const R=$('#reader'),st=document.documentElement.style;
-  if(!R||!R.classList.contains('show')){['--plasma','--ink','--panel','--tbg','--tfg','--tbd'].forEach(v=>st.removeProperty(v));return}
+  // only when the reader opens/closes or its theme changes: the bars hiding/showing while scrolling must not restyle the whole app
+  const sig=R&&R.classList.contains('show')?'on|'+(R.dataset.rt||'')+'|'+(document.documentElement.dataset.theme||'')+'|'+(document.body.className||''):'off';
+  if(sig===rtSig)return;rtSig=sig;
+  if(sig==='off'){['--plasma','--ink','--panel','--tbg','--tfg','--tbd'].forEach(v=>st.removeProperty(v));return}
   const cs=getComputedStyle(R),g=v=>cs.getPropertyValue(v).trim();
   st.setProperty('--plasma',g('--ra'));st.setProperty('--ink',g('--rf'));st.setProperty('--panel',g('--rb'));
   st.setProperty('--tbg',g('--rb'));st.setProperty('--tfg',g('--rf'));st.setProperty('--tbd',g('--ra'));
