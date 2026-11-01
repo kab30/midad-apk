@@ -5875,13 +5875,15 @@ function wordAt(x,y,p){
 }
 const art=$('#article');
 art.addEventListener('pointerdown',e=>{
-  const p=e.target.closest('#article p');if(!p||pBusy||!current)return;
+  const p=e.target.closest('#article p');if(!p||p.classList.contains('busy')||!current)return;
   lpXY=[e.clientX,e.clientY];clearTimeout(lpT);
-  lpT=setTimeout(()=>{lpP=p;lpWord=wordAt(lpXY[0],lpXY[1],p);suppressClick=true;showPMenu(p);if(navigator.vibrate)try{navigator.vibrate(12)}catch(_){}},480);
+  lpT=setTimeout(()=>{lpP=p;lpWord=wordAt(lpXY[0],lpXY[1],p);suppressClick=true;setTimeout(()=>{suppressClick=false},700);showPMenu(p);if(navigator.vibrate)try{navigator.vibrate(12)}catch(_){}},480);
 });
 ['pointerup','pointercancel','pointerleave'].forEach(ev=>art.addEventListener(ev,()=>clearTimeout(lpT)));
-art.addEventListener('pointermove',e=>{if(lpXY&&Math.hypot(e.clientX-lpXY[0],e.clientY-lpXY[1])>10)clearTimeout(lpT)});
-art.addEventListener('contextmenu',e=>{if(e.target.closest('#article p'))e.preventDefault()});
+art.addEventListener('pointermove',e=>{if(lpXY&&Math.hypot(e.clientX-lpXY[0],e.clientY-lpXY[1])>16)clearTimeout(lpT)});
+art.addEventListener('contextmenu',e=>{const p=e.target.closest('#article p');if(!p)return;e.preventDefault();
+  if(!current||p.classList.contains('busy')||(!$('#pMenu').hidden&&lpP===p))return;
+  clearTimeout(lpT);lpP=p;lpWord=wordAt(e.clientX,e.clientY,p);suppressClick=true;setTimeout(()=>{suppressClick=false},700);showPMenu(p);if(navigator.vibrate)try{navigator.vibrate(12)}catch(_){}});
 function showPMenu(p){
   document.querySelectorAll('#article p.held').forEach(x=>x.classList.remove('held'));p.classList.add('held');
   const m=$('#pMenu');$('#pmSrc').hidden=!current.src;
