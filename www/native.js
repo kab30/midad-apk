@@ -196,7 +196,8 @@
     }
     function unlink(){st.err='';emit()}
     // live while the app is open: small checks every few seconds, a full comparison every few minutes
-    setInterval(()=>{if(ses&&!document.hidden&&!st.busy)pull()},5000);
+    // every 20 s while open (and right away when you come back to the app): calmer for the phone, same result
+    setInterval(()=>{if(ses&&!document.hidden&&!st.busy)pull()},20000);
     setInterval(()=>{if(ses&&!document.hidden)mirror()},5*60000);
     document.addEventListener('visibilitychange',()=>{if(ses&&!document.hidden){flush();setTimeout(pull,500);if(Date.now()-mirrorAt>60000)setTimeout(mirror,2500)}});
     if(ses)setTimeout(async()=>{await flush();await pull();mirror()},2500);

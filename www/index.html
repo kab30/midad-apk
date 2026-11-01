@@ -984,6 +984,10 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 @media (prefers-reduced-motion:reduce){.plring .rv{transition:none}}
 /* pages hidden under another page keep their decorative animations still */
 .view.covered *{animation-play-state:paused!important}
+/* a page fully under another one is not drawn at all (its scroll position and contents are kept) */
+.view.covered.gone{content-visibility:hidden}
+/* decorative motion plays twice when a page opens, then rests (it used to loop forever) */
+.hgoal .fire.on b,.pcard,.pcard::before,.pnext span,.pt i,.pt.on,.palarm .pa-ic,.herocard::after,.hgoal::after,.hsec h3::after,.tools .tool::after,.tools .tool .ti,.tools .tool .ti svg,.rnode.new circle.ring{animation-iteration-count:2!important}
 
 /* ---------- full library page ---------- */
 #libView{display:none;overflow-y:auto;z-index:6;background:var(--void);padding-inline:16px;padding-block:0 60px}
@@ -7424,7 +7428,9 @@ if($('#reader'))new MutationObserver(syncReaderTheme).observe($('#reader'),{attr
 /* a page with another page on top of it pauses its decorative animations (a class, set only when the stacking changes) */
 {const V=[...document.querySelectorAll('.view')];let sig='';
  const cover=()=>{const on=V.filter(v=>v.id==='library'||v.classList.contains('show'));const top=on[on.length-1];const k=on.map(v=>v.id).join(',');if(k===sig)return;sig=k;
-   V.forEach(v=>{const c=v!==top&&on.includes(v);if(v.classList.contains('covered')!==c)v.classList.toggle('covered',c)})};
+   V.forEach(v=>{const c=v!==top&&on.includes(v);if(v.classList.contains('covered')!==c)v.classList.toggle('covered',c);
+     // after the top page's opening animation, stop drawing the pages under it
+     clearTimeout(v._goT);if(c)v._goT=setTimeout(()=>v.classList.add('gone'),400);else v.classList.remove('gone')})};
  const mo=new MutationObserver(cover);V.forEach(v=>mo.observe(v,{attributes:true,attributeFilter:['class']}));cover();}
 function toast(m){const t=$('#toast');t.textContent=m;
   t.classList.add('show');clearTimeout(tT);tT=setTimeout(()=>t.classList.remove('show'),2200)}
