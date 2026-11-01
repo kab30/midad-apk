@@ -2282,7 +2282,7 @@ const IDBC=(()=>{let p=null;const open=()=>p||(p=new Promise((res,rej)=>{try{con
   return {async get(k){try{const d=await open();return await new Promise((res,rej)=>{const q=d.transaction('kv').objectStore('kv').get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})}catch(e){return undefined}},
     async set(k,v){try{const d=await open();await new Promise((res,rej)=>{const t=d.transaction('kv','readwrite');t.objectStore('kv').put(v,k);t.oncomplete=res;t.onerror=()=>rej(t.error)})}catch(e){}}}})();
 const idbTimers={};function idbSave(k,v){clearTimeout(idbTimers[k]);idbTimers[k]=setTimeout(()=>{try{IDBC.set(k,JSON.parse(JSON.stringify(v)))}catch(e){}},400)}
-let chapters=LS.get('midad.ch',[]);
+let chapters=LS.get('midad.ch',[]);setTimeout(()=>{try{applyProgLocal()}catch(e){}},0);
 let prefs=Object.assign({theme:'night',size:20,lh:1.9,font:'naskh',align:'right',pad:20,dialog:true,bold:false,wake:true,trTier:'default',trReview:true},LS.get('midad.prefs',{}));
 /* genre presets: tune terminology and tone of a novel's translations */
 const STYLES={
@@ -2566,7 +2566,12 @@ function healRenames(){
 }
 
 /* ---------- storage ---------- */
-function persistLocal(){LS.set('midad.ch',chapters);idbSave('ch',chapters)}
+function persistLocal(){clearTimeout(persistT);persistT=null;LS.set('midad.ch',chapters);idbSave('ch',chapters)}
+/* reading progress is saved in a small separate record, so scrolling never re-saves the whole library (that froze the page for a moment) */
+let persistT=null;
+function persistSoon(){clearTimeout(persistT);persistT=setTimeout(persistLocal,45000)}
+function saveProgLocal(ch){const m=LS.get('midad.prog',{});m[ch.id]={p:ch.progress,t:ch.pAt};const ks=Object.keys(m);if(ks.length>300)ks.sort((a,b)=>m[a].t-m[b].t).slice(0,ks.length-300).forEach(k=>delete m[k]);LS.set('midad.prog',m)}
+function applyProgLocal(){const m=LS.get('midad.prog',{});let n=0;for(const c of chapters){const x=m[c.id];if(x&&(x.t||0)>(c.pAt||0)){c.progress=x.p;c.pAt=x.t;n++}}return n}
 function body(ch){const {id,pending,...b}=ch;return b}
 async function remoteSet(ch){
   if(!col){ch.pending=true;persistLocal();return}
@@ -2703,7 +2708,7 @@ async function connectDb(){
 $('#sync').addEventListener('click',()=>{if(syncPhase==='failed'){connTry=0;connectDb()}});
 // open from the bigger local copy if localStorage was full, then connect
 (async()=>{
-  if(!chapters.length){const v=await IDBC.get('ch');if(Array.isArray(v)&&v.length&&!chapters.length){chapters=v;renderLibrary()}}
+  if(!chapters.length){const v=await IDBC.get('ch');if(Array.isArray(v)&&v.length&&!chapters.length){chapters=v;applyProgLocal();renderLibrary()}}
   if(!raws.length){const v=await IDBC.get('raw');if(Array.isArray(v)&&v.length&&!raws.length)raws=v}
   if(!Object.keys(imgs).length){const v=await IDBC.get('imgs');if(v&&typeof v==='object')imgs=Object.assign(v,imgs)}
   connectDb();
@@ -5394,10 +5399,10 @@ $('#article').addEventListener('click',e=>{if(suppressClick){suppressClick=false
 let tapPrev=null;
 function saveProgress(){
   clearTimeout(progT);if(!current||!dirty||current.sample)return;dirty=false;
-  const ch=chapters.find(c=>c.id===current.id);if(!ch)return;ch.progress=current.progress;ch.pAt=Date.now();persistLocal();
+  const ch=chapters.find(c=>c.id===current.id);if(!ch)return;ch.progress=current.progress;ch.pAt=Date.now();saveProgLocal(ch);persistSoon();
   if(col&&!ch.pending){col.doc(ch.id).update({progress:ch.progress,pAt:ch.pAt}).catch(()=>{})}
 }
-document.addEventListener('visibilitychange',()=>{if(document.hidden)saveProgress();else{lastReadAt=Date.now();if(current&&prefs.wake)lockWake()}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){saveProgress();if(persistT)persistLocal()}else{lastReadAt=Date.now();if(current&&prefs.wake)lockWake()}});
 
 /* delete (two-tap confirm) */
 $('#delBtn').onclick=async()=>{
