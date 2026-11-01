@@ -872,6 +872,7 @@ body.selmode .card.sel::after{background:var(--danger);border-color:var(--danger
 #article .speech p{margin:0 0 .35em}
 #article p.dlgp{padding-inline:.85em .2em;border-inline-start:3px solid var(--ra);background:color-mix(in srgb,var(--ra) 9%,var(--rb));border-radius:2px 8px 8px 2px}
 #article .speech p:last-of-type{margin-bottom:0}
+.chend{text-align:center;font-family:var(--ui);font-size:13px;color:var(--rf);opacity:.6;margin-top:36px}
 .endmark{text-align:center;font-family:var(--mono);font-size:12px;opacity:.5;margin-top:40px}
 .rnav button.add{background:var(--ra);color:var(--rb);font-weight:700}
 .nextbig.add{background:var(--ra);color:var(--rb);border-color:var(--ra)}
@@ -5305,12 +5306,13 @@ function openReader(id,opt){
   curWords=words(ch.text||'');autoAsked=null;setTimeout(prayPillSet,0);
   readMark=(ch.progress||0)>.97?0:(ch.progress||0);wasDone=(ch.progress||0)>.97;lastReadAt=Date.now();chSecs=0;openedAt=Date.now();actAt=Date.now();
   saveProgress(true);current=ch;lastId=id;LS.set('midad.last',id);widgetPush();
-  if(!ch.sample){ch.lastAt=Date.now();persistLocal();if(col&&!ch.pending)col.doc(ch.id).update({lastAt:ch.lastAt}).catch(()=>{})}
+  if(!ch.sample){ch.lastAt=Date.now();persistSoon();if(col&&!ch.pending)col.doc(ch.id).update({lastAt:ch.lastAt},{quiet:true}).catch(()=>{})}
   $('#rT').textContent=ch.title;$('#rN').textContent=ch.novel||'';
   const paras=(ch.text||'').split('\n').filter(Boolean);
   const kick=ch.num!=null?`<div class="kicker">CHAPTER · ${String(ch.num).padStart(3,'0')}</div>`:'';
   $('#article').innerHTML=kick+`<h1>${esc(ch.title)}</h1>`+renderParas(paras)+
-    `<div class="endmark">— نهاية الفصل —</div><button type="button" class="nextbig" id="nextBig">الفصل التالي</button>`;
+    `<div class="chend" id="chEnd"></div><div class="endmark">— نهاية الفصل —</div><button type="button" class="nextbig" id="nextBig">الفصل التالي</button>`;
+  $('#chEnd').textContent=`${curWords.toLocaleString('en')} كلمة · نحو ${Math.max(1,Math.round(curWords/readWpm()))} دقيقة قراءة`;
   const r=$('#reader');r.classList.add('show');r.classList.remove('immersive');
   applyPrefs();updateNav();maybeAutoNext();paintAskDot();saveView();renderMarkBtn();renderPowChip();
   const sc=$('#rscroll');
@@ -5331,22 +5333,10 @@ function readTick(){const now=Date.now();if(actAt&&current&&$('#reader').classLi
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')actAt=Date.now();else{readTick();actAt=0}});
 function hideDone(){clearTimeout(dcT);$('#doneCard').classList.remove('in')}
 function chapterDone(){
-  const p=$('.prog');if(p){p.classList.remove('done');void p.offsetWidth;p.classList.add('done')}
-  buzz([14,50,22]);
-  if((typeof as!=='undefined'&&as.on)||tts.on)return; // auto-scroll and read-aloud move on by themselves
-  const {next}=neighbors(),big=$('#nextBig');
-  $('#dcT').textContent=`أنهيت ${current.num!=null?'الفصل '+current.num:'الفصل'}`;
-  $('#dcS').textContent=next?('التالي: '+(next.title||'الفصل '+next.num)):(big?big.textContent.trim():'');
-  $('#dcGo').hidden=!big;$('#dcGo').textContent=next?'التالي':'متابعة';
-  // what this chapter added up to
-  readTick();learnWpm(curWords,chSecs);const mins=Math.max(1,Math.round(chSecs/60)),sib=siblings(),doneN=sib.filter(c=>(c.progress||0)>.97||c.id===current.id).length;
-  const streak=readStreak(),today=(stats.days[dayKey()]||{}).rc||0;
-  const items=[[mins,'دقيقة'],[curWords,'كلمة'],[`${doneN}/${sib.length}`,'من الرواية'],streak>1?[streak,'يوم متتالي 🔥']:[today,today===1?'فصل اليوم':'فصول اليوم']];
-  $('#dcStats').innerHTML=items.map(([v,l])=>`<div><b>${typeof v==='number'?v.toLocaleString('en'):v}</b><small>${l}</small></div>`).join('');
-  $('#dcNote').hidden=true;renderRate();
-  $('#doneCard').classList.add('in');clearTimeout(dcT);dcT=setTimeout(hideDone,10000);
-  $('#dcStats').querySelectorAll('b').forEach((b,i)=>{if(i!==2)countUp(b,0,900)});
-  confetti();
+  // no popup and no celebration: the end of the chapter quietly shows the time it took and the words read
+  readTick();learnWpm(curWords,chSecs);const mins=Math.max(1,Math.round(chSecs/60));
+  const t=mins===1?'دقيقة واحدة':mins===2?'دقيقتين':mins<=10?mins+' دقائق':mins+' دقيقة';
+  const ce=$('#chEnd');if(ce)ce.textContent=`قرأته في ${t} · ${curWords.toLocaleString('en')} كلمة`;
 }
 /* the big promotion moment: a card over everything, old rank crossed out, new rank lands, progress along the ladder */
 let prT=null;
