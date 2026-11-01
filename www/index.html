@@ -5094,7 +5094,13 @@ async function startTranslate(){
   renderPill();if(current)updateNav();if(curNovel)renderNovel();
   runQueue();
 }
-function enqueue(job){trQueue.push(Object.assign({done:0,total:Math.max(1,job.r.lines.join('').length),part:1,parts:1,phase:'wait',tier:TIERS[prefs.trTier]?prefs.trTier:'default'},job))}
+function enqueue(job){
+  const j=Object.assign({done:0,total:Math.max(1,job.r.lines.join('').length),part:1,parts:1,phase:'wait',tier:TIERS[prefs.trTier]?prefs.trTier:'default'},job);
+  // waiting chapters of the same novel stay in chapter order (the one being translated now is never moved)
+  let i=trQueue.length;
+  if(!j.replaceId&&j.r.num!=null)for(let k=trRunning?1:0;k<trQueue.length;k++){const o=trQueue[k];if(o.novel===j.novel&&!o.replaceId&&o.r.num!=null&&o.r.num>j.r.num){i=k;break}}
+  trQueue.splice(i,0,j);
+}
 async function runQueue(){
   if(trRunning||!trQueue.length)return;
   if(!gemKey()){trErr='أضف مفتاح Gemini أولاً من شاشة الإضافة ← ترجمة.';trErrCode='gem_key';renderPill();return}
@@ -5451,12 +5457,14 @@ function removeDups(novel){
 /* ---------- raw store: auto-translate the next chapter ---------- */
 const nextRaw=c=>c&&c.num!=null?raws.find(r=>r.novel===nv(c)&&r.num===c.num+1):null;
 const hasChapter=(novel,num)=>chapters.some(c=>nv(c)===novel&&c.num===num);
+let rawFetchChain=Promise.resolve();
 function queueRaw(raw,quiet){
   if(trQueue.some(j=>j.novel===raw.novel&&j.r.num===raw.num))return false;
   if(hasChapter(raw.novel,raw.num)){rawDel(raw.id);return false}
   if(raw.text==null){ // the text is still in the account: fetch it, then queue
     if(raw._loading)return true;raw._loading=true;
-    rawText(raw).then(()=>{raw._loading=false;queueRaw(raw,quiet)}).catch(()=>{raw._loading=false;toast(`تعذّر جلب الفصل الخام ${raw.num} من حسابك`)});return true}
+    // fetched one after another, in the order asked, so the chapters join the queue in order
+    rawFetchChain=rawFetchChain.then(()=>rawText(raw)).then(()=>{raw._loading=false;queueRaw(raw,quiet)}).catch(()=>{raw._loading=false;toast(`تعذّر جلب الفصل الخام ${raw.num} من حسابك`)});return true}
   enqueue({novel:raw.novel,r:{num:raw.num,title:raw.title,lines:raw.text.split('\n').filter(Boolean)},gloss:(meta.novels[raw.novel]||{}).glossary||'',rawId:raw.id});
   if(!quiet)toast(`بدأت ترجمة الفصل ${raw.num} من المخزن`);
   renderPill();if(current)updateNav();if(curNovel)renderNovel();runQueue();return true;
@@ -5508,7 +5516,7 @@ $('#rbGo').onclick=async()=>{
   const n=Math.min(200,Math.max(1,parseInt($('#rbCount').value,10)||0));
   const list=batchCandidates(curNovel).slice(0,n);if(!list.length)return;
   if(trErr){trErr='';trErrCode=''}
-  let added=0;list.forEach(r=>{if(queueRaw(r,true))added++});
+  let added=0;list.slice().sort((a,b)=>a.num-b.num).forEach(r=>{if(queueRaw(r,true))added++});
   toast(added?`أُضيف ${added} فصل لقائمة الترجمة (${list[0].num}–${list[list.length-1].num})`:'هذه الفصول في القائمة مسبقاً');
   renderRawSheet();
 };
@@ -5586,7 +5594,7 @@ $('#rwSelDel').onclick=async()=>{
 $('#rwSelTr').onclick=async()=>{
   if(!(await getTr())){toast('الترجمة غير متاحة في هذا العرض');return}
   const list=rawsOf(curNovel).filter(r=>rwSel.has(r.id)&&!trQueue.some(j=>j.novel===r.novel&&j.r.num===r.num));
-  list.forEach(r=>queueRaw(r));rwSel.clear();rwSelMode=false;toast(list.length?`أُضيف ${list.length} فصل إلى قائمة الترجمة`:'المحدد في القائمة أصلاً');renderRawSheet();
+  list.slice().sort((a,b)=>a.num-b.num).forEach(r=>queueRaw(r,true));rwSel.clear();rwSelMode=false;toast(list.length?`أُضيف ${list.length} فصل إلى قائمة الترجمة`:'المحدد في القائمة أصلاً');renderRawSheet();
 };
 const rawOrigTitle=r=>(r.title||'').replace(/^الفصل\s*[0-9٠-٩]+\s*:?\s*/,'').trim();
 
