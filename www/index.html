@@ -6717,7 +6717,7 @@ function restoreView(){
   if(h==='stats')st={v:'stats'};
   else if(h==='discover')st={v:'disc'};
   else if(h.startsWith('ch-')){const ch=chapters.find(c=>c.id===h.slice(3));st=ch?{v:'reader',ch:ch.id,novel:nv(ch)}:{v:'reader',ch:h.slice(3)}}
-  else st=LS.get('midad.view',null);
+  // otherwise the app always opens on the home page (it no longer jumps back to the last novel or chapter)
   if(!st||st.v==='lib')return;
   if(!applyView(st)){
     // the chapter may only arrive with the account data a moment later
