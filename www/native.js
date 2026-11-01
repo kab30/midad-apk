@@ -126,7 +126,9 @@
             if(r.deleted||r.data==null){s.delete(PRE+r.id);got++;continue}
             // reading progress: the newest change wins; if this phone's progress is newer, keep it and send it back
             // chapter groups (progress, rating and note, marks): the newer group wins, field by field
-            const cur=await req(s.get(PRE+r.id));const mg=cur?chapMerge(cur,r.data):null;
+            const cur=await req(s.get(PRE+r.id));
+            if(cur!==undefined&&deq(cur,r.data))continue; // already here (often this phone's own save coming back): nothing to reload
+            const mg=cur?chapMerge(cur,r.data):null;
             if(mg){s.put(mg.doc,PRE+r.id);if(mg.back)back.push(r.id)}
             else s.put(r.data,PRE+r.id);got++}});
           back.forEach(id=>queue(PRE,id));
