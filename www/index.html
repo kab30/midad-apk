@@ -2448,6 +2448,22 @@ function saveChat(chId){
 function persistRaw(){const v=rawLazy?raws.map(r=>{const {text,...x}=r;return Object.assign(x,{len:rawLen(r)})}):raws;LS.set('midad.raw',v);idbSave('raw',v)}
 async function rawSet(r){if(rawLazy){sbRawPut(r);return}if(!col){r.pending=true;persistRaw();return}try{const {id,pending,...b}=r;await col.doc(id).set(Object.assign({kind:'raw'},b));delete r.pending;persistRaw()}catch(e){r.pending=true;persistRaw();if(e&&e.code==='quota_exceeded')claudeFull();if(e&&e.code==='quota_exceeded')toast('المساحة ممتلئة، احذف بعض الفصول الخام')}}
 function rawDel(id){rawOut.delete(id);raws=raws.filter(r=>r.id!==id);persistRaw();if(col)col.doc(id).delete().catch(()=>{})}
+/* the store keeps only chapters still waiting: a raw chapter whose translation already exists is removed (here and in the account),
+   and a chapter pasted twice keeps only its latest copy. Runs whenever the store or the chapters change, so a delete that failed is retried. */
+function rawPrune(){
+  if(!raws.length||!chapters.length)return 0;
+  const have=new Set(chapters.filter(c=>c.num!=null).map(c=>nv(c)+'\u0001'+c.num)),seen=new Map(),drop=[];
+  for(const r of raws){
+    if(r.novel==null||r.num==null)continue;const k=r.novel+'\u0001'+r.num;
+    if(have.has(k)){drop.push(r);continue}
+    const o=seen.get(k);if(o){const keep=(r.at||r.createdAt||0)>=(o.at||o.createdAt||0)&&rawLen(r)>0?r:o;drop.push(keep===r?o:r);seen.set(k,keep)}else seen.set(k,r);
+  }
+  if(!drop.length)return 0;
+  const ids=new Set(drop.map(r=>r.id));
+  ids.forEach(id=>rawOut.delete(id));raws=raws.filter(r=>!ids.has(r.id));persistRaw();
+  if(col)ids.forEach(id=>col.doc(id).delete().catch(()=>{}));
+  return ids.size;
+}
 const rawsOf=novel=>raws.filter(r=>r.novel===novel).sort((a,b)=>a.num-b.num);
 function saveCoversLocal(){LS.set('midad.covers',covers)}
 /* novel info is one shared document. Each novel carries the time it was last changed (_u) and deleted names leave a
@@ -3127,6 +3143,7 @@ function closeNovel(){
 $('#nBack').onclick=closeNovel;
 $('#nAdd').onclick=()=>openAdd(curNovel===SAMPLE.novel&&!chapters.length?'':curNovel);
 function renderNovel(){
+  try{rawPrune()}catch(e){}
   if(!curNovel)return;
   const s=novelStats(curNovel);
   if(!s.count&&!isCreated(curNovel)){closeNovel();return}
@@ -5496,6 +5513,7 @@ $('#rbGo').onclick=async()=>{
   renderRawSheet();
 };
 function renderRawSheet(){
+  try{rawPrune()}catch(e){}
   renderRawSet();renderBatch();
   const list=rawsOf(curNovel);
   const auto=(meta.novels[curNovel]||{}).rawAuto!==false;
@@ -7240,7 +7258,7 @@ async function sbPull(){
     }
     sb.err='';sb.lastAt=Date.now();
     if(got>=3)toast(`وصل ${got} تحديثات من حسابك`);
-    if(rawChanged){persistRaw();if(openSheet&&openSheet.id==='rawSheet')renderRawSheet();if(curNovel)renderNovel();if(current)updateNav()}
+    if(rawChanged){try{rawPrune()}catch(e){}persistRaw();if(openSheet&&openSheet.id==='rawSheet')renderRawSheet();if(curNovel)renderNovel();if(current)updateNav()}
   }catch(e){sb.err=sbErrText(e)}
   sb.pulling=false;renderSb();
 }
