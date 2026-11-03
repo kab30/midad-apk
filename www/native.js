@@ -222,10 +222,12 @@
     const turns=typeof input==='string'?[{role:'user',content:input}]:input;
     const contents=turns.map(t=>({role:t.role==='assistant'?'model':'user',parts:[{text:String(t.content)}]}));
     if(opts.images&&opts.images.length){const last=contents[contents.length-1];for(const im of opts.images)last.parts.push({inline_data:{mime_type:im.type||'image/png',data:await b64(im)}})}
-    const gen={temperature:json?0.4:0.7,maxOutputTokens:opts.maxTokens||16384};if(json)gen.responseMimeType='application/json';
+    const gen={temperature:json?0.4:0.7,maxOutputTokens:opts.maxTokens||16384};if(json&&!opts.search)gen.responseMimeType='application/json';
+    // search: let Gemini look things up on Google (a novel's wiki) before answering
+    const body={contents,generationConfig:gen};if(opts.search)body.tools=[{google_search:{}}];
     const url='https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model(opts.modelTier))+':streamGenerateContent?alt=sse';
     let resp;
-    try{resp=await fetch(url,{method:'POST',signal:opts.signal,headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify({contents,generationConfig:gen})})}
+    try{resp=await fetch(url,{method:'POST',signal:opts.signal,headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(body)})}
     catch(e){if(e&&e.name==='AbortError')throw {code:'cancelled'};throw {code:'gem_blocked',message:'لا يوجد اتصال بالإنترنت'}}
     if(!resp.ok){let msg='';try{const j=await resp.json();msg=(j.error&&j.error.message)||''}catch(e){}const st=resp.status;
       throw {code:st===429?'rate_limited':((st===400&&/key/i.test(msg))||st===401||st===403)?'gem_key':st===404?'gem_model':'gem_http',message:msg||('HTTP '+st)}}

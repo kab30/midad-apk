@@ -1833,7 +1833,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
       <span class="opi"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.2L3 16M3 21v-5h5"/></svg></span>
       <span class="opt-t"><b id="pwUpdateT"></b><small id="pwUpdateS"></small></span>
     </button>
-    <div class="pwacts"><button type="button" class="redo" id="pwEditBtn">عدّل يدوياً</button><button type="button" class="redo" id="pwImpBtn">الصق بحثاً عن النظام</button></div>
+    <div class="pwacts"><button type="button" class="redo" id="pwEditBtn">عدّل يدوياً</button><button type="button" class="redo" id="pwImpBtn">جهّز السلّم من الويكي</button></div>
     <button type="button" class="redo" id="pwRebuild" style="flex:none;min-height:38px">أعد البناء من كل الفصول المقروءة</button>
     <button type="button" class="redo" id="pwGenre" style="flex:none;min-height:38px" hidden>رواية أموال وشركات؟ اكتشف من آخر فصلين</button>
     <div class="pwtabs" id="pwTabs" hidden></div>
@@ -2237,12 +2237,17 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 </section>
 <section class="sheet" id="powImp" dir="rtl" aria-label="استيراد نظام القوة">
   <div class="grab"></div>
-  <h3>الصق بحثاً عن نظام القوة</h3>
+  <h3>جهّز سلّم القوة كاملاً</h3>
   <div class="scroll">
+    <small class="cpnote">يبحث عن نظام الرواية (ويكي الرواية ومعرفة الذكاء الاصطناعي) ويجهّز السلالم كاملة مرة واحدة: مراحل البطل، الوحوش، التقنيات، الكنوز، أو الثروة والشركة في روايات المال. بعدها يحدّث كل فصل موقع البطل فقط، فيوفر الاستهلاك. قد يكشف مراحل لم تصلها بعد.</small>
+    <button class="btn primary" id="piWiki" type="button" style="width:100%;min-height:48px">اجلب النظام من الويكي</button>
+    <small class="cpnote" id="piWikiStat"></small>
+    <div class="row" style="gap:8px;margin:2px 0 12px"><button class="btn" id="piCopyQ" type="button">انسخ سؤالاً جاهزاً لـ Gemini</button></div>
+    <h4 style="margin:6px 0 4px">أو الصق بحثاً بنفسك</h4>
     <small class="cpnote">الصق أي شرح لنظام القوة في الرواية، من بحثك أو من ويكي الرواية. يحوّله Gemini إلى سلالم مرتبة، سلّم لكل نظام (مثل رتب المحترفين، رتب الأرواح، جودة الأرواح)، ثم يحدد موقع البطل من آخر فصلين قرأتهما.</small>
     <div class="pefld"><textarea id="piText" dir="auto" placeholder="الصق النص هنا…"></textarea></div>
     <div class="seg" id="piMode"><button type="button" data-m="replace" aria-pressed="true">استبدل السلالم الحالية</button><button type="button" data-m="add" aria-pressed="false">أضفها للموجودة</button></div>
-    <button class="btn" id="piGo" type="button">حوّله إلى سلالم</button>
+    <button class="btn" id="piGo" type="button" style="width:100%;min-height:46px">حوّله إلى سلالم</button>
     <small class="cpnote" id="piStat"></small>
   </div>
 </section>
@@ -4101,7 +4106,7 @@ $('#peDel').onclick=()=>{
 /* import from pasted research */
 let piMode='replace',piBusy=false;
 document.querySelectorAll('#piMode button').forEach(b=>b.onclick=()=>{piMode=b.dataset.m;document.querySelectorAll('#piMode button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)))});
-$('#pwImpBtn').onclick=()=>{$('#piStat').textContent='';hideSheet();showSheet($('#powImp'))};
+$('#pwImpBtn').onclick=()=>{$('#piStat').textContent='';$('#piWikiStat').textContent='';hideSheet();showSheet($('#powImp'))};
 $('#piGo').onclick=async()=>{
   if(piBusy)return;const txt=$('#piText').value.trim();if(txt.length<20){toast('الصق نص البحث أولاً');return}
   const sample=await getSample();if(!sample){toast('هذه الميزة غير متاحة في هذا العرض');return}
@@ -4127,23 +4132,60 @@ ${(m.glossary||'').slice(0,1200)}
 ${txt.slice(0,12000)}
 >>>`;
     const r=await sample.json(prompt,{cache:false,...ecoTier()});trackUse('power',0);
+    if(!piApply(novel,r,piMode))$('#piStat').textContent='لم أجد مراحل واضحة في النص. جرّب نصاً أوضح أو أضفها يدوياً.';
+  }catch(e){$('#piStat').textContent=TR_ERR[e&&e.code]||'تعذّر التحويل، حاول مرة أخرى'}
+  finally{piBusy=false;g.disabled=false}
+};
+/* saves ladders from an AI answer; false when it held none */
+function piApply(novel,r,mode){
+  {const m=meta.novels[novel]||{};
     const S=v=>typeof v==='string'?applyTerms(v.trim()):'';
     const got=(r&&Array.isArray(r.ladders)?r.ladders:[]).map(l=>({name:S(l.name).slice(0,60),kind:PKINDS[l.kind]?l.kind:'other',locked:true,hero:null,
       stages:(Array.isArray(l.stages)?l.stages:[]).filter(x=>x&&x.name).slice(0,60).map(x=>({name:S(x.name).slice(0,60),src:String(x.src||'').slice(0,40),desc:S(x.desc).slice(0,300),subs:(Array.isArray(x.subs)?x.subs:[]).map(S).filter(Boolean).slice(0,12),chars:[],sure:true}))})).filter(l=>l.stages.length).slice(0,8);
-    if(!got.length){$('#piStat').textContent='لم أجد مراحل واضحة في النص. جرّب نصاً أوضح أو أضفها يدوياً.';return}
+    if(!got.length)return false;
     const pw=Object.assign({stages:[],upTo:0,history:[]},m.power||{});
     const oldL=powLadders(pw);
     // carry over who was found in each stage when a stage keeps its name
     got.forEach(l=>{const o=oldL.find(x=>x.name===l.name)||(oldL.length===1?oldL[0]:null);if(o)l.stages.forEach(x=>{const y=(o.stages||[]).find(z=>z.name===x.name);if(y)x.chars=y.chars||[]})});
-    pw.ladders=powSortL(piMode==='add'?oldL.concat(got):got);
-    if(piMode!=='add')pw.history=[];
+    if(r&&['power','wealth','mixed'].includes(r.genre))pw.genre=r.genre;
+    pw.ladders=powSortL(mode==='add'?oldL.concat(got):got,pw.genre);moneyLadders(pw.ladders,pw.genre);pw.ladders=powSortL(pw.ladders,pw.genre);
+    if(mode!=='add')pw.history=[];
     if(r&&r.system)pw.system=S(r.system).slice(0,60);
-    powSave(novel,pw);powTab=piMode==='add'?oldL.length:0;
+    powSave(novel,pw);powTab=mode==='add'?oldL.length:0;
     $('#piText').value='';hideSheet();renderPow();showSheet($('#powSheet'));
     toast(`أُنشئ ${got.length} ${got.length===1?'سلّم':'سلالم'}، والآن أحدد موقع البطل…`);
     updatePower(novel,true,{recent:true});
-  }catch(e){$('#piStat').textContent=TR_ERR[e&&e.code]||'تعذّر التحويل، حاول مرة أخرى'}
-  finally{piBusy=false;g.disabled=false}
+    return true;}
+}
+/* the whole system at once, from the novel's wiki / the model's knowledge (web search on the phone with Gemini) */
+function piNames(m,novel){return [novel,m.origName].filter(Boolean).join(' / ')}
+$('#piCopyQ').onclick=async()=>{
+  const m=meta.novels[curNovel]||{};
+  const q=`ابحث في الويب (ويكي الرواية، Fandom، NovelUpdates، Baidu Baike) عن الرواية: ${piNames(m,curNovel)}${m.srcUrl?' ('+m.srcUrl+')':''}.
+اكتب لي كل أنظمة المراتب فيها مرتبة من الأضعف إلى الأقوى، كل نظام في قائمة مستقلة: مراحل تدريب أو قوة البطل والشخصيات (مع المستويات الفرعية)، رتب الوحوش أو المخلوقات، درجات التقنيات والمهارات، درجات الكنوز والأدوات، المناصب والمنظمات. وإذا كانت رواية مال أو أعمال: مراحل ثروة البطل وشركته وأهم إنجازاتها بالأرقام.
+اذكر الاسم الصيني أو الإنجليزي لكل مرحلة إن وُجد، وسطراً قصيراً يشرحها، وأين وصل البطل في كل نظام إن كان معروفاً.`;
+  try{await navigator.clipboard.writeText(q);toast('نُسخ السؤال. الصقه في Gemini، ثم الصق جوابه هنا')}catch(e){$('#piText').value=q;toast('انسخ السؤال من الخانة يدوياً')}
+};
+$('#piWiki').onclick=async()=>{
+  if(piBusy)return;const sample=await getSample();if(!sample){toast('هذه الميزة غير متاحة في هذا العرض');return}
+  const novel=curNovel,m=meta.novels[novel]||{},b=$('#piWiki'),st=$('#piWikiStat');piBusy=true;b.disabled=true;
+  st.textContent=window.midadCloud?'يبحث في الويب عن نظام الرواية…':'يجمع ما يعرفه عن نظام الرواية…';
+  try{
+    const prompt=`أنت باحث في الروايات الصينية والكورية واليابانية المترجمة. الرواية: ${piNames(m,novel)}${m.srcUrl?'\nرابطها: '+m.srcUrl:''}${m.desc?'\nوصفها: '+m.desc.slice(0,400):''}
+${window.midadCloud?'ابحث في الويب (ويكي الرواية و Fandom و NovelUpdates و Baidu Baike) ثم ':''}اكتب نظام المراتب الكامل في هذه الرواية كما هو معروف عنها، من أول الرواية إلى آخرها:
+- سلّم مستقل لكل نظام: مراحل البطل والبشر، رتب الوحوش والمخلوقات، درجات التقنيات والمهارات، درجات الكنوز، المناصب والمنظمات.
+- ${KIND_PROMPT}
+- إذا كانت رواية مال أو استثمار أو شركات أو تكنولوجيا فاجعل genre "wealth" (أو "mixed" إن جمعت القوة والمال)، وأضف ما يُعرف من أنظمة الرواية نفسها (مثل مستويات النظام أو المناصب).
+- رتّب كل سلّم من الأدنى إلى الأعلى. name بالعربية الفصحى، src الاسم الصيني أو الإنجليزي، desc سطر قصير، subs المستويات الفرعية إن وُجدت.
+- ممنوع تماماً استخدام كلمات: إله، الإله، آلهة، الإلهة، إلهي، الإلهية، الإلهي. استخدم بدلها: السامي، السماوي، الكائن السامي، المقدّس.
+- مهم جداً: لا تخترع. إذا لم تكن تعرف هذه الرواية بالتحديد أو لم تجد عنها معلومات موثوقة فأعد {"found":false,"ladders":[]}. لا تخلط بينها وبين رواية أخرى تشبهها.
+${(m.glossary||'').trim()?`استخدم هذه الترجمات الثابتة للأسماء:\n${(m.glossary||'').slice(0,1200)}\n`:''}${termsPrompt()}
+أعد فقط كائن JSON: {"found":true,"genre":"power أو wealth أو mixed","system":"اسم النظام بإيجاز","ladders":[{"kind":"people","name":"اسم السلّم","stages":[{"name":"","src":"","desc":"","subs":[]}]}]}`;
+    const r=await sample.json(prompt,{cache:false,modelTier:'default',search:true});trackUse('power',0);
+    if(!r||r.found===false||!piApply(novel,r,'replace')){st.textContent='ما لقيت معلومات موثوقة عن نظام هذه الرواية. انسخ السؤال الجاهز وجرّبه في Gemini، ثم الصق جوابه في الخانة تحت.';return}
+    st.textContent='';
+  }catch(e){st.textContent=TR_ERR[e&&e.code]||'تعذّر الجلب، حاول مرة أخرى'}
+  finally{piBusy=false;b.disabled=false}
 };
 async function updatePower(novel,quiet,opt={}){
   if(powBusy)return;const sample=await getSample();if(!sample){if(!quiet)toast('هذه الميزة غير متاحة في هذا العرض');return}
