@@ -2486,8 +2486,10 @@ function saveCoversLocal(){LS.set('midad.covers',covers)}
 const hstr=t=>{let h=5381;for(let i=0;i<t.length;i++)h=(h*33+t.charCodeAt(i))|0;return (h>>>0).toString(36)+t.length};
 const glossLines=t=>new Set((t||'').split('\n').map(l=>l.trim()).filter(Boolean));
 const metaSigOf=o=>{const {_u,...r}=o||{};return hstr(JSON.stringify(r))};
-let metaSig=LS.get('midad.metaSig',null);
-if(!metaSig){metaSig={};Object.entries(meta.novels).forEach(([n,o])=>metaSig[n]=metaSigOf(o));LS.set('midad.metaSig',metaSig)}
+/* the change signatures are always worked out from the copy that was actually loaded. A signature saved separately could
+   belong to a newer copy than the one in storage (the device storage is full and the novels copy failed to save), and then
+   the old copy looked "edited", got a newer time and overwrote the account copy: that is how a power ladder disappeared. */
+let metaSig={};Object.entries(meta.novels).forEach(([n,o])=>metaSig[n]=metaSigOf(o));LS.set('midad.metaSig',metaSig);
 function stampMeta(){
   const now=Date.now();let ch=false;meta.gone=meta.gone||{};
   for(const [n,o] of Object.entries(meta.novels)){if(!o)continue;const h=metaSigOf(o);if(metaSig[n]!==h){o._u=now;metaSig[n]=h;ch=true;if(meta.gone[n])delete meta.gone[n]}}
@@ -2539,6 +2541,8 @@ function mergeNovelFields(p,o){
   }
   if(!(p.rels&&p.rels.edges&&p.rels.edges.length)&&o.rels&&o.rels.edges&&o.rels.edges.length){r.rels=o.rels;changed=true}
   if(!(p.glossary||'').trim()&&(o.glossary||'').trim()){r.glossary=o.glossary;changed=true}
+  // power ladder: a copy that has none never wipes out the one the other copy holds
+  if(!p.power&&o.power){r.power=o.power;changed=true}
   if(changed)r._u=Math.max(p._u||0,o._u||0,Date.now());
   return r}
 function applyRemoteMeta(d){
