@@ -593,6 +593,8 @@ body.selmode .card.sel::after{background:var(--danger);border-color:var(--danger
 .pwtabs button{flex:none;height:34px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--deck);color:var(--dim);font-size:12.5px;font-weight:600;touch-action:manipulation}
 .pwtabs button[aria-pressed="true"]{border-color:var(--warn);color:var(--warn);background:color-mix(in srgb,var(--warn) 10%,var(--deck))}
 .pwtabs button.add{border-style:dashed;color:var(--plasma)}
+/* over a light reading page the amber tab is hard to read: use the page accent */
+html[style*="--deck"] .pwtabs button[aria-pressed="true"]{border-color:var(--plasma);color:var(--plasma);background:color-mix(in srgb,var(--plasma) 12%,var(--deck))}
 .pwacts{flex:none;display:flex;gap:8px}
 .pwacts button{min-height:38px}
 .pwacts button{flex:1}
@@ -2484,8 +2486,8 @@ function saveCoversLocal(){LS.set('midad.covers',covers)}
 const hstr=t=>{let h=5381;for(let i=0;i<t.length;i++)h=(h*33+t.charCodeAt(i))|0;return (h>>>0).toString(36)+t.length};
 const glossLines=t=>new Set((t||'').split('\n').map(l=>l.trim()).filter(Boolean));
 const metaSigOf=o=>{const {_u,...r}=o||{};return hstr(JSON.stringify(r))};
-/* signatures always come from the copy actually loaded, so a stale stored copy is never restamped as newer and pushed over the account copy */
-let metaSig={};Object.entries(meta.novels).forEach(([n,o])=>metaSig[n]=metaSigOf(o));LS.set('midad.metaSig',metaSig);
+let metaSig=LS.get('midad.metaSig',null);
+if(!metaSig){metaSig={};Object.entries(meta.novels).forEach(([n,o])=>metaSig[n]=metaSigOf(o));LS.set('midad.metaSig',metaSig)}
 function stampMeta(){
   const now=Date.now();let ch=false;meta.gone=meta.gone||{};
   for(const [n,o] of Object.entries(meta.novels)){if(!o)continue;const h=metaSigOf(o);if(metaSig[n]!==h){o._u=now;metaSig[n]=h;ch=true;if(meta.gone[n])delete meta.gone[n]}}
@@ -2537,8 +2539,6 @@ function mergeNovelFields(p,o){
   }
   if(!(p.rels&&p.rels.edges&&p.rels.edges.length)&&o.rels&&o.rels.edges&&o.rels.edges.length){r.rels=o.rels;changed=true}
   if(!(p.glossary||'').trim()&&(o.glossary||'').trim()){r.glossary=o.glossary;changed=true}
-  // power ladder: a copy that has none never wipes out the one the other copy holds
-  if(!p.power&&o.power){r.power=o.power;changed=true}
   if(changed)r._u=Math.max(p._u||0,o._u||0,Date.now());
   return r}
 function applyRemoteMeta(d){
@@ -7466,10 +7466,15 @@ function syncReaderTheme(){
   // only when the reader opens/closes or its theme changes: the bars hiding/showing while scrolling must not restyle the whole app
   const sig=R&&R.classList.contains('show')?'on|'+(R.dataset.rt||'')+'|'+(document.documentElement.dataset.theme||'')+'|'+(document.body.className||''):'off';
   if(sig===rtSig)return;rtSig=sig;
-  if(sig==='off'){['--plasma','--ink','--panel','--tbg','--tfg','--tbd'].forEach(v=>st.removeProperty(v));return}
+  if(sig==='off'){['--plasma','--ink','--panel','--tbg','--tfg','--tbd','--deck','--line','--dim','--void','--onacc'].forEach(v=>st.removeProperty(v));return}
   const cs=getComputedStyle(R),g=v=>cs.getPropertyValue(v).trim();
   st.setProperty('--plasma',g('--ra'));st.setProperty('--ink',g('--rf'));st.setProperty('--panel',g('--rb'));
   st.setProperty('--tbg',g('--rb'));st.setProperty('--tfg',g('--rf'));st.setProperty('--tbd',g('--ra'));
+  // sheets opened while reading (power ladder, characters, terms…): cards, lines and faint text in the reading page's colours too
+  const rb=g('--rb'),rf=g('--rf');
+  st.setProperty('--deck',`color-mix(in srgb,${rf} 6%,${rb})`);st.setProperty('--void',`color-mix(in srgb,${rf} 3%,${rb})`);
+  st.setProperty('--line',`color-mix(in srgb,${rf} 16%,${rb})`);st.setProperty('--dim',`color-mix(in srgb,${rf} 62%,${rb})`);
+  st.setProperty('--onacc',rb);
 }
 if($('#reader'))new MutationObserver(syncReaderTheme).observe($('#reader'),{attributes:true,attributeFilter:['class','data-rt']});
 /* a page with another page on top of it pauses its decorative animations (a class, set only when the stacking changes) */
