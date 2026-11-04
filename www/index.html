@@ -2526,6 +2526,7 @@ function saveMeta(){stampMeta();pushMeta()}
 let metaPushT=null;
 /* a novel is one object in the account, so two devices can't each keep only what they know: the terms, characters, relations and glossary are merged field by field.
    Lists are united by name/term (the newer copy wins on the same name); names the user deleted are kept in `del` so they stay deleted. */
+const NOV_TEXT=['styleNote','desc','origName','srcUrl','style'];
 function mergeNovelFields(p,o){
   const r=Object.assign({},p);let changed=false;
   for(const [f,key] of [['lex','term'],['chars','name']]){
@@ -2543,6 +2544,13 @@ function mergeNovelFields(p,o){
   if(!(p.glossary||'').trim()&&(o.glossary||'').trim()){r.glossary=o.glossary;changed=true}
   // power ladder: a copy that has none never wipes out the one the other copy holds
   if(!p.power&&o.power){r.power=o.power;changed=true}
+  // the reader's own text fields (style notes, description, original name, link…) each keep their own edit time:
+  // a device with an older copy can't wipe them just because it saved something else about the novel later
+  {const fp=p._f||{},fo=o._f||{},ff=Object.assign({},fp);const has=v=>v!=null&&String(v).trim()!=='';
+   for(const k of NOV_TEXT){const tp=fp[k]||0,to=fo[k]||0;
+     if(to>tp){if(r[k]!==o[k]){r[k]=o[k];changed=true}ff[k]=to}
+     else if(!tp&&!to&&!has(p[k])&&has(o[k])){r[k]=o[k];changed=true}}
+   if(Object.keys(ff).length&&JSON.stringify(ff)!==JSON.stringify(p._f||{})){r._f=ff;changed=true}}
   if(changed)r._u=Math.max(p._u||0,o._u||0,Date.now());
   return r}
 function applyRemoteMeta(d){
@@ -4776,6 +4784,7 @@ $('#eSave').onclick=async()=>{
     if(allNovelNames().has(name)){toast('يوجد رواية بهذا الاسم، اختر اسماً آخر');return}
     const coverId=await saveCoverFor('\u0000');
     meta.novels[name]=Object.assign({color:edit.color,icon:edit.icon,desc:$('#eDesc').value.trim(),style:edit.style,styleNote:$('#eStyleNote').value.trim().slice(0,1500),created:Date.now()},novelInfoFields(),coverId?{cover:coverId}:{});
+    {const f={},now=Date.now();NOV_TEXT.forEach(k=>{if(meta.novels[name][k])f[k]=now});meta.novels[name]._f=f;}
     if(meta.renames)delete meta.renames[name];
     saveMeta();LS.set('midad.novel',name);hideSheet();renderLibrary();openNovel(name);toast('تم إنشاء الرواية');return;
   }
@@ -4800,8 +4809,11 @@ $('#eSave').onclick=async()=>{
   const coverId=await saveCoverFor(old);
   const base=target?Object.assign({},meta.novels[old]||{},target):Object.assign({},meta.novels[old]||{});
   const keepCover=target&&target.cover&&!coverId?target.cover:null;
+  const prevCopy=Object.assign({},meta.novels[old]||{},target||{});
   meta.novels[newName]=Object.assign(base,{color:edit.color,icon:edit.icon,desc:$('#eDesc').value.trim()||(target&&target.desc)||'',style:edit.style,styleNote:$('#eStyleNote').value.trim().slice(0,1500)||(target&&target.styleNote)||''},novelInfoFields());delete meta.novels[newName].cover;
   if(coverId)meta.novels[newName].cover=coverId;else if(keepCover)meta.novels[newName].cover=keepCover;
+  {const prev=prevCopy,cur=meta.novels[newName],f=Object.assign({},prev._f||{},cur._f||{}),now=Date.now();
+   NOV_TEXT.forEach(k=>{if((cur[k]||'')!==(prev[k]||''))f[k]=now});cur._f=f;}
   if(mergeInto)meta.novels[newName]=Object.assign({},meta.novels[old]||{},target); // the novel merged into keeps its own look and info
   if(newName!==old){
     // rename everything that belongs to the novel, locally first, then in the account in one go.
