@@ -3776,16 +3776,21 @@ function saveManual(kind,item){
   if(!val[nk]){toast(isL?'اكتب المصطلح أولاً':'اكتب اسم الشخصية أولاً');return}
   const m=meta.novels[curNovel]=meta.novels[curNovel]||{};
   const cur=m[key]&&Array.isArray(m[key].list)?m[key]:{list:[],upTo:0};
-  if(cur.list.some(x=>x[nk]===val[nk]&&x!==item)){toast('هذا الاسم موجود بالفعل');return}
+  // the entry being edited is found by its name in the current list (the list may have been refreshed by a sync since the form opened)
+  const oldKey=item&&item[nk],idx=item?cur.list.findIndex(x=>x===item||(oldKey&&x[nk]===oldKey)):-1;
+  if(cur.list.some((x,i)=>x[nk]===val[nk]&&i!==idx)){toast('هذا الاسم موجود بالفعل');return}
   if(cur.del)cur.del=cur.del.filter(x=>x!==val[nk]);
-  if(item)Object.assign(item,val,{manual:true});else cur.list.push(Object.assign(val,{manual:true}));
+  if(idx>-1){cur.list[idx]=Object.assign({},cur.list[idx],val,{manual:true});
+    // renamed: the old name must not come back from another device's copy
+    if(oldKey&&oldKey!==val[nk])cur.del=[...new Set([...(cur.del||[]),oldKey])];}
+  else cur.list.push(Object.assign(val,{manual:true}));
   m[key]=cur;saveMeta();
   closeManual();if(isL){renderLex()}else{renderChars()}if(curNovel)renderNovel();toast(item?'تم الحفظ':'أُضيف بنجاح');
 }
 function deleteManual(kind,item){
   const btn=$('#mDel');if(btn.dataset.arm!=='1'){btn.dataset.arm='1';btn.textContent='اضغط للتأكيد';return}
   const isL=kind==='lex',key=isL?'lex':'chars';const m=meta.novels[curNovel]||{};
-  if(m[key]&&m[key].list){const gone=item[isL?'term':'name'];m[key].del=[...new Set([...(m[key].del||[]),gone])];m[key].list=m[key].list.filter(x=>x!==item)}
+  if(m[key]&&m[key].list){const gone=item[isL?'term':'name'];m[key].del=[...new Set([...(m[key].del||[]),gone])];m[key].list=m[key].list.filter(x=>x!==item&&x[isL?'term':'name']!==gone)}
   saveMeta();closeManual();if(isL){renderLex()}else{renderChars()}if(curNovel)renderNovel();toast('حُذف');
 }
 $('#lxAdd').onclick=()=>openManual('lex',null);
