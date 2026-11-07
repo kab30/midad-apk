@@ -365,6 +365,14 @@ body.selmode .card.sel::after{background:var(--danger);border-color:var(--danger
 /* usage card */
 .usage{margin-bottom:16px;padding:14px;border-radius:18px;background:var(--deck);border:1px solid var(--line);display:flex;flex-direction:column;gap:12px}
 .ushead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.stsec{margin-top:14px}
+.molist{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.morow{display:grid;grid-template-columns:minmax(0,1.3fr) repeat(3,minmax(0,1fr));gap:8px;align-items:center;padding:10px 12px;border-radius:12px;background:var(--panel);border:1px solid var(--line);font-size:12.5px}
+.morow b{font-family:var(--mono);font-weight:600;font-variant-numeric:tabular-nums;display:block;font-size:14px}
+.morow small{color:var(--dim);font-size:11px}
+.morow .mn{font-weight:700;font-size:13.5px}
+.morow .bar{grid-column:1/-1;height:4px;border-radius:4px;background:var(--line);overflow:hidden}
+.morow .bar i{display:block;height:100%;background:var(--plasma);border-radius:4px}
 .ushead h2{margin:0;font-size:13px;font-weight:500;color:var(--dim);letter-spacing:.04em}
 .ushead button{font-size:12px;color:var(--plasma);padding:4px 10px;border-radius:8px;border:1px solid rgba(79,220,255,.4)}
 .urow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center}
@@ -1419,6 +1427,18 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
       <div class="wchart" id="wkChart" role="img"></div>
       <div class="wcap" id="wkCap" aria-live="polite"></div>
       <div class="wlegend"><span><i class="lb"></i>كلمات قرأتها</span><span><i class="ld"></i>فصول أضفتها أو ترجمتها</span></div>
+    </section>
+    <section class="week stsec" aria-label="هذا الشهر">
+      <div class="ushead"><h2 id="moTitle">هذا الشهر</h2></div>
+      <div class="wtiles" id="moTiles"></div>
+    </section>
+    <section class="week stsec" aria-label="منذ البداية">
+      <div class="ushead"><h2>منذ البداية</h2><small class="cpnote" id="atSince"></small></div>
+      <div class="wtiles" id="atTiles"></div>
+    </section>
+    <section class="week stsec" aria-label="كل شهر">
+      <div class="ushead"><h2>شهراً بشهر</h2></div>
+      <div class="molist" id="moList"></div>
     </section>
   </div>
 </div>
@@ -3087,7 +3107,7 @@ function renderLibrary(){
   const totalW=chapters.reduce((s,c)=>s+words(c.text||''),0);
   const done=chapters.filter(c=>(c.progress||0)>.97).length;
   $('#stats').innerHTML=`<div><b>${chapters.length}</b>فصل محفوظ</div><div><b>${chapters.length?novels.length:0}</b>رواية</div><div><b>${done}</b>فصل مكتمل</div><div><b>${kfmt(totalW)}</b>كلمة</div>`;
-  renderStatDot();if($('#statsView').classList.contains('show'))renderWeek();
+  renderStatDot();if($('#statsView').classList.contains('show')){renderWeek();renderTotals()}
   if($('#libView').classList.contains('show'))try{renderLibView()}catch(e){}
   try{renderHome()}catch(e){}
   $('#novels').innerHTML=chapters.length?novels.map(n=>`<option value="${esc(n)}">`).join(''):'';
@@ -5374,7 +5394,6 @@ function updateNav(){
 let curWords=0,readMark=0,wasDone=false,lastReadAt=0;
 function bumpStat(f,n){
   if(!n)return;const k=dayKey();const d=stats.days[k]=stats.days[k]||{rw:0,rc:0};d[f]=(d[f]||0)+n;
-  const cutoff=dayKey(new Date(Date.now()-400*864e5));Object.keys(stats.days).forEach(x=>{if(x<cutoff)delete stats.days[x]});
   saveStats();
 }
 function openReader(id,opt){
@@ -6843,8 +6862,29 @@ function renderWeek(){
   });
   wkCap(cur.find(d=>d.k===wkSel));
 }
+
+/* ---------- month and all-time reading totals (every day is kept, in this device and in the account) ---------- */
+const MONTHS=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+const fmtMin=sec=>{const m=Math.round((sec||0)/60);return m<60?m+' د':(m/60).toFixed(m<600?1:0).replace('.0','')+' س'};
+function statTotals(pred){const added=addedByDay();const t={rw:0,rc:0,rs:0,tc:0,tw:0,days:0};
+  for(const [k,d] of Object.entries(stats.days)){if(!pred(k))continue;t.rw+=d.rw||0;t.rc+=d.rc||0;t.rs+=d.rs||0;if((d.rw||0)>0||(d.rc||0)>0)t.days++}
+  for(const [k,a] of Object.entries(added)){if(!pred(k))continue;t.tc+=a.n;t.tw+=a.w}return t}
+function renderTotals(){
+  const now=new Date(),ym=dayKey(now).slice(0,7),pm=dayKey(new Date(now.getFullYear(),now.getMonth()-1,15)).slice(0,7);
+  const tiles=(t,cmp)=>[[t.rc,'فصول قرأتها',cmp&&cmp('rc')],[kfmt(t.rw),'كلمات قرأتها',cmp&&cmp('rw')],[fmtMin(t.rs),'وقت القراءة',cmp&&cmp('rs',fmtMin)],[t.days,'أيام قرأت فيها',cmp&&cmp('days')]]
+    .map(([v,l,d])=>`<div class="wtile"><b>${v}</b><span>${l}</span>${d?`<small>${d}</small>`:''}</div>`).join('');
+  const mo=statTotals(k=>k.startsWith(ym)),pv=statTotals(k=>k.startsWith(pm));
+  $('#moTitle').textContent='هذا الشهر · '+MONTHS[now.getMonth()];
+  $('#moTiles').innerHTML=tiles(mo,(f,fm)=>{const a=mo[f],b=pv[f];if(!b)return '';const d=a-b;return d===0?'مثل الشهر الماضي':(d>0?'+':'−')+(fm?fm(Math.abs(d)):kfmt(Math.abs(d)))+' عن الشهر الماضي'});
+  const all=statTotals(()=>true),keys=Object.keys(stats.days).filter(k=>(stats.days[k].rw||0)>0||(stats.days[k].rc||0)>0).sort();
+  $('#atTiles').innerHTML=tiles(all)+`<div class="wtile"><b>${all.tc}</b><span>فصول أضفتها أو ترجمتها</span></div><div class="wtile"><b>${kfmt(all.tw)}</b><span>كلمات ترجمتها</span></div>`;
+  $('#atSince').textContent=keys.length?'منذ '+keys[0].split('-').reverse().join('/'):'';
+  const months=[...new Set(Object.keys(stats.days).map(k=>k.slice(0,7)))].sort().reverse();
+  const rows=months.map(m=>({m,t:statTotals(k=>k.startsWith(m))})).filter(r=>r.t.rw||r.t.rc),max=Math.max(1,...rows.map(r=>r.t.rw));
+  $('#moList').innerHTML=rows.length?rows.map(({m,t})=>{const [y,mm]=m.split('-');return `<div class="morow"><span class="mn">${MONTHS[+mm-1]} ${y}</span><span><b>${kfmt(t.rw)}</b><small>كلمة</small></span><span><b>${t.rc}</b><small>فصل</small></span><span><b>${fmtMin(t.rs)}</b><small>قراءة</small></span><span class="bar"><i style="width:${Math.round(t.rw/max*100)}%"></i></span></div>`}).join(''):'<div class="empty">لا قراءة مسجّلة بعد.</div>';
+}
 function renderStatDot(){const {streak}=weekData();const d=$('#statDot');d.hidden=!streak;d.textContent=streak}
-function openStats(){$('#statsView').classList.add('show');$('#statsView').scrollTop=0;renderWeek();saveView();requestAnimationFrame(()=>$('#statsView').querySelectorAll('b').forEach(b=>{if(b.children.length===0&&/^\s*[\d,.]+/.test(b.textContent))countUp(b,0,800)}))}
+function openStats(){$('#statsView').classList.add('show');$('#statsView').scrollTop=0;renderWeek();renderTotals();saveView();requestAnimationFrame(()=>$('#statsView').querySelectorAll('b').forEach(b=>{if(b.children.length===0&&/^\s*[\d,.]+/.test(b.textContent))countUp(b,0,800)}))}
 
 /* ---------- full library page: every novel, searchable and filterable ---------- */
 let lvFilter='all';
