@@ -18,7 +18,7 @@
     const pre=path+'/';const subs=new Set();let timer=null;
     const snap=async()=>{const all=await tx('readonly',async s=>{const keys=await req(s.getAllKeys());const vals=await req(s.getAll());return keys.map((k,i)=>[k,vals[i]])});
       return {docs:all.filter(([k])=>String(k).startsWith(pre)).map(([k,v])=>({id:String(k).slice(pre.length),data:()=>JSON.parse(JSON.stringify(v))}))}};
-    const notify=()=>{clearTimeout(timer);timer=setTimeout(async()=>{if(!subs.size)return;let s;try{s=await snap()}catch(e){return}subs.forEach(([ok])=>{try{ok(s)}catch(e){}})},120)};
+    const notify=()=>{try{const k=(new Error().stack||'').split('\n')[3]||'';window.__nsrc&&window.__nsrc.push(k.trim().slice(0,90))}catch(e){}clearTimeout(timer);timer=setTimeout(async()=>{if(!subs.size)return;window.__snaps=(window.__snaps||0)+1;let s;try{s=await snap()}catch(e){return}subs.forEach(([ok])=>{try{ok(s)}catch(e){}})},120)};
     const clean=v=>JSON.parse(JSON.stringify(v));
     notifiers.add(notify);
     return {
@@ -30,7 +30,7 @@
         // quiet: a small write the app already holds in memory (reading progress, daily stats) is saved and sent without re-reading the whole library
         async set(v,o){await tx('readwrite',s=>req(s.put(clean(v),key)));if(!(o&&o.quiet))notify();cloud.queue(pre,id)},
         async update(p,o){await tx('readwrite',async s=>{const x=await req(s.get(key));await req(s.put(Object.assign({},x||{},clean(p)),key))});if(!(o&&o.quiet))notify();cloud.queue(pre,id)},
-        async delete(){await tx('readwrite',s=>req(s.delete(key)));notify();cloud.queue(pre,id)}
+        async delete(o){await tx('readwrite',s=>req(s.delete(key)));if(!(o&&o.quiet))notify();cloud.queue(pre,id)}
       }}
     };
   }

@@ -2436,7 +2436,7 @@ const USAGE_ID='_usage';
 let usage=LS.get('midad.usage',null)||{s:{pct:17,at:new Date(2026,9,12,2,20).getTime()},w:{pct:25,at:new Date(2026,9,14,14,0).getTime()},updated:Date.now(),since:{calls:0,chars:0},days:{}};
 if(!usage.days)usage.days={};if(!usage.since)usage.since={calls:0,chars:0};
 let usageT=null;
-function saveUsage(){LS.set('midad.usage',usage);if(!col)return;clearTimeout(usageT);usageT=setTimeout(()=>{col.doc(USAGE_ID).set(Object.assign({kind:'usage'},usage)).catch(()=>{})},1500)}
+function saveUsage(){LS.set('midad.usage',usage);if(!col)return;clearTimeout(usageT);usageT=setTimeout(()=>{col.doc(USAGE_ID).set(Object.assign({kind:'usage'},usage),{quiet:true}).catch(()=>{})},1500)}
 /* reading activity per day (words read, chapters finished) for weekly stats & streak */
 const STATS_ID='_stats';
 let stats=LS.get('midad.stats',{days:{}});if(!stats.days)stats.days={};
@@ -2520,7 +2520,7 @@ function saveChat(chId){
 }
 function persistRaw(){const v=rawLazy?raws.map(r=>{const {text,...x}=r;return Object.assign(x,{len:rawLen(r)})}):raws;LS.set('midad.raw',v);idbSave('raw',v)}
 async function rawSet(r){if(rawLazy){sbRawPut(r);return}if(!col){r.pending=true;persistRaw();return}try{const {id,pending,...b}=r;await col.doc(id).set(Object.assign({kind:'raw'},b));delete r.pending;persistRaw()}catch(e){r.pending=true;persistRaw();if(e&&e.code==='quota_exceeded')claudeFull();if(e&&e.code==='quota_exceeded')toast('المساحة ممتلئة، احذف بعض الفصول الخام')}}
-function rawDel(id){rawOut.delete(id);raws=raws.filter(r=>r.id!==id);persistRaw();if(col)col.doc(id).delete().catch(()=>{})}
+function rawDel(id){rawOut.delete(id);raws=raws.filter(r=>r.id!==id);persistRaw();if(col)col.doc(id).delete({quiet:true}).catch(()=>{})}
 /* the store keeps only chapters still waiting: a raw chapter whose translation already exists is removed (here and in the account),
    and a chapter pasted twice keeps only its latest copy. Runs whenever the store or the chapters change, so a delete that failed is retried. */
 function rawPrune(){
@@ -2534,7 +2534,7 @@ function rawPrune(){
   if(!drop.length)return 0;
   const ids=new Set(drop.map(r=>r.id));
   ids.forEach(id=>rawOut.delete(id));raws=raws.filter(r=>!ids.has(r.id));persistRaw();
-  if(col)ids.forEach(id=>col.doc(id).delete().catch(()=>{}));
+  if(col)ids.forEach(id=>col.doc(id).delete({quiet:true}).catch(()=>{}));
   return ids.size;
 }
 const rawsOf=novel=>raws.filter(r=>r.novel===novel).sort((a,b)=>a.num-b.num);
@@ -2562,12 +2562,12 @@ async function pushMeta(){
   const todo=Object.entries(meta.novels||{}).filter(([n,o])=>o&&(o._u||0)>(sentU[n]||0));
   let ok=true;
   await Promise.all([
-    ...todo.map(([n,o])=>col.doc(NOV+n).set(Object.assign({kind:'novel'},o)).then(()=>{sentU[n]=o._u||0;delete sentGone[n]}).catch(()=>{ok=false})),
+    ...todo.map(([n,o])=>col.doc(NOV+n).set(Object.assign({kind:'novel'},o),{quiet:true}).then(()=>{sentU[n]=o._u||0;delete sentGone[n]}).catch(()=>{ok=false})),
   ]);
   LS.set('midad.sentU',sentU);
   // the old single-document copy of the novels is dropped only after every row was confirmed
   if(!ok){setTimeout(pushMeta,5000);return}
-  col.doc(META_ID).set({kind:'meta',renames:meta.renames||{},gone:meta.gone||{}}).catch(()=>{});
+  col.doc(META_ID).set({kind:'meta',renames:meta.renames||{},gone:meta.gone||{}},{quiet:true}).catch(()=>{});
 }
 /* reads the novel rows and the meta document (renames, deletions and the older copy of the novels) and merges them */
 function applyMetaDocs(docs){
@@ -2698,14 +2698,14 @@ function localCol(){
   if(localColObj)return localColObj;
   const subs=new Set();let timer=null;const clean=v=>JSON.parse(JSON.stringify(v));
   const snap=async()=>{const all=await ltx('readonly',async st=>{const k=await lreq(st.getAllKeys()),v=await lreq(st.getAll());return k.map((x,i)=>[String(x),v[i]])});return {docs:all.map(([id,v])=>({id,exists:true,data:()=>clean(v)}))}};
-  const notify=()=>{clearTimeout(timer);timer=setTimeout(async()=>{if(!subs.size)return;let s;try{s=await snap()}catch(e){return}subs.forEach(([ok])=>{try{ok(s)}catch(e){}})},150)};
+  const notify=()=>{try{const k=(new Error().stack||'').split('\n')[3]||'';window.__nsrc&&window.__nsrc.push(k.trim().slice(0,90))}catch(e){}clearTimeout(timer);timer=setTimeout(async()=>{if(!subs.size)return;window.__snaps=(window.__snaps||0)+1;let s;try{s=await snap()}catch(e){return}subs.forEach(([ok])=>{try{ok(s)}catch(e){}})},150)};
   localColObj={get:snap,
     onSnapshot(ok,err){const e=[ok,err];subs.add(e);snap().then(ok).catch(x=>err&&err(x));return ()=>subs.delete(e)},
     doc(id){return {id,
       async get(){const v=await ltx('readonly',st=>lreq(st.get(id)));return {id,exists:v!==undefined,data:()=>v===undefined?undefined:clean(v)}},
       async set(v,o){await ltx('readwrite',st=>lreq(st.put(clean(v),id)));if(!(o&&o.quiet))notify()},
       async update(p,o){await ltx('readwrite',async st=>{const x=await lreq(st.get(id));await lreq(st.put(Object.assign({},x||{},clean(p)),id))});if(!(o&&o.quiet))notify()},
-      async delete(){await ltx('readwrite',st=>lreq(st.delete(id)));notify()}}}};
+      async delete(o){await ltx('readwrite',st=>lreq(st.delete(id)));if(!(o&&o.quiet))notify()}}}};
   return localColObj;
 }
 // first time on this device: start from what was already on screen, so the library doesn't go blank while the account is read
@@ -2795,7 +2795,8 @@ async function connectDb(){
       applyMetaDocs(s.docs)
       const ids=new Set(docs.map(x=>x.id));
       chapters=docs.map(x=>Object.assign({id:x.id},x.data())).concat(pend.filter(p=>!ids.has(p.id)));
-      persistLocal();setSync(true);renderLibrary();if(curNovel)renderNovel();if(current){updateNav();maybeAutoNext()}
+      // the store already holds these: the second copy is refreshed later, not on every update (it froze the screen)
+      persistSoon();setSync(true);renderLibrary();if(curNovel)renderNovel();if(current){updateNav();maybeAutoNext()}
       healRenames();
     },()=>{setSyncState('failed')});
     setSync(true);
@@ -6203,6 +6204,7 @@ $('#adForm').onsubmit=ev=>{ev.preventDefault();
 function runDiag(){
   if($('#diagPanel'))return;hideSheet();
   const P=document.createElement('div');P.id='diagPanel';document.body.appendChild(P);
+  window.__nsrc=[];const snaps0=window.__snaps||0;
   const T0=performance.now(),DUR=30000,gaps=[],frames=[],causes=new Map();let last=0,raf=0,obs=null,lt=false;
   const add=(k,d)=>{const c=causes.get(k)||{n:0,ms:0,max:0};c.n++;c.ms+=d;c.max=Math.max(c.max,d);causes.set(k,c)};
   try{obs=new PerformanceObserver(l=>l.getEntries().forEach(e=>{
@@ -6219,12 +6221,14 @@ function runDiag(){
   function finish(){cancelAnimationFrame(raf);if(obs)obs.disconnect();
     const noCode=gaps.filter(g=>!frames.some(f=>f.end>g.t-5&&f.t<g.t+g.d+5));
     const top=[...causes.entries()].sort((a,b)=>b[1].ms-a[1].ms).slice(0,6);
+    const ns={};(window.__nsrc||[]).forEach(k=>ns[k]=(ns[k]||0)+1);window.__nsrc=null;const nsTop=Object.entries(ns).sort((a,b)=>b[1]-a[1]).slice(0,4);
     const ua=navigator.userAgent.match(/(Android [\d.]+|iPhone OS [\d_]+|Chrome\/[\d.]+|Version\/[\d.]+ Mobile)/g)||[];
     P.innerHTML=`<b>نتيجة التشخيص (30 ث)</b>
 توقفات الشاشة (أكثر من 50ms): <b>${gaps.length}</b> · أطولها ${Math.max(0,...gaps.map(g=>g.d))} ms · متوسطها ${gaps.length?Math.round(gaps.reduce((a,g)=>a+g.d,0)/gaps.length):0} ms
 توقفات بلا أي كود (رسم أو كرت الشاشة أو التطبيق الحاضن): <b>${noCode.length}</b>
 إطارات طويلة فيها كود: <b>${frames.length}</b>${lt?' (المتصفح لا يدعم التفاصيل)':''}
 ${top.length?'أكثر ما يأخذ الوقت:\n'+top.map(([k,c],i)=>`${i+1}. ${k} — ${c.n} مرة، ${Math.round(c.ms)} ms، أطولها ${c.max}`).join('\n'):'لا يوجد كود طويل.'}
+إعادة تحميل المكتبة كاملة: <b>${(window.__snaps||0)-snaps0}</b>${nsTop.length?'\nسببها:\n'+nsTop.map(([k,n])=>'· '+n+'× '+k).join('\n'):''}
 النسخة: ${(window.MIDAD_BUILD?'تطبيق '+window.MIDAD_BUILD:'ويب')} · ${ua.join(' ')}`;
     const x=document.createElement('button');x.textContent='إغلاق';x.onclick=()=>P.remove();P.appendChild(x)}
 }
@@ -7327,7 +7331,7 @@ async function sbSqlRaw(query){
 function sbWrap(ref){
   return {get:(...a)=>ref.get(...a),onSnapshot:(...a)=>ref.onSnapshot(...a),
     doc(id){const d=ref.doc(id);return {id,get:(...a)=>d.get(...a),
-      set:(v,o)=>{const r=d.set(v,o);r.then(()=>sbPush(id),()=>{});return r},update:(v,o)=>{const r=d.update(v,o);r.then(()=>sbPush(id),()=>{});return r},delete:()=>{const r=d.delete();r.then(()=>sbPush(id),()=>{});return r}}}};
+      set:(v,o)=>{const r=d.set(v,o);r.then(()=>sbPush(id),()=>{});return r},update:(v,o)=>{const r=d.update(v,o);r.then(()=>sbPush(id),()=>{});return r},delete:o=>{const r=d.delete(o);r.then(()=>sbPush(id),()=>{});return r}}}};
 }
 // the queue keeps only ids (saved on the device, so a reload never loses it); the current document is read when it is sent,
 // so every row in Supabase is always a complete copy, never a partial update
