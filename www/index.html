@@ -1286,6 +1286,23 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 #manForm .manbtns .btn:not(.primary){background:var(--panel);color:var(--ink);border:1px solid var(--line)}
 #manForm .manbtns #mDel{grid-column:1 / -1;order:3;background:transparent;border:1px dashed color-mix(in srgb,var(--danger,#e5484d) 55%,transparent);color:var(--danger,#e5484d)}
 #manForm .manbtns #mDel[data-arm="1"]{background:color-mix(in srgb,var(--danger,#e5484d) 14%,transparent)}
+#adForm{display:grid;gap:14px;padding:4px 2px 14px;direction:rtl}
+#adForm label.manf{display:flex;flex-direction:column;gap:7px;margin:0}
+#adForm label.manf>span{font-size:12.5px;font-weight:700;letter-spacing:.2px;color:var(--dim);transition:color .25s}
+#adForm label.manf input,#adForm label.manf textarea{display:block;width:100%;box-sizing:border-box;padding:10px 2px 11px;border:0;border-bottom:1.5px solid var(--line);border-radius:0;background:transparent;color:var(--ink);font:500 16px var(--ui);text-align:start;transition:border-color .25s,box-shadow .25s;-webkit-appearance:none;appearance:none}
+#adForm label.manf textarea{resize:vertical;min-height:80px;line-height:1.75;font-size:15px}
+#adForm label.manf input::placeholder,#adForm label.manf textarea::placeholder{color:var(--dim);opacity:.6}
+#adForm label.manf input:focus,#adForm label.manf textarea:focus{outline:none;border-bottom-color:var(--plasma);box-shadow:0 2px 0 -1px color-mix(in srgb,var(--plasma) 45%,transparent)}
+#adForm label.manf:focus-within>span{color:var(--plasma)}
+#adForm .manbtns{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-top:6px;align-items:center}
+#adForm .manbtns .btn{flex:none;width:100%;height:50px;border-radius:16px;font-size:15px;font-weight:700;margin:0;cursor:pointer;transition:transform .15s,filter .2s}
+#adForm .manbtns .btn:active{transform:scale(.97)}
+#adForm .manbtns .btn.primary{background:linear-gradient(135deg,var(--plasma),color-mix(in srgb,var(--plasma) 60%,#000));color:var(--onacc);box-shadow:0 10px 22px -12px var(--plasma)}
+#adForm .manbtns .btn:not(.primary){background:var(--panel);color:var(--ink);border:1px solid var(--line)}
+#adForm .manbtns #mDel{grid-column:1 / -1;order:3;background:transparent;border:1px dashed color-mix(in srgb,var(--danger,#e5484d) 55%,transparent);color:var(--danger,#e5484d)}
+#adForm .manbtns #mDel[data-arm="1"]{background:color-mix(in srgb,var(--danger,#e5484d) 14%,transparent)}
+#adForm label.manf.row{flex-direction:row;align-items:flex-start;gap:10px}#adForm label.manf input[type=checkbox]{flex:0 0 20px!important;width:20px!important;min-width:20px;height:20px;padding:0!important;margin-top:2px;border:0;appearance:auto!important;-webkit-appearance:checkbox!important;accent-color:var(--plasma)}#adForm label.manf.row>span{line-height:1.6;color:var(--ink)}#adForm label.manf.row>span{font-weight:500}
+#adForm .seg{margin-bottom:2px}
 .lxcard.manual,.chcard.manual{border-color:color-mix(in srgb,var(--plasma) 45%,var(--line))}
 /* home effects: soft sheen on the main cards, press feedback, glowing section titles */
 .herocard,.hgoal,.hready button,.halert{position:relative;overflow:hidden;transition:transform .2s,box-shadow .3s}
@@ -1967,6 +1984,21 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
   </div>
 </section>
 
+<section class="sheet" id="anSheet" dir="rtl" aria-label="أضف من الفصل">
+  <div class="grip"></div>
+  <h3>أضف من الفصل</h3>
+  <button type="button" class="shx" aria-label="إغلاق">✕</button>
+  <div class="scroll"><form id="adForm" autocomplete="off">
+    <div class="seg" id="adKind" role="group" aria-label="أين يُضاف"><button type="button" data-k="gloss">قاموس الأسماء</button><button type="button" data-k="chars">شخصية</button><button type="button" data-k="lex">مصطلح</button></div>
+    <small class="cpnote" id="adStat"></small>
+    <label class="manf"><span>الاسم أو المصطلح بالعربية</span><input id="adName" required></label>
+    <label class="manf"><span>الاسم الأصلي (صيني أو إنجليزي)</span><input id="adSrc" dir="auto"></label>
+    <label class="manf" id="adCatL"><span id="adCatT">الفئة</span><input id="adCat" list="adCats"><datalist id="adCats"></datalist></label>
+    <label class="manf" id="adDescL"><span>الشرح</span><textarea id="adDesc" rows="3"></textarea></label>
+    <label class="manf row" id="adAlsoL" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="adAlso" checked style="width:auto"><span>واحفظ الاسم في قاموس الترجمة أيضاً (يُترجم دائماً بهذا الشكل)</span></label>
+    <div class="manbtns"><button type="button" class="btn" id="adAi">اقترح من النص</button><button type="submit" class="btn primary">حفظ</button></div>
+  </form></div>
+</section>
 <section class="sheet" id="manSheet" dir="rtl" aria-label="إضافة يدوية">
   <div class="grab"></div>
   <h3 id="manTitle"></h3>
@@ -2085,6 +2117,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 
 <div class="pmenu" id="pMenu" dir="rtl" hidden>
   <button type="button" data-act="repl" id="pmRepl" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h11l-3-3M20 17H9l3 3"/></svg><span>استبدل</span></button>
+  <button type="button" data-act="addn" id="pmAdd" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg><span>أضف للقاموس</span></button>
   <button type="button" data-act="word" id="pmWord" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/><path d="M9 8h7M9 12h5"/></svg><span>معنى</span></button>
   <button type="button" data-act="ask" id="pmAsk"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 1 3.1 6.3L4 19.5l1.2-3A7.9 7.9 0 0 1 4 12z"/><path d="M10 10a2 2 0 1 1 2.5 1.9c-.3.1-.5.4-.5.7V13M12 15.5h.01"/></svg><span>اسأل</span></button>
   <button type="button" data-act="hl" id="pmHl"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11-6 6v3h3l6-6"/><path d="m22 5-3-3-9 9 3 3z"/></svg><span>تظليل</span></button>
@@ -6000,17 +6033,17 @@ const art=$('#article');
 art.addEventListener('pointerdown',e=>{
   const p=e.target.closest('#article p');if(!p||p.classList.contains('busy')||!current)return;
   lpXY=[e.clientX,e.clientY];clearTimeout(lpT);
-  lpT=setTimeout(()=>{lpP=p;lpWord=wordAt(lpXY[0],lpXY[1],p);suppressClick=true;setTimeout(()=>{suppressClick=false},700);showPMenu(p);if(navigator.vibrate)try{navigator.vibrate(12)}catch(_){}},480);
+  lpT=setTimeout(()=>{lpP=p;lpWord=entAt(lpXY[0],lpXY[1])||wordAt(lpXY[0],lpXY[1],p);suppressClick=true;setTimeout(()=>{suppressClick=false},700);showPMenu(p);if(navigator.vibrate)try{navigator.vibrate(12)}catch(_){}},480);
 });
 ['pointerup','pointercancel','pointerleave'].forEach(ev=>art.addEventListener(ev,()=>clearTimeout(lpT)));
 art.addEventListener('pointermove',e=>{if(lpXY&&Math.hypot(e.clientX-lpXY[0],e.clientY-lpXY[1])>16)clearTimeout(lpT)});
 art.addEventListener('contextmenu',e=>{const p=e.target.closest('#article p');if(!p)return;e.preventDefault();
   if(!current||p.classList.contains('busy')||(!$('#pMenu').hidden&&lpP===p))return;
-  clearTimeout(lpT);lpP=p;lpWord=wordAt(e.clientX,e.clientY,p);suppressClick=true;setTimeout(()=>{suppressClick=false},700);showPMenu(p);if(navigator.vibrate)try{navigator.vibrate(12)}catch(_){}});
+  clearTimeout(lpT);lpP=p;lpWord=entAt(e.clientX,e.clientY)||wordAt(e.clientX,e.clientY,p);suppressClick=true;setTimeout(()=>{suppressClick=false},700);showPMenu(p);if(navigator.vibrate)try{navigator.vibrate(12)}catch(_){}});
 function showPMenu(p){
   document.querySelectorAll('#article p.held').forEach(x=>x.classList.remove('held'));p.classList.add('held');
   const m=$('#pMenu');$('#pmSrc').hidden=!current.src;
-  $('#pmWord').hidden=!lpWord;$('#pmRepl').hidden=!lpWord||current.sample;$('#pmWord').querySelector('span').textContent=lpWord?'معنى «'+(lpWord.length>7?lpWord.slice(0,7)+'…':lpWord)+'»':'معنى';
+  $('#pmWord').hidden=!lpWord;$('#pmAdd').hidden=!lpWord||current.sample;$('#pmAdd').querySelector('span').textContent=lpWord?'أضف «'+(lpWord.length>9?lpWord.slice(0,9)+'…':lpWord)+'»':'أضف للقاموس';$('#pmRepl').hidden=!lpWord||current.sample;$('#pmWord').querySelector('span').textContent=lpWord?'معنى «'+(lpWord.length>7?lpWord.slice(0,7)+'…':lpWord)+'»':'معنى';
   const i=+p.dataset.i,h=hasMark(current,i,'hl'),b=hasMark(current,i,'bm');
   $('#pmNums').hidden=!numHint(p);
   $('#pmHl').classList.toggle('on',h);$('#pmHl').querySelector('span').textContent=h?'إزالة التظليل':'تظليل';
@@ -6037,6 +6070,7 @@ $('#pMenu').addEventListener('click',async e=>{
   if(act==='edit'){editParagraph(p,i);return}
   if(act==='speak'){ttsStart(i);return}
   if(act==='word'){wordMeaning(lpWord,lines[i],p);return}
+  if(act==='addn'){openAddName(lpWord,i,lines);return}
   if(act==='repl'){openFR(lpWord);return}
   if(act==='redo')redoParagraph(p,i,lines);
 });
@@ -6095,6 +6129,70 @@ function applyNumFix(i,oldT,newT){
   const pp=document.querySelector(`#article p[data-i="${i}"]`);if(pp){pp.innerHTML=fmtPara(L[i]);applyMarks()}
   toast('تم تصحيح الرقم');openNums(i);
 }
+
+/* ---------- add a name / character / term straight from the chapter (long-press on it) ---------- */
+function entAt(x,y){const el=document.elementFromPoint(x,y);const e=el&&el.closest&&el.closest('#article .ent');return e?e.textContent.trim():''}
+let adKind='gloss',adCtx=null,adBusy=false;
+function adSetKind(k){adKind=k;$('#adKind').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.k===k)));
+  const g=k==='gloss';$('#adCatL').hidden=g;$('#adDescL').hidden=g;$('#adAlsoL').hidden=g;
+  $('#adCatT').textContent=k==='lex'?'الفئة':'الدور (بطل، صديق، خصم…)';
+  $('#adCats').innerHTML=k==='lex'?LEX_CATS.map(c=>`<option value="${manEsc(c)}">`).join(''):['بطل','بطلة','صديق','خصم','عائلة','معلّم','حليف'].map(c=>`<option value="${c}">`).join('')}
+$('#adKind').onclick=e=>{const b=e.target.closest('button');if(b)adSetKind(b.dataset.k)};
+function openAddName(word,i,lines){
+  if(!current||current.sample)return;
+  adCtx={novel:nv(current),num:current.num,line:lines[i]||'',src:srcWindow(i,lines.length)};
+  $('#adName').value=word||'';$('#adSrc').value='';$('#adCat').value='';$('#adDesc').value='';$('#adAlso').checked=true;$('#adStat').textContent='';
+  const m=meta.novels[adCtx.novel]||{},has=(k,f)=>((m[k]||{}).list||[]).some(x=>x[f]===word);
+  adSetKind(has('chars','name')?'chars':has('lex','term')?'lex':'gloss');
+  showSheet($('#anSheet'));
+  if(adCtx.src||adCtx.line)adSuggest();
+}
+async function adSuggest(){
+  if(adBusy||!adCtx)return;const sample=await getSample();if(!sample)return;
+  const name=$('#adName').value.trim();if(!name)return;adBusy=true;$('#adAi').disabled=true;$('#adStat').textContent='يبحث عن الاسم الأصلي في النص…';
+  try{
+    const m=meta.novels[adCtx.novel]||{};
+    const r=await sample.json(`في رواية مترجمة إلى العربية، اختار القارئ هذه الكلمة أو الاسم من الفقرة: «${name}»
+الفقرة العربية: ${adCtx.line.slice(0,700)}
+${adCtx.src?'النص الأصلي المقابل (موضع تقريبي):\n'+adCtx.src.slice(0,900):''}
+حدّد: هل هو اسم شخصية، أم مصطلح (تقنية، مرحلة قوة، مكان، منظمة، أداة، مفهوم)، أم مجرد اسم يُحفظ في قاموس الترجمة.
+- ar: الشكل العربي الكامل الصحيح كما في الفقرة (إن كان المختار جزءاً من اسم أطول فأعد الاسم كاملاً).
+- src: الاسم الأصلي كما يظهر في النص الأصلي بالضبط (صيني أو إنجليزي)، أو "" إن لم تجده.
+- kind: "chars" أو "lex" أو "gloss".
+- cat: للمصطلح واحدة من: ${LEX_CATS.join('، ')}. role: للشخصية دور قصير.
+- desc: سطر واحد يشرحه من الفقرة فقط، بلا تخمين ولا كشف أحداث لاحقة.
+${termsPrompt()}
+أعد JSON فقط: {"ar":"","src":"","kind":"","cat":"","role":"","desc":""}`,{cache:false,...ecoTier()});
+    trackUse('lex',0);
+    if(r&&typeof r==='object'){if(r.ar&&r.ar.length<=40)$('#adName').value=r.ar.trim();if(r.src&&!$('#adSrc').value)$('#adSrc').value=String(r.src).trim().slice(0,40);
+      if(['chars','lex','gloss'].includes(r.kind))adSetKind(r.kind);
+      const c=adKind==='lex'?r.cat:r.role;if(c&&!$('#adCat').value)$('#adCat').value=String(c).slice(0,30);if(r.desc&&!$('#adDesc').value)$('#adDesc').value=String(r.desc).slice(0,300);
+      $('#adStat').textContent='راجع الحقول ثم احفظ.'}
+  }catch(e){$('#adStat').textContent=TR_ERR[e&&e.code]||'تعذّر الاقتراح، اكتب الحقول بنفسك'}
+  finally{adBusy=false;$('#adAi').disabled=false}
+}
+$('#adAi').onclick=adSuggest;
+$('#adForm').onsubmit=ev=>{ev.preventDefault();
+  if(!adCtx)return;const name=$('#adName').value.trim(),src=$('#adSrc').value.trim().slice(0,40),cat=$('#adCat').value.trim().slice(0,30),desc=$('#adDesc').value.trim().slice(0,300);
+  if(!name){toast('اكتب الاسم أولاً');return}
+  const n=adCtx.novel,m=meta.novels[n]=meta.novels[n]||{};
+  const toGloss=()=>{if(!src)return false;const g=parseGloss(m.glossary);g.set(src,name);m.glossary=[...g].map(([a,b])=>a+' = '+b).join('\n').slice(0,60000);return true};
+  let msg;
+  if(adKind==='gloss'){if(!src){toast('اكتب الاسم الأصلي ليُحفظ في القاموس');return}toGloss();msg='أُضيف إلى قاموس الأسماء'}
+  else{
+    const isL=adKind==='lex',key=isL?'lex':'chars',nk=isL?'term':'name';
+    const cur=m[key]&&Array.isArray(m[key].list)?m[key]:{list:[],upTo:0};
+    const val=isL?{term:name,cat:cat||'أخرى',src,desc,first:adCtx.num||null}:{name,src,role:cat,desc,first:adCtx.num||null};
+    const idx=cur.list.findIndex(x=>x[nk]===name);
+    if(idx>-1){const o=cur.list[idx];cur.list[idx]=Object.assign({},o,Object.fromEntries(Object.entries(val).filter(([k,v])=>v&&!(k==='first'&&o.first))),{manual:true})}
+    else cur.list.push(Object.assign(val,{manual:true}));
+    if(cur.del)cur.del=cur.del.filter(x=>x!==name);m[key]=cur;
+    const g=$('#adAlso').checked&&toGloss();
+    msg=(idx>-1?'حُدّثت ':'أُضيفت ')+(isL?'المصطلح':'الشخصية')+(g?' وحُفظت في القاموس':'');
+  }
+  saveMeta();hideSheet();toast(msg);
+  try{if(prefs.ents!==false&&current&&nv(current)===n){document.querySelectorAll('#article .ent').forEach(e=>e.replaceWith(document.createTextNode(e.textContent)));document.querySelectorAll('#article p').forEach(p=>p.normalize());markEntities()}}catch(_){}
+};
 function srcWindow(i,n){const src=(current.src||'').split('\n').filter(Boolean);if(!src.length)return '';const c=Math.round(i*(src.length-1)/Math.max(1,n-1));return src.slice(Math.max(0,c-1),c+2).join('\n')}
 function showSource(p,i,n){
   const nx=p.nextElementSibling;if(nx&&nx.classList.contains('srcp')){nx.remove();return}
