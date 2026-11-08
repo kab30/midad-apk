@@ -6846,20 +6846,29 @@ function chCheck(ch){
     const b=chkLen(S.slice(s0,s1).join('')),a=chkLen(A.slice(a0,a1).join(''));if(b>80&&a/b<med*.55)out.short.push(a0)}}
   const nShort=out.short.length;if(nShort>6)out.short=out.short.slice(0,6);
   const nS=(ch.src.match(/[0-9〇零一二两三四五六七八九十百千]+[万萬亿億]/g)||[]).length;
-  if(nS>=2){const nA=(typeof arPhrases==='function'?arPhrases(ch.text).length:0)+(ch.text.match(/\d{5,}/g)||[]).length;if(nA<nS*.5)out.issues.push(`في الأصل ${nS} أرقام كبيرة (万/亿) ولم أجد في الترجمة إلا ${nA}: استعمل «تأكد من الأرقام» على فقراتها`)}
+  if(nS>=2){const nA=(typeof arPhrases==='function'?arPhrases(ch.text).length:0)+(ch.text.match(/\d{5,}/g)||[]).length;if(nA<nS*.5)out.issues.push(`في الأصل ${nS} أرقام كبيرة (万/亿) ولم أجد في الترجمة إلا ${nA}: فقراتها تحت`)}
   if(nShort)out.issues.push((nShort===1?'فقرة واحدة أقصر':nShort===2?'فقرتان أقصر':nShort<=10?nShort+' فقرات أقصر':nShort+' فقرة أقصر')+' بكثير من أصلها'+(nShort>6?' (أول 6 تحت)':''));
   const r=out.issues.length?out:null;chkCache.set(key,r);return r}
 function renderCheck(){
   const old=$('#chkBox');if(old)old.remove();document.querySelectorAll('#article p.chkshort').forEach(p=>p.classList.remove('chkshort'));
   if(!current||current.chkOk)return;const r=chCheck(current);if(!r)return;
+  // which paragraphs hold the big numbers that seem to be missing (each original line is matched to its place in the translation)
+  const numPars=[];
+  if(r.issues.some(t=>t.includes('万/亿'))){const S=chkLines(current.src),A=chkLines(current.text),re=/[0-9〇零一二两三四五六七八九十百千]+[万萬亿億]/g;
+    const nA=t=>(typeof arPhrases==='function'?arPhrases(t).length:0)+(t.match(/\d{5,}/g)||[]).length;
+    S.forEach((line,j)=>{const k=(line.match(re)||[]).length;if(!k)return;const c=Math.round(j*(A.length-1)/Math.max(1,S.length-1));
+      let have=0;for(let x=Math.max(0,c-1);x<=Math.min(A.length-1,c+1);x++)have+=nA(A[x]);
+      if(have<k&&!numPars.includes(c))numPars.push(c)});}
   const box=document.createElement('div');box.className='revbox chkbox';box.id='chkBox';
   box.innerHTML='<b>فحص الترجمة</b>'+r.issues.map(t=>`<div class="chki">⚠ ${esc(t)}</div>`).join('')+
-    (r.short.length?'<div class="chkrow">'+r.short.map(i=>`<button type="button" data-go="${i}">الفقرة ${i+1}</button>`).join('')+'</div>':'')+
+    (r.short.length?'<div class="chki" style="margin-top:8px">فقرات قصيرة:</div><div class="chkrow">'+r.short.map(i=>`<button type="button" data-go="${i}">الفقرة ${i+1}</button>`).join('')+'</div>':'')+
+    (numPars.length?'<div class="chki" style="margin-top:8px">فقرات قد تنقصها أرقام (الضغط يفتح «تأكد من الأرقام»):</div><div class="chkrow">'+numPars.slice(0,10).map(i=>`<button type="button" data-num="${i}">الفقرة ${i+1}</button>`).join('')+'</div>':'')+
     '<div class="chki" style="opacity:.75">للتصحيح: اضغط مطوّلاً على الفقرة ← «أعد الترجمة»، أو أعد ترجمة الفصل كله من قائمة الفصل.</div>'+
     '<div class="revall"><button type="button" id="chkOk">الترجمة سليمة، أخفِ التنبيه</button></div>';
   const ps=[...document.querySelectorAll('#article p')];r.short.forEach(i=>{const p=ps.find(x=>+x.dataset.i===i);if(p)p.classList.add('chkshort')});
   const h1=$('#article h1');if(h1)h1.after(box);
-  box.onclick=e=>{const g=e.target.closest('[data-go]');if(g){const p=ps.find(x=>+x.dataset.i===+g.dataset.go);if(p){p.scrollIntoView({block:'center',behavior:'smooth'});p.classList.remove('flash');void p.offsetWidth;p.classList.add('flash')}return}
+  box.onclick=e=>{const nb=e.target.closest('[data-num]');if(nb){const i=+nb.dataset.num,p=ps.find(x=>+x.dataset.i===i);if(p){p.scrollIntoView({block:'center',behavior:'smooth'});p.classList.remove('flash');void p.offsetWidth;p.classList.add('flash')}setTimeout(()=>{try{openNums(i)}catch(_){}},450);return}
+    const g=e.target.closest('[data-go]');if(g){const p=ps.find(x=>+x.dataset.i===+g.dataset.go);if(p){p.scrollIntoView({block:'center',behavior:'smooth'});p.classList.remove('flash');void p.offsetWidth;p.classList.add('flash')}return}
     if(e.target.id==='chkOk'){current.chkOk=true;saveChapterField(current,{chkOk:true});box.remove();document.querySelectorAll('#article p.chkshort').forEach(p=>p.classList.remove('chkshort'));renderLibrary();if(curNovel)renderNovel();toast('أُخفي تنبيه هذا الفصل')}};
 }
 async function reviewChapter(ch,manual){
