@@ -4458,20 +4458,51 @@ const FX=[[/^(?:يوان(?:ات)?|رنمينبي|يوانا)$/,'يوان',0.1500
  [/^بات$/,'بات',0.02990],[/^رينغيت$/,'رينغيت',0.2472],[/^دولار(?:ات|اً|ا)?(?: أمريكي| أميركي)?$/,'دولار',1]];
 const FX_CUR='يوان(?:ات)?|يوانا|رنمينبي|دولار(?:ات|اً|ا)?(?: (?:كندي|كنديّ|كندية|هونغ ?كونغ|هونج ?كونج|أسترالي|استرالي|سنغافوري|أمريكي|أميركي))?|ين(?:ات)?|وون|يورو|جنيه(?:ات)?(?: إسترليني| استرليني)?|روبي(?:ة|ات)(?: هندية)?|فرنك(?:ات)?(?: سويسري)?|بات|رينغيت';
 const FX_MUL='عشرات الآلاف|عشرة آلاف|مئات الآلاف|مئة ألف|مائة ألف|آلاف|ألف|ألفاً|ألفا|مئة مليون|مائة مليون|ملايين|مليون|مليونًا|مليونا|مليارات|مليار|ملياراً|مليارا|تريليون';
-const FX_RE=new RegExp(`([0-9٠-٩][0-9٠-٩.,،٬٫]*(?:\\s?[0-9٠-٩]{3})*)(?:\\s+(${FX_MUL}))?\\s+(?:من\\s+ال)?(${FX_CUR})(?![\\u0600-\\u06FF])`,'g');
+const FX_RE=new RegExp(`([0-9٠-٩][0-9٠-٩.,،٬٫]*(?:\\s?[0-9٠-٩]{3})*)(?:\\s+(${FX_MUL}))?\\s+(?:من\\s+ال)?(${FX_CUR})(?![\\u0621-\\u064A])`,'g');
 const FX_M={'ألف':1e3,'ألفاً':1e3,'ألفا':1e3,'آلاف':1e3,'عشرة آلاف':1e4,'عشرات الآلاف':1e4,'مئة ألف':1e5,'مائة ألف':1e5,'مئات الآلاف':1e5,'مليون':1e6,'مليونًا':1e6,'مليونا':1e6,'ملايين':1e6,'مئة مليون':1e8,'مائة مليون':1e8,'مليار':1e9,'ملياراً':1e9,'مليارا':1e9,'مليارات':1e9,'تريليون':1e12};
 function fxNum(t){t=t.replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/٫/g,'.').replace(/[،٬\s]/g,',');
   if(/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(t))return parseFloat(t.replace(/,/g,''));
   if(/^\d+,\d{1,2}$/.test(t))return parseFloat(t.replace(',','.'));return parseFloat(t.replace(/,/g,''))}
+/* amounts written in words: «ثلاثين ألف يوان», «مليون ونصف دولار», «خمسمئة ين» */
+const FXW_U={'واحد':1,'واحدة':1,'اثنان':2,'اثنين':2,'اثنتان':2,'اثنتين':2,'اثنا':2,'اثنتا':2,'ثلاث':3,'ثلاثة':3,'أربع':4,'أربعة':4,'اربع':4,'اربعة':4,'خمس':5,'خمسة':5,'ست':6,'ستة':6,'سبع':7,'سبعة':7,'ثمان':8,'ثماني':8,'ثمانية':8,'تسع':9,'تسعة':9,'عشر':10,'عشرة':10,'أحد':1,'إحدى':1,
+ 'عشرون':20,'عشرين':20,'ثلاثون':30,'ثلاثين':30,'أربعون':40,'أربعين':40,'اربعين':40,'خمسون':50,'خمسين':50,'ستون':60,'ستين':60,'سبعون':70,'سبعين':70,'ثمانون':80,'ثمانين':80,'تسعون':90,'تسعين':90,'نصف':.5,'ربع':.25};
+const FXW_H={'مئة':100,'مائة':100,'مئتان':200,'مئتين':200,'مئتا':200,'مئتي':200,'مائتي':200,'مائتان':200,'مائتين':200,'مائتا':200};
+const FXW_S={'ألف':1e3,'الف':1e3,'آلاف':1e3,'ألفان':2e3,'ألفين':2e3,'ألفا':1e3,'مليون':1e6,'ملايين':1e6,'مليونان':2e6,'مليونين':2e6,'مليونا':1e6,'مليار':1e9,'مليارات':1e9,'ملياران':2e9,'مليارين':2e9,'مليارا':1e9,'تريليون':1e12,'تريليونات':1e12};
+const fxWClean=w=>w.replace(/[ً-ْـ]/g,'').replace(/^و(?=.)/,'');
+function fxWordVal(w){w=fxWClean(w);if(w==='ونصف'||w==='نصف')return null;
+  if(w in FXW_U||w in FXW_H||w in FXW_S)return w;
+  const h=w.match(/^(ثلاث|أربع|اربع|خمس|ست|سبع|ثمان|تسع)(مئة|مائة)$/);if(h)return w;return null}
+function fxWordsNum(words){let total=0,cur=0,last=0,any=false;
+  for(let raw of words){const half=/^و?نصف$/.test(fxWClean(raw));if(half){if(last){total+=last/2;any=true}else cur+=.5;continue}
+    const w=fxWClean(raw);let v;
+    if(w in FXW_S){const sc=FXW_S[w];const dual=/ان$|ين$/.test(w)&&!/^ملايين$/.test(w);
+      const n=dual?2:(cur||1);total+=n*(dual?sc/2:sc);last=dual?sc/2:sc;cur=0;any=true;continue}
+    const hm=w.match(/^(ثلاث|أربع|اربع|خمس|ست|سبع|ثمان|تسع)(مئة|مائة)$/);
+    if(hm){cur+=FXW_U[hm[1]]*100;any=true;continue}
+    if(w in FXW_H){const hv=FXW_H[w];if(hv===100&&cur>=1&&cur<=9)cur*=100;else cur+=hv;any=true;continue}
+    if(w in FXW_U){v=FXW_U[w];
+      if((w==='عشر'||w==='عشرة')&&cur>0&&cur<10){cur+=10}else cur+=v;any=true;continue}
+    return NaN}
+  return any?total+cur:NaN}
+const FXW_ALL=[...Object.keys(FXW_U),...Object.keys(FXW_H),...Object.keys(FXW_S),'(?:ثلاث|أربع|اربع|خمس|ست|سبع|ثمان|تسع)(?:مئة|مائة)'].sort((a,b)=>b.length-a.length).join('|');
+const FX_WRE=new RegExp(`(?<![\\u0621-\\u064A])((?:و?(?:${FXW_ALL})[\\u064B-\\u0652]*\\s+){0,7}(?:${Object.keys(FXW_S).concat(Object.keys(FXW_H),Object.keys(FXW_U)).sort((a,b)=>b.length-a.length).join('|')}|(?:ثلاث|أربع|اربع|خمس|ست|سبع|ثمان|تسع)(?:مئة|مائة))[\\u064B-\\u0652]*(?:\\s+ونصف)?)\\s+(?:من\\s+ال)?(${FX_CUR})(?![\\u0621-\\u064A])`,'g');
+function fxFind(v){const out=[];let m;
+  FX_RE.lastIndex=0;while(m=FX_RE.exec(v)){const num=fxNum(m[1]);if(isFinite(num)&&num>0)out.push({i:m.index,e:m.index+m[0].length,t:m[0],val:num*(m[2]?FX_M[m[2]]||1:1),cur:m[3].trim()})}
+  FX_WRE.lastIndex=0;while(m=FX_WRE.exec(v)){const ws=m[1].trim().split(/\s+/);
+    // drop leading words that aren't part of the number (e.g. a word that only looks like one)
+    let val=NaN,k=0;for(;k<ws.length;k++){val=fxWordsNum(ws.slice(k));if(isFinite(val))break}
+    if(!isFinite(val)||val<=0)continue;const pre=ws.slice(0,k).join(' ');const st=m.index+(pre?m[0].indexOf(ws[k],pre.length):0);
+    if(out.some(o=>st<o.e&&m.index+m[0].length>o.i))continue;
+    out.push({i:st,e:m.index+m[0].length,t:v.slice(st,m.index+m[0].length),val,cur:m[2].trim()})}
+  return out.sort((a,b)=>a.i-b.i)}
 function markMoney(){
   const art=$('#article');if(!art)return;
-  const w=document.createTreeWalker(art,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement&&n.parentElement.closest('.money,.ent,button,.ill')?NodeFilter.FILTER_REJECT:FX_RE.test(n.nodeValue)?(FX_RE.lastIndex=0,NodeFilter.FILTER_ACCEPT):NodeFilter.FILTER_REJECT});
+  const w=document.createTreeWalker(art,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement&&n.parentElement.closest('.money,.ent,button,.ill')?NodeFilter.FILTER_REJECT:new RegExp(FX_CUR).test(n.nodeValue)?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT});
   const nodes=[];let n;while(n=w.nextNode())nodes.push(n);
-  nodes.forEach(t=>{const v=t.nodeValue;FX_RE.lastIndex=0;let m,last=0;const f=document.createDocumentFragment();
-    while(m=FX_RE.exec(v)){const num=fxNum(m[1]);if(!isFinite(num)||num<=0)continue;
-      const cur=m[3].trim(),fx=FX.find(([r])=>r.test(cur));if(!fx)continue;
-      f.append(v.slice(last,m.index));const s=document.createElement('span');s.className='money';s.textContent=m[0];
-      s.dataset.v=String(num*(m[2]?FX_M[m[2]]||1:1));s.dataset.c=fx[1];s.dataset.r=String(fx[2]);f.append(s);last=m.index+m[0].length}
+  nodes.forEach(t=>{const v=t.nodeValue,hits=fxFind(v);if(!hits.length)return;let last=0;const f=document.createDocumentFragment();
+    for(const h of hits){const fx=FX.find(([r])=>r.test(h.cur));if(!fx||h.i<last)continue;
+      f.append(v.slice(last,h.i));const s=document.createElement('span');s.className='money';s.textContent=h.t;
+      s.dataset.v=String(h.val);s.dataset.c=fx[1];s.dataset.r=String(fx[2]);f.append(s);last=h.e}
     if(last){f.append(v.slice(last));t.replaceWith(f)}});
 }
 function fxFmt(x){const a=Math.abs(x);
