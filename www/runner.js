@@ -4,6 +4,10 @@ function cfg(){try{return JSON.parse((CapacitorKV.get('cfg')||{}).value||'{}')}c
 addEventListener('configure',(resolve,reject,args)=>{
   try{const c=Object.assign(cfg(),args||{});CapacitorKV.set('cfg',JSON.stringify(c));resolve()}catch(e){reject(e)}
 });
+// test button in the app: one notification straight away from the background script
+addEventListener('testNote',(resolve,reject)=>{
+  try{CapacitorNotifications.schedule([{id:Math.floor(Date.now()/1000)%2000000000,title:'اختبار: إشعار الفصول',body:'إذا رأيت هذا فإشعار الفصول الجديدة يعمل',scheduleAt:new Date(Date.now()+3000),autoCancel:true}]);resolve()}catch(e){reject(e)}
+});
 addEventListener('checkNew',async(resolve,reject)=>{
   try{
     const c=cfg();

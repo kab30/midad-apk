@@ -2230,6 +2230,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
     </div>
     <small class="cpnote" style="margin-top:-6px">تخفيف الإضاءة يعمل فوق إضاءة الهاتف وفي كل صفحات مداد، ويمكنك أيضاً سحب إصبعك للأعلى أو للأسفل على الحافة اليسرى للشاشة أثناء القراءة. الدفء يقلل الضوء الأزرق للقراءة ليلاً.</small>
     <div class="opt"><h4>تشخيص التقطيع</h4><button type="button" class="btn" id="diagBtn" style="width:100%">افحص ما يوقف الشاشة (30 ثانية)</button><small class="cpnote">ابدأه ثم انزل في الفصل بإصبعك أو بالنزول التلقائي، وصوّر النتيجة وأرسلها لي.</small></div>
+    <div class="opt" id="ntOpt" hidden><h4>اختبار الإشعارات</h4><button type="button" class="btn" id="ntBtn" style="width:100%">أرسل إشعارين تجريبيين</button><small class="cpnote" id="ntStat">بعد الضغط اخرج من التطبيق: يصلك إشعار «الصلاة» بعد 10 ثوانٍ، وإشعار «الفصول» خلال ثوانٍ من الفحص الخلفي.</small></div>
     <div class="opt"><h4>نوع الخط</h4><div class="seg" id="fonts"></div></div>
     <div class="pair">
       <div class="opt"><h4>حجم النص</h4>
@@ -3043,6 +3044,23 @@ async function prayNotesSchedule(){
   }catch(e){}
 }
 setTimeout(prayNotesSchedule,6000);setInterval(prayNotesSchedule,3*3600e3);
+/* phone app: a button that sends one test notification through each route, and shows what is set up */
+if(window.midadCloud){const o=$('#ntOpt');if(o)o.hidden=false}
+async function noteTest(){
+  const P=(window.Capacitor&&window.Capacitor.Plugins)||{},LN=P.LocalNotifications,BR=P.BackgroundRunner,st=$('#ntStat'),out=[];
+  if(LN){try{let pr=await LN.checkPermissions();if(pr.display!=='granted')pr=await LN.requestPermissions();
+      if(pr.display!=='granted')out.push('✗ إشعارات الصلاة: الإذن مرفوض، فعّله من إعدادات الهاتف');
+      else{try{await LN.createChannel({id:'pray',name:'أوقات الصلاة',importance:5,visibility:1,vibration:true})}catch(e){}
+        await LN.schedule({notifications:[{id:7000099,title:'اختبار: إشعار الصلاة',body:'إذا رأيت هذا فإشعارات أوقات الصلاة تعمل',channelId:'pray',schedule:{at:new Date(Date.now()+10000),allowWhileIdle:true}}]});
+        const pend=await LN.getPending();const n=(pend.notifications||[]).filter(x=>x.id>=7000000&&x.id<7000099).length;
+        out.push(`✓ إشعار الصلاة التجريبي بعد 10 ثوانٍ · صلوات مجدولة: ${n}`)}}catch(e){out.push('✗ إشعارات الصلاة: '+((e&&e.message)||'خطأ'))}}
+  else out.push('✗ إشعارات الصلاة غير موجودة في هذه النسخة من التطبيق (تحتاج بناءً جديداً)');
+  if(BR){try{await BR.dispatchEvent({label:'app.midad.reader.check',event:'testNote',details:{}});out.push('✓ إشعار الفصول التجريبي أُرسل من الفحص الخلفي')}catch(e){out.push('✗ إشعار الفصول: '+((e&&e.message)||'الفحص الخلفي لا يستجيب'))}
+    out.push(window.midadCloud&&window.midadCloud.notifyOn&&window.midadCloud.notifyOn()?'✓ تنبيه الفصول الجديدة مفعّل (يفحص كل 15 دقيقة تقريباً)':'✗ تنبيه الفصول الجديدة غير مفعّل بعد')}
+  else out.push('✗ الفحص الخلفي غير موجود في هذه النسخة');
+  st.textContent=out.join('\n');st.style.whiteSpace='pre-line';
+}
+{const b=$('#ntBtn');if(b)b.onclick=noteTest}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(prayNotesSchedule,1500)});
 
 /* a small countdown to the next prayer, shown at the start of each chapter and kept up to date while reading */
