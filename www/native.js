@@ -162,6 +162,8 @@
       }else await brSend({on:false});
       LSS('midad.notify',!!on);emit();
     }
+    // switched on by itself once (asks for permission the first time)
+    setTimeout(()=>{if(BR&&ses&&!LSG('midad.notifyAuto',false)){LSS('midad.notifyAuto',true);notify(true).catch(()=>{})}},8000);
     // only chapters that arrive after you leave the app are announced
     document.addEventListener('visibilitychange',()=>{if(document.hidden&&LSG('midad.notify',false))brSend({since:new Date().toISOString()})});
     // bring back one novel's raw chapters straight from the account (if this phone lost them)

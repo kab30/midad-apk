@@ -3023,6 +3023,27 @@ function prayTick(){
 }
 
 setInterval(()=>{try{prayTick()}catch(e){}},30000);setTimeout(()=>{try{prayRefresh()}catch(e){}},4000);
+/* phone app: the next 3 days of prayer times are handed to Android as scheduled notifications,
+   so they appear in the notification bar even when Midad is closed */
+function parisEpoch(y,mo,d,h,mi){const g=Date.UTC(y,mo-1,d,h,mi);const p=parisParts(g);const w=Date.UTC(p.y,p.mo-1,p.d,p.h,p.mi);return g-(w-g)}
+let prayNoteSig='';
+async function prayNotesSchedule(){
+  const LN=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.LocalNotifications;if(!LN||!window.midadCloud)return;
+  try{
+    const perm=await LN.checkPermissions();if(perm.display!=='granted'){const r=await LN.requestPermissions();if(r.display!=='granted')return}
+    try{await LN.createChannel({id:'pray',name:'أوقات الصلاة',description:'تنبيه عند دخول وقت الصلاة',importance:5,visibility:1,vibration:true})}catch(e){}
+    const list=[],now=Date.now();
+    for(let k=0;k<3;k++){const p=parisParts(now+k*864e5);const key='midad.pray.'+p.y+'-'+p.mo+'-'+p.d;let t=null;try{t=LS.get(key,null)}catch(e){}
+      if(!t)t=prayCalc(p.y,p.mo,p.d);
+      PRAY_LIST.forEach(([id,label],j)=>{const m=/^(\d{1,2}):(\d{2})/.exec(t[id]||'');if(!m)return;const at=parisEpoch(p.y,p.mo,p.d,+m[1],+m[2]);
+        if(at>now+30000)list.push({id:7000000+k*10+j,title:'حان وقت الصلاة',body:`صلاة ${label} · ${m[1].padStart(2,'0')}:${m[2]}`,channelId:'pray',schedule:{at:new Date(at),allowWhileIdle:true}})})}
+    const sig=list.map(x=>x.id+'@'+(+x.schedule.at)).join(',');if(sig===prayNoteSig)return;prayNoteSig=sig;
+    try{const pend=await LN.getPending();const old=(pend.notifications||[]).filter(n=>n.id>=7000000&&n.id<7000100).map(n=>({id:n.id}));if(old.length)await LN.cancel({notifications:old})}catch(e){}
+    if(list.length)await LN.schedule({notifications:list});
+  }catch(e){}
+}
+setTimeout(prayNotesSchedule,6000);setInterval(prayNotesSchedule,3*3600e3);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(prayNotesSchedule,1500)});
 
 /* a small countdown to the next prayer, shown at the start of each chapter and kept up to date while reading */
 function prayPillText(){
