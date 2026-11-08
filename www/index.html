@@ -511,6 +511,9 @@ body.selmode .card.sel::after{background:var(--danger);border-color:var(--danger
 .stylechips{flex-wrap:wrap;overflow:visible;padding:0}
 .trstyle{font-size:12.5px;color:var(--dim);background:var(--deck);border:1px solid var(--line);border-radius:12px;padding:10px 12px;line-height:1.7}
 .trstyle b{color:var(--ink)}
+.chkbox .chki{font-size:13px;margin-top:4px}.chkbox .chkrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.chkbox .chkrow button{font:inherit;font-size:12.5px;padding:4px 10px;border-radius:999px;border:1px solid color-mix(in srgb,var(--ra) 50%,transparent);background:transparent;color:var(--ra)}
+#article p.chkshort{box-shadow:inset -3px 0 0 color-mix(in srgb,#e0a030 80%,transparent);padding-inline-start:10px}
+.card .chkw{display:inline-block;font-size:11px;color:var(--warn);border:1px solid color-mix(in srgb,var(--warn) 50%,transparent);border-radius:999px;padding:0 7px;margin-inline-start:6px}
 .revbox{font-family:var(--ui);margin:0 0 1.6em;padding:12px 14px;border-radius:14px;border:1px solid color-mix(in srgb,var(--ra) 50%,transparent);background:color-mix(in srgb,var(--ra) 8%,transparent);font-size:14px;line-height:1.7}
 .revbox>b{display:block;color:var(--ra);margin-bottom:6px;font-size:13.5px}
 .revrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-top:1px solid var(--rs)}
@@ -3197,6 +3200,7 @@ function chapterCard(c,showNovel,dupSet){
   const b=document.createElement('button');b.type='button';b.className='card'+(dupSet&&dupSet.has(c.num)?' dup':'')+(p>97?' read':'');
   b.innerHTML=`<div class="num">${c.num??'—'}<small>فصل</small>${p>97?'<span class="ck" aria-label="مقروء"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></span>':''}</div><div class="body"><div class="ttl"></div><div class="sub">${showNovel?'<span class="nv"></span>':''}<span>${Math.max(1,Math.round(words(c.text||'')/readWpm()))} د قراءة</span>${marksOf(c).length?`<span>${marksOf(c).length} علامة</span>`:''}${c.rate?`<span class="rate">${'★'.repeat(c.rate)}</span>`:''}${c.note?'<span>📝</span>':''}<span>${fmtDate(c.createdAt)}</span>${c.sample?'<span class="tag">مثال</span>':''}${dupSet&&dupSet.has(c.num)?'<span class="tag" style="border-color:var(--danger);color:var(--danger)">مكرر</span>':''}${p>97?'<span class="tag" style="border-color:var(--plasma);color:var(--plasma)">مكتمل</span>':''}</div><div class="bar"><i style="width:${p}%"></i></div></div>`;
   b.querySelector('.ttl').textContent=c.title;if(showNovel)b.querySelector('.nv').textContent=nv(c);
+  try{if(!c.chkOk&&chCheck(c)){const w=document.createElement('span');w.className='chkw';w.title='قد تكون الترجمة ناقصة';w.textContent='⚠ ناقص؟';b.querySelector('.ttl').after(w)}}catch(e){}
   b.dataset.id=c.id;b.onclick=()=>{if(selMode&&!showNovel){toggleSel(c.id,b);return}openReader(c.id)};if(selMode&&selIds.has(c.id))b.classList.add('sel');return b;
 }
 
@@ -5364,6 +5368,7 @@ async function runQueue(){
     renderPill();if(ch)trackUse('tr',0,0);
     if(ch&&!job.replaceId)autoSuggestNames(novel);
     if(ch&&prefs.trReview!==false)reviewChapter(ch,false);
+    if(ch){const ck=chCheck(ch);if(ck)setTimeout(()=>toast(`⚠ الفصل ${r.num}: ${ck.issues[0]}`,6000),2400)}
   }
   trCtl=null;trRunning=false;renderPill();
   if(current)maybeAutoNext();
@@ -5527,7 +5532,7 @@ function openReader(id,opt){
   const r=$('#reader');r.classList.add('show');r.classList.remove('immersive');
   applyPrefs();updateNav();maybeAutoNext();paintAskDot();saveView();renderMarkBtn();renderPowChip();
   const sc=$('#rscroll');
-  applyMarks();if(prefs.ents!==false)markEntities();try{markMoney()}catch(e){}renderIllustrations();renderRecap();renderReview();hideEnt();applyBili();setTimeout(focusTick,60);
+  applyMarks();if(prefs.ents!==false)markEntities();try{markMoney()}catch(e){}renderIllustrations();renderRecap();renderReview();try{renderCheck()}catch(e){}hideEnt();applyBili();setTimeout(focusTick,60);
   requestAnimationFrame(()=>{
     const tp=opt.para!=null&&document.querySelector(`#article p[data-i="${opt.para}"]`);
     if(tp){tp.scrollIntoView({block:'center'});tp.classList.add('flash');setTimeout(()=>tp.classList.remove('flash'),1700)}
@@ -6775,6 +6780,49 @@ rsc.addEventListener('touchend',e=>{
 rsc.addEventListener('touchcancel',()=>{sw=null;clearHint()});
 
 /* ---------- name review against the novel's glossary ---------- */
+
+/* ---------- completeness check of a translated chapter, done in code (free, instant):
+   fewer lines than the original, much shorter than this novel's usual translations (summarised),
+   single paragraphs far shorter than their original, and big numbers (万/亿) that seem to be missing ---------- */
+const chkCache=new Map(),chkRatio=new Map();
+const chkLines=t=>String(t||'').split('\n').map(x=>x.trim()).filter(Boolean);
+const chkLen=t=>String(t||'').replace(/\s+/g,'').length;
+function chkMedian(novel,cjk){
+  const list=chapters.filter(c=>nv(c)===novel&&c.src&&c.text&&!c.sample);const key=novel+'|'+list.length;
+  if(chkRatio.has(key))return chkRatio.get(key);
+  const rs=list.map(c=>chkLen(c.text)/Math.max(1,chkLen(c.src))).filter(x=>x>0.2&&x<8).sort((a,b)=>a-b);
+  const m=rs.length>=4?rs[Math.floor(rs.length/2)]:(cjk?2.7:1.15);chkRatio.set(key,m);return m}
+function chCheck(ch){
+  if(!ch||!ch.src||!ch.text||ch.sample)return null;
+  const key=ch.id+'|'+ch.text.length+'|'+ch.src.length;if(chkCache.has(key))return chkCache.get(key);
+  const S=chkLines(ch.src),A=chkLines(ch.text),lS=chkLen(ch.src),lA=chkLen(ch.text);
+  const cjk=/[一-鿿]/.test(ch.src.slice(0,400)),med=chkMedian(nv(ch),cjk),R=lA/Math.max(1,lS);
+  const out={issues:[],short:[]};
+  const miss=S.length-A.length;
+  const rel=R/med;
+  if(miss>Math.max(2,Math.round(S.length*.08))&&rel<.88)out.issues.push(`الترجمة فيها ${A.length} فقرة والأصل ${S.length}: قد تكون ${miss===1?'فقرة':miss===2?'فقرتان':miss<=10?miss+' فقرات':miss+' فقرة'} ناقصة`);
+  if(lS>300&&R<med*.72)out.issues.push(`الترجمة أقصر من المعتاد في هذه الرواية بنحو ${Math.round((1-R/med)*100)}٪: قد تكون ملخّصة`);
+  if(Math.abs(miss)<=2){for(let i=0;i<Math.min(S.length,A.length);i++){const a=chkLen(A[i]),b=chkLen(S[i]);if(b>=(cjk?22:60)&&a/b<med*.38)out.short.push(i)}}
+  else if(rel<.88){const K=8;for(let k=0;k<K;k++){const s0=Math.floor(k*S.length/K),s1=Math.floor((k+1)*S.length/K),a0=Math.floor(k*A.length/K),a1=Math.floor((k+1)*A.length/K);
+    const b=chkLen(S.slice(s0,s1).join('')),a=chkLen(A.slice(a0,a1).join(''));if(b>80&&a/b<med*.55)out.short.push(a0)}}
+  const nShort=out.short.length;if(nShort>6)out.short=out.short.slice(0,6);
+  const nS=(ch.src.match(/[0-9〇零一二两三四五六七八九十百千]+[万萬亿億]/g)||[]).length;
+  if(nS>=2){const nA=(typeof arPhrases==='function'?arPhrases(ch.text).length:0)+(ch.text.match(/\d{5,}/g)||[]).length;if(nA<nS*.5)out.issues.push(`في الأصل ${nS} أرقام كبيرة (万/亿) ولم أجد في الترجمة إلا ${nA}: استعمل «تأكد من الأرقام» على فقراتها`)}
+  if(nShort)out.issues.push((nShort===1?'فقرة واحدة أقصر':nShort===2?'فقرتان أقصر':nShort<=10?nShort+' فقرات أقصر':nShort+' فقرة أقصر')+' بكثير من أصلها'+(nShort>6?' (أول 6 تحت)':''));
+  const r=out.issues.length?out:null;chkCache.set(key,r);return r}
+function renderCheck(){
+  const old=$('#chkBox');if(old)old.remove();document.querySelectorAll('#article p.chkshort').forEach(p=>p.classList.remove('chkshort'));
+  if(!current||current.chkOk)return;const r=chCheck(current);if(!r)return;
+  const box=document.createElement('div');box.className='revbox chkbox';box.id='chkBox';
+  box.innerHTML='<b>فحص الترجمة</b>'+r.issues.map(t=>`<div class="chki">⚠ ${esc(t)}</div>`).join('')+
+    (r.short.length?'<div class="chkrow">'+r.short.map(i=>`<button type="button" data-go="${i}">الفقرة ${i+1}</button>`).join('')+'</div>':'')+
+    '<div class="chki" style="opacity:.75">للتصحيح: اضغط مطوّلاً على الفقرة ← «أعد الترجمة»، أو أعد ترجمة الفصل كله من قائمة الفصل.</div>'+
+    '<div class="revall"><button type="button" id="chkOk">الترجمة سليمة، أخفِ التنبيه</button></div>';
+  const ps=[...document.querySelectorAll('#article p')];r.short.forEach(i=>{const p=ps.find(x=>+x.dataset.i===i);if(p)p.classList.add('chkshort')});
+  const h1=$('#article h1');if(h1)h1.after(box);
+  box.onclick=e=>{const g=e.target.closest('[data-go]');if(g){const p=ps.find(x=>+x.dataset.i===+g.dataset.go);if(p){p.scrollIntoView({block:'center',behavior:'smooth'});p.classList.remove('flash');void p.offsetWidth;p.classList.add('flash')}return}
+    if(e.target.id==='chkOk'){current.chkOk=true;saveChapterField(current,{chkOk:true});box.remove();document.querySelectorAll('#article p.chkshort').forEach(p=>p.classList.remove('chkshort'));renderLibrary();if(curNovel)renderNovel();toast('أُخفي تنبيه هذا الفصل')}};
+}
 async function reviewChapter(ch,manual){
   const gl=parseGloss((meta.novels[nv(ch)]||{}).glossary);
   if(!gl.size){if(manual)toast('أضف أسماء لقاموس الرواية أولاً');return}
