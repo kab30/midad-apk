@@ -529,6 +529,7 @@ body.selmode .card.sel::after{background:var(--danger);border-color:var(--danger
 #article .ent.lx{text-decoration-style:dashed}
 #article .ent:active,#article .ent.on{background:color-mix(in srgb,var(--ra) 18%,transparent)}
 #reader.noent #article .ent{text-decoration:none;cursor:inherit}
+#toast .fxbox{display:flex;flex-direction:column;align-items:center;gap:2px;direction:rtl;min-width:200px}#toast .fxl{font-size:14px;opacity:.85}#toast .fxl bdi{font-variant-numeric:tabular-nums;font-weight:700}#toast .fxsrc{font-size:15px;opacity:1}#toast .fxmain{font-size:19px;font-weight:700;opacity:1}#toast .fxeq{font-size:13px;opacity:.6;line-height:1}#toast .fxnote{font-size:11px;opacity:.6;margin-top:4px}
 #article .money{cursor:pointer;text-decoration:underline dashed color-mix(in srgb,var(--ra) 60%,transparent);text-decoration-thickness:1.5px;text-underline-offset:.32em}
 .entpop{position:fixed;z-index:26;width:min(330px,calc(100vw - 24px));padding:14px;border-radius:16px;background:var(--panel);border:1px solid var(--line);
   box-shadow:0 18px 40px -12px rgba(0,0,0,.6);font-family:var(--ui);color:var(--ink);display:flex;flex-direction:column;gap:6px}
@@ -4481,7 +4482,12 @@ function fxFmt(x){const a=Math.abs(x);
 function showMoney(el){
   const v=+el.dataset.v,c=el.dataset.c,r=+el.dataset.r,usd=v*r,eur=usd/1.1224;
   const own=fxFmt(v)+' '+c;
-  toast(c==='دولار'?`${own} ≈ ${fxFmt(eur)} يورو`:`${own} ≈ ${fxFmt(usd)} دولار أمريكي${c!=='يورو'?` (≈ ${fxFmt(eur)} يورو)`:''}`+` · بسعر ${FX_DATE} تقريباً`,6000);
+  // one amount per line, each number kept beside its own currency
+  const L=(n,cur,cls,pre)=>`<div class="fxl${cls?' '+cls:''}">${pre||''}<bdi>${fxFmt(n)}</bdi> ${cur}</div>`;
+  const rows=[L(v,c,'fxsrc')];
+  if(c!=='دولار')rows.push('<div class="fxeq">≈</div>'+L(usd,'دولار أمريكي','fxmain'));
+  if(c!=='يورو')rows.push(c==='دولار'?'<div class="fxeq">≈</div>'+L(eur,'يورو','fxmain'):L(eur,'يورو','','≈ '));
+  toast('',6000);const t=$('#toast');t.innerHTML=`<div class="fxbox">${rows.join('')}<div class="fxnote">بسعر ${FX_DATE} تقريباً</div></div>`;
 }
 function markEntities(){
   if(!current||current.sample)return;
