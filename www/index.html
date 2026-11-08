@@ -4547,6 +4547,28 @@ function markMoney(){
       f.append(v.slice(last,h.i));const s=document.createElement('span');s.className='money';s.textContent=h.t;
       s.dataset.v=String(h.val);s.dataset.c=fx[1];s.dataset.r=String(fx[2]);f.append(s);last=h.e}
     if(last){f.append(v.slice(last));t.replaceWith(f)}});
+  try{markBareMoney()}catch(e){}
+}
+/* amounts with no currency word («250 ألفاً»): marked only when the paragraph or the two before it talk about money,
+   and read in the chapter's own currency (the one it mentions most; yuan for a Chinese original) */
+const FX_CTX=/يوان|دولار|ين\b|وون|يورو|مال|أموال|سعر|أسعار|ثمن|دفع|يدفع|ادفع|اشترى|يشتري|شراء|باع|يبيع|بيع|راتب|رواتب|تكلفة|كلفة|مبلغ|ربح|أرباح|خسار|خسر|استثمار|استثمر|ميزانية|قرض|دين|ديون|رصيد|نقد|نقود|تمويل|قيمة|سهم|أسهم|صفقة|خصم|ثروة|مكافأة|تعويض|إيجار|فاتورة|أجر|أجرة|غرامة/;
+const FX_BARE=new RegExp(`(?<![\\u0621-\\u064A0-9٠-٩])([0-9٠-٩][0-9٠-٩.,،٬٫]*)\\s+(${FX_MUL})(?![\\u0621-\\u064A])(?=\\s*(?:[.!؟?،,؛:"»)\\]…\\u201D]|$|\\s(?:فقط|تقريباً|تقريبا|كاملة|كامل)(?![\\u0621-\\u064A])))`,'g');
+function markBareMoney(){
+  if(!current)return;const art=$('#article');if(!art)return;
+  const seen={};art.querySelectorAll('.money').forEach(m=>{if(!m.dataset.guess)seen[m.dataset.c]=(seen[m.dataset.c]||0)+1});
+  let cur=Object.entries(seen).sort((a,b)=>b[1]-a[1])[0];cur=cur?cur[0]:(/[\u4e00-\u9fff]/.test((current.src||'').slice(0,400))?'يوان':null);
+  const fx=cur&&FX.find(([,n])=>n===cur);if(!fx)return;
+  const ps=[...art.querySelectorAll('p')];
+  ps.forEach((p,k)=>{
+    const ctx=[ps[k-2],ps[k-1],p].filter(Boolean).map(x=>x.textContent).join(' ');if(!FX_CTX.test(ctx))return;
+    const w=document.createTreeWalker(p,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement.closest('.money,.ent')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
+    const nodes=[];let n;while(n=w.nextNode())nodes.push(n);
+    nodes.forEach(t=>{const v=t.nodeValue;FX_BARE.lastIndex=0;let m,last=0;const f=document.createDocumentFragment();
+      while(m=FX_BARE.exec(v)){const num=fxNum(m[1]);if(!isFinite(num)||num<=0)continue;
+        f.append(v.slice(last,m.index));const s=document.createElement('span');s.className='money';s.textContent=m[0];
+        s.dataset.v=String(num*(FX_M[m[2]]||1));s.dataset.c=fx[1];s.dataset.r=String(fx[2]);s.dataset.guess='1';f.append(s);last=m.index+m[0].length}
+      if(last){f.append(v.slice(last));t.replaceWith(f)}});
+  });
 }
 function fxFmt(x){const a=Math.abs(x);
   if(a>=1e9)return (x/1e9).toLocaleString('en',{maximumFractionDigits:a>=1e10?0:1})+' مليار';
@@ -4561,7 +4583,7 @@ function showMoney(el){
   const rows=[L(v,c,'fxsrc')];
   if(c!=='دولار')rows.push('<div class="fxeq">≈</div>'+L(usd,'دولار أمريكي','fxmain'));
   if(c!=='يورو')rows.push(c==='دولار'?'<div class="fxeq">≈</div>'+L(eur,'يورو','fxmain'):L(eur,'يورو','','≈ '));
-  toast('',6000);const t=$('#toast');t.innerHTML=`<div class="fxbox">${rows.join('')}<div class="fxnote">بسعر ${FX_DATE} تقريباً</div></div>`;
+  toast('',6000);const t=$('#toast');t.innerHTML=`<div class="fxbox">${rows.join('')}<div class="fxnote">${el.dataset.guess?'العملة غير مذكورة، افترضتُ '+c+' · ':''}بسعر ${FX_DATE} تقريباً</div></div>`;
 }
 function markEntities(){
   if(!current||current.sample)return;
