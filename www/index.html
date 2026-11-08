@@ -4978,7 +4978,7 @@ function addParts(raw){
     r.num=k;r.auto=false});
   return parts;
 }
-function numHint(parts){
+function addNumHint(parts){
   const h=$('#inNumHint'),n=manualNum(),have=existingNums(novelVal());
   if(n==null){h.textContent='اتركه فارغاً ليأخذ مداد الرقم من النص، أو اكتب الرقم الذي تريد حفظ الفصل به.';h.style.color='';return}
   if(isNaN(n)){h.textContent='اكتب رقماً صحيحاً';h.style.color='var(--danger)';return}
@@ -4996,7 +4996,7 @@ function updateDetect(){
   const d=$('#detect'),bt=$('#batch'),sv=$('#saveAdd');
   if(!raw.trim()){$('#detT').textContent='الصق الفصل ليظهر العنوان والرقم هنا';$('#detN').innerHTML='—<small>فصل</small>';d.classList.remove('auto');d.hidden=false;bt.hidden=true;$('#detW').textContent=0;sv.disabled=true;sv.textContent='تم، اقرأ الفصل';return}
   const novel=novelVal();
-  const parts=addParts(raw);numHint(parts);
+  const parts=addParts(raw);addNumHint(parts);
   const have=existingNums(novel);
   $('#detW').textContent=words(parts.map(r=>r.lines.join(' ')).join(' '));
   if(parts.length<=1){
@@ -5106,7 +5106,7 @@ function updateTrInfo(){
   if(translating)return;
   const raw=$('#trIn').value.trim();
   if(!raw){$('#trInfo').textContent='الصق النص الأصلي';sv.disabled=true;sv.textContent='ترجم واحفظ';return}
-  const parts=trParts(),have=existingNums(novelVal());numHint(parts);
+  const parts=trParts(),have=existingNums(novelVal());addNumHint(parts);
   const fresh=parts.filter(r=>!have.has(r.num));
   const chars=parts.reduce((s,r)=>s+r.lines.join('').length,0);
   $('#trInfo').textContent=parts.length>1?`وُجد ${parts.length} فصول (${parts.map(r=>r.num).join('، ')}) · ${chars.toLocaleString('ar')} حرف`+(parts.length-fresh.length?` · ${parts.length-fresh.length} موجود سيُتخطى`:''):`الفصل ${parts[0]?parts[0].num:'?'} · ${chars.toLocaleString('ar')} حرف`+(parts[0]&&have.has(parts[0].num)?' · موجود مسبقاً':'');
