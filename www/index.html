@@ -1099,6 +1099,12 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 .hgoal .fire{flex:none;text-align:center;font-size:12px;color:var(--dim)}.hgoal .fire b{display:block;font-size:22px;line-height:1.1;color:#ffb347}
 .hgoal .fire.on b{animation:flame 1.6s ease-in-out infinite}
 @keyframes flame{50%{transform:scale(1.12) rotate(-4deg)}}
+
+.dk{position:relative;padding:16px 16px 12px;border-radius:20px;background:linear-gradient(135deg,color-mix(in srgb,var(--plasma) 10%,var(--panel)),var(--panel) 60%);border:1px solid var(--line);cursor:pointer;text-align:center;opacity:0;transition:opacity .5s}
+.dk.in{opacity:1}
+.dk .dkk{position:absolute;top:10px;inset-inline-start:12px;font:600 10.5px var(--ui);color:var(--plasma);border:1px solid color-mix(in srgb,var(--plasma) 40%,transparent);border-radius:999px;padding:1px 8px}
+.dk .dkt{font-family:var(--read,inherit);font-size:19px;line-height:1.9;font-weight:700;color:var(--ink);margin-top:10px}
+.dk .dkr{font:12px var(--ui);color:var(--dim);margin-top:6px}
 .hsec h3{margin:2px 2px 8px;font-size:14px;font-family:var(--ui);display:flex;align-items:center;gap:6px}
 .hsec h3 small{font-weight:400;color:var(--dim);font-size:12px}
 .hready{display:flex;gap:10px;overflow-x:auto;max-width:100%;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;padding-bottom:4px;scrollbar-width:none}
@@ -3000,6 +3006,40 @@ function prayCard(box){
   if(pb)pb.onclick=async()=>{try{const r=await Notification.requestPermission();toast(r==='granted'?'سيُنبّهك مداد قبل كل صلاة بـ 5 دقائق':'لم تُفعَّل التنبيهات')}catch(e){toast('التنبيهات غير متاحة هنا')}pb.remove()};
   box.appendChild(sec);
 }
+
+/* ---------- home: a Quran verse or an authentic hadith, a new one every minute (tap for the next) ---------- */
+const DHIKR=[
+ ['q','إن مع العسر يسرا','الشرح: 6'],['q','فاذكروني أذكركم واشكروا لي ولا تكفرون','البقرة: 152'],['q','ألا بذكر الله تطمئن القلوب','الرعد: 28'],
+ ['q','وقل رب زدني علما','طه: 114'],['q','لا يكلف الله نفسا إلا وسعها','البقرة: 286'],['q','ومن يتوكل على الله فهو حسبه','الطلاق: 3'],
+ ['q','وإذا سألك عبادي عني فإني قريب أجيب دعوة الداع إذا دعان','البقرة: 186'],
+ ['q','قل يا عبادي الذين أسرفوا على أنفسهم لا تقنطوا من رحمة الله إن الله يغفر الذنوب جميعا','الزمر: 53'],
+ ['q','ولسوف يعطيك ربك فترضى','الضحى: 5'],['q','إن الله مع الصابرين','البقرة: 153'],['q','وقال ربكم ادعوني أستجب لكم','غافر: 60'],
+ ['q','ومن يتق الله يجعل له مخرجا','الطلاق: 2'],['q','إن الله لا يضيع أجر المحسنين','التوبة: 120'],['q','وما توفيقي إلا بالله عليه توكلت وإليه أنيب','هود: 88'],
+ ['q','ربنا آتنا في الدنيا حسنة وفي الآخرة حسنة وقنا عذاب النار','البقرة: 201'],['q','رب اشرح لي صدري ويسر لي أمري','طه: 25–26'],
+ ['q','حسبنا الله ونعم الوكيل','آل عمران: 173'],['q','وهو معكم أين ما كنتم','الحديد: 4'],['q','ادفع بالتي هي أحسن','فصلت: 34'],
+ ['q','وقولوا للناس حسنا','البقرة: 83'],['q','لئن شكرتم لأزيدنكم','إبراهيم: 7'],['q','وتوكل على الحي الذي لا يموت','الفرقان: 58'],
+ ['h','إنما الأعمال بالنيات','البخاري ومسلم'],['h','الكلمة الطيبة صدقة','البخاري ومسلم'],
+ ['h','من كان يؤمن بالله واليوم الآخر فليقل خيرا أو ليصمت','البخاري ومسلم'],['h','لا يؤمن أحدكم حتى يحب لأخيه ما يحب لنفسه','البخاري ومسلم'],
+ ['h','خيركم من تعلم القرآن وعلمه','البخاري'],['h','الطهور شطر الإيمان','مسلم'],
+ ['h','كلمتان خفيفتان على اللسان، ثقيلتان في الميزان، حبيبتان إلى الرحمن: سبحان الله وبحمده، سبحان الله العظيم','البخاري ومسلم'],
+ ['h','المسلم من سلم المسلمون من لسانه ويده','البخاري ومسلم'],['h','من سلك طريقا يلتمس فيه علما سهل الله له به طريقا إلى الجنة','مسلم'],
+ ['h','أحب الأعمال إلى الله أدومها وإن قل','البخاري ومسلم'],['h','لا تحقرن من المعروف شيئا ولو أن تلقى أخاك بوجه طلق','مسلم'],
+ ['h','الدين النصيحة','مسلم'],['h','من لا يرحم لا يرحم','البخاري ومسلم'],['h','يسروا ولا تعسروا، وبشروا ولا تنفروا','البخاري ومسلم'],
+ ['h','ليس الشديد بالصرعة، إنما الشديد الذي يملك نفسه عند الغضب','البخاري ومسلم'],['h','من دل على خير فله مثل أجر فاعله','مسلم'],
+ ['h','إن الله رفيق يحب الرفق في الأمر كله','البخاري ومسلم'],['h','اتقوا النار ولو بشق تمرة','البخاري ومسلم'],
+ ['h','من صلى علي واحدة صلى الله عليه عشرا','مسلم'],['h','ما نقصت صدقة من مال','مسلم'],['h','لا تغضب','البخاري'],
+ ['h','إن الله لا ينظر إلى صوركم وأموالكم، ولكن ينظر إلى قلوبكم وأعمالكم','مسلم']];
+let dhikrIdx=-1,dhikrT=null;
+function dhikrPick(){const prev=dhikrIdx>=0?DHIKR[dhikrIdx][0]:null;let i,n=0;do{i=Math.floor(Math.random()*DHIKR.length);n++}while(n<20&&(i===dhikrIdx||(prev&&DHIKR[i][0]===prev)));dhikrIdx=i;return DHIKR[i]}
+function dhikrShow(sec,first){const [k,t,ref]=first&&dhikrIdx>=0?DHIKR[dhikrIdx]:dhikrPick();const b=sec.querySelector('.dk');b.classList.remove('in');void b.offsetWidth;
+  b.querySelector('.dkt').textContent=k==='q'?'﴿ '+t+' ﴾':'«'+t+'»';b.querySelector('.dkr').textContent=(k==='q'?'سورة ':'رواه ')+ref;b.querySelector('.dkk').textContent=k==='q'?'آية':'حديث';b.classList.add('in')}
+function dhikrCard(box){
+  const sec=document.createElement('section');sec.className='hsec';
+  sec.innerHTML='<h3>📖 آية وحديث <small>كل دقيقة · اضغط للتالي</small></h3><div class="dk" role="button" tabindex="0"><span class="dkk"></span><div class="dkt"></div><div class="dkr"></div></div>';
+  dhikrShow(sec,true);const dk=sec.querySelector('.dk');dk.onclick=()=>dhikrShow(sec);
+  box.appendChild(sec);
+  clearInterval(dhikrT);dhikrT=setInterval(()=>{const live=document.querySelector('.dk');if(!live||document.hidden||document.querySelector('.view.show:not(#library)'))return;dhikrShow(live.closest('.hsec'))},60000);
+}
 /* the "time for prayer" banner: stays for 10 seconds, then goes away by itself */
 function prayAlarm(label,time){
   let el=document.getElementById('prayAlarm');
@@ -3174,6 +3214,7 @@ function renderHome(){
   if(today>=goal&&LS.get('midad.goalDay','')!==dayKey()&&wasGoalBelow){LS.set('midad.goalDay',dayKey());toast('🎉 حققت هدفك اليومي!');buzz([20,60,30,60,40])}
   wasGoalBelow=today<goal;
   prayCard(box);
+  try{dhikrCard(box)}catch(e){}
   // 3) raw store running low on novels you are reading now
   const dis=LS.get('midad.rawAlertOff',{});
   names.forEach(n=>{
