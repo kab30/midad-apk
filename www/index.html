@@ -514,6 +514,10 @@ body.selmode .card.sel::after{background:var(--danger);border-color:var(--danger
 .chkbox .chki{font-size:13px;margin-top:4px}.chkbox .chkrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.chkbox .chkrow button{font:inherit;font-size:12.5px;padding:4px 10px;border-radius:999px;border:1px solid color-mix(in srgb,var(--ra) 50%,transparent);background:transparent;color:var(--ra)}
 #article p.chkshort{box-shadow:inset -3px 0 0 color-mix(in srgb,#e0a030 80%,transparent);padding-inline-start:10px}
 .card .chkw{display:inline-block;font-size:11px;color:var(--warn);border:1px solid color-mix(in srgb,var(--warn) 50%,transparent);border-radius:999px;padding:0 7px;margin-inline-start:6px}
+.rwgaps{font-family:var(--ui);font-size:13px;line-height:1.7;padding:10px 12px;border-radius:12px;margin:6px 0 10px;border:1px solid color-mix(in srgb,var(--warn) 45%,transparent);background:color-mix(in srgb,var(--warn) 8%,transparent)}
+.rwgaps.ok{border-color:var(--line);background:transparent;color:var(--dim)}
+.rwgaps .rwg{display:inline-block;padding:0 8px;margin:2px 0;border-radius:999px;background:color-mix(in srgb,var(--warn) 18%,transparent);font-weight:600;font-variant-numeric:tabular-nums}
+.rwgaps small{display:block;color:var(--dim);font-size:11.5px}
 .revbox{font-family:var(--ui);margin:0 0 1.6em;padding:12px 14px;border-radius:14px;border:1px solid color-mix(in srgb,var(--ra) 50%,transparent);background:color-mix(in srgb,var(--ra) 8%,transparent);font-size:14px;line-height:1.7}
 .revbox>b{display:block;color:var(--ra);margin-bottom:6px;font-size:13.5px}
 .revrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-top:1px solid var(--rs)}
@@ -2082,6 +2086,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
   <h3>مخزن الفصول الخام</h3>
   <div class="scroll">
     <div class="bkinfo" id="rwInfo"></div>
+    <div class="rwgaps" id="rwGaps" hidden></div>
     <label class="tog" for="rwAuto" style="padding:4px 0">
       <span>ترجمة تلقائية: فصل واحد جاهز دائماً<small>عند فتح أي فصل، يبدأ مداد فوراً بترجمة الفصل الذي يليه من المخزن</small></span>
       <input type="checkbox" id="rwAuto" class="cb">
@@ -5803,6 +5808,15 @@ function renderRawSheet(){
   const auto=(meta.novels[curNovel]||{}).rawAuto!==false;
   $('#rwAuto').checked=auto;
   $('#rwInfo').innerHTML=list.length?`<span><b>${list.length}</b> فصل خام</span><span>من <b>${list[0].num}</b> إلى <b>${list[list.length-1].num}</b></span>`:'<span>المخزن فارغ</span>';
+  // missing chapters: numbers that are neither translated nor waiting in the store, from the last translated chapter to the last one stored
+  {const g=$('#rwGaps');const nums=list.map(r=>r.num).filter(n=>n!=null);
+   if(!nums.length){g.hidden=true}else{
+     const tr=chapters.filter(c=>nv(c)===curNovel&&c.num!=null).map(c=>c.num),have=new Set([...tr,...nums]);
+     const lo=Math.min(...nums),hi=Math.max(...nums),trBelow=tr.filter(n=>n<lo),start=trBelow.length?Math.max(...trBelow):lo;
+     const miss=[];for(let n=start+1;n<hi;n++)if(!have.has(n))miss.push(n);
+     g.hidden=false;g.classList.toggle('ok',!miss.length);
+     g.innerHTML=miss.length?`<b>⚠ ${miss.length} ${miss.length===1?'فصل ناقص':miss.length===2?'فصلان ناقصان':miss.length<=10?'فصول ناقصة':'فصلاً ناقصاً'}</b> بين الفصل ${start} و${hi}: ${(miss.length>40?ranges(miss.slice(0,40)):ranges(miss)).split('، ').map(x=>`<bdi class="rwg">${x.replace('–',' إلى ')}</bdi>`).join(' ')}${miss.length>40?' …':''}<small>لا هي مترجمة ولا موجودة في المخزن. الصقها أو استوردها قبل أن تصل إليها الترجمة.</small>`
+       :`<b>✓ لا فصول ناقصة</b> من الفصل ${start} إلى ${hi}`;}}
   const need=list.filter(r=>!r.titleAr&&rawOrigTitle(r)&&!/^[\s؀-ۿ0-9:،.\-]+$/.test(rawOrigTitle(r))).length;
   const tb=$('#rwTitles');tb.hidden=!need&&!titlesBusy;tb.setAttribute('aria-busy',String(titlesBusy));
   $('#rwTitlesT').textContent=titlesBusy?'Gemini يترجم العناوين…':'ترجم العناوين';
