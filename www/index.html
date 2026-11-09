@@ -5974,6 +5974,17 @@ async function readEpub(f){
   const resolve=h=>{const parts=(base+decodeURIComponent(h.split('#')[0])).split('/');const out=[];parts.forEach(p=>{if(p==='..')out.pop();else if(p&&p!=='.')out.push(p)});return out.join('/')};
   const spine=tags(opf,'itemref').map(r=>items[r.getAttribute('idref')]).filter(it=>it&&/x?html/.test(it.type));
   const BLOCK=/^(P|DIV|H[1-6]|LI|BLOCKQUOTE|TR|SECTION|ARTICLE|PRE|DD|DT|FIGCAPTION)$/;
+  // chapter titles from the book's table of contents (EPUB2 toc.ncx, EPUB3 nav): many books keep them only there
+  const tocT={};
+  try{const ncxIt=Object.values(items).find(i=>/ncx/.test(i.type)||/\.ncx$/i.test(i.href));
+    if(ncxIt){const nx=await xml(resolve(ncxIt.href));if(nx){const nb=resolve(ncxIt.href).replace(/[^/]*$/,'');
+      tags(nx,'navPoint').forEach(np=>{const t=tags(np,'text')[0],c=tags(np,'content')[0];if(!t||!c)return;
+        const path=(nb+decodeURIComponent((c.getAttribute('src')||'').split('#')[0])).split('/').reduce((a,p)=>{if(p==='..')a.pop();else if(p&&p!=='.')a.push(p);return a},[]).join('/');
+        if(!tocT[path])tocT[path]=t.textContent.replace(/\s+/g,' ').trim()})}}
+    const navIt=Object.values(items).find(i=>/\bnav\b/.test(i.props));
+    if(navIt){const fl=z.file(resolve(navIt.href));if(fl){const nd=new DOMParser().parseFromString(await fl.async('string'),'text/html');const nb=resolve(navIt.href).replace(/[^/]*$/,'');
+      nd.querySelectorAll('nav a[href]').forEach(a=>{const path=(nb+decodeURIComponent(a.getAttribute('href').split('#')[0])).split('/').reduce((x,p)=>{if(p==='..')x.pop();else if(p&&p!=='.')x.push(p);return x},[]).join('/');
+        if(!tocT[path])tocT[path]=a.textContent.replace(/\s+/g,' ').trim()})}}}catch(e){}
   const docs=[];
   for(const it of spine){
     const fl=z.file(resolve(it.href));if(!fl)continue;
@@ -5985,7 +5996,7 @@ async function readEpub(f){
     body.querySelectorAll('br').forEach(x=>x.replaceWith('\n'));
     body.querySelectorAll('*').forEach(x=>{if(BLOCK.test(x.tagName.toUpperCase()))x.append('\n')});
     const text=body.textContent.split('\n').map(l=>l.replace(/\s+/g,' ').trim()).filter(Boolean).join('\n');
-    const h=body.querySelector('h1,h2,h3');const title=(h&&h.textContent.replace(/\s+/g,' ').trim())||((doc.querySelector('title')||{}).textContent||'').trim();
+    const h=body.querySelector('h1,h2,h3');const title=(h&&h.textContent.replace(/\s+/g,' ').trim())||tocT[resolve(it.href)]||((doc.querySelector('title')||{}).textContent||'').trim();
     if(text)docs.push({text,title:title.slice(0,120)});
   }
   if(!docs.length)throw new Error('epub');
@@ -6005,7 +6016,7 @@ $('#imFile').addEventListener('change',async e=>{
   try{
     const head=new Uint8Array(await f.slice(0,4).arrayBuffer());
     const isZip=head[0]===0x50&&head[1]===0x4B;
-    if(isZip||/\.epub$/i.test(f.name)){const ep=await readEpub(f);epubDocs=ep.docs;epubCover=ep.cover;text=ep.docs.map(d=>d.text).join('\n\n')}
+    if(isZip||/\.epub$/i.test(f.name)){const ep=await readEpub(f);epubDocs=ep.docs;epubCover=ep.cover;text=ep.docs.map(d=>(d.title&&!d.text.startsWith(d.title)?d.title+'\n':'')+d.text).join('\n\n')}
     else text=await readTextFile(f);
   }catch(err){toast(err&&err.message==='epub'?'تعذّرت قراءة ملف EPUB، قد يكون محمياً أو تالفاً':'تعذّرت قراءة الملف');return}
   await new Promise(r=>setTimeout(r,30));
