@@ -1004,6 +1004,32 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 .plring .rn small{font-family:var(--ui);font-size:9.5px;opacity:.75;margin-top:2px}
 .plring .rq{position:absolute;top:-3px;right:-3px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--plasma);color:var(--void,#05070d);font:700 11px/20px var(--ui);text-align:center}
 @media (prefers-reduced-motion:reduce){.plring .rv{transition:none}}
+/* ---------- chapters warehouse page ---------- */
+#whView{display:none;overflow-y:auto;z-index:6;background:var(--void);padding-inline:16px;padding-block:0 60px}
+#whView.show{display:flex;animation:vin .28s cubic-bezier(.2,.8,.2,1)}
+#whView .wrap{width:100%}
+.whsub{font:13px/1.6 var(--ui);color:var(--dim);margin:0 2px 12px}
+.whadd{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:16px;background:var(--deck);border:1px solid var(--line);margin-bottom:14px}
+.whadd>b{font:700 14px var(--ui)}
+.whpick{display:flex;flex-direction:column;gap:4px;max-height:220px;overflow-y:auto}
+.whpick button{display:flex;align-items:center;gap:10px;width:100%;text-align:start;padding:6px 8px;border-radius:10px;border:1px solid transparent;background:transparent;color:inherit;font:inherit;font-size:13px}
+.whpick button[aria-pressed="true"]{border-color:var(--plasma);background:color-mix(in srgb,var(--plasma) 10%,transparent)}
+.whpick .cover{width:30px;height:40px;flex:none;border-radius:6px;padding:0}.whpick .cover .cn,.whpick .cover .ico{display:none}
+.whgo{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.whgo span{flex:1 1 100%;font-size:12.5px;color:var(--dim)}
+.whgo .btn{flex:1;min-height:44px}
+.whlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:10px}
+.whcard{display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:18px;background:var(--deck);border:1px solid var(--line)}
+.whtop{display:flex;gap:12px;align-items:flex-start}
+.whtop .cover{width:58px;flex:none;border-radius:10px;padding:5px}.whtop .cover .cn{display:none}.whtop .cover .ico{width:22px;height:22px}.whtop .cover .ico svg{width:18px;height:18px}
+.whtop .t{font:700 14.5px/1.4 var(--ui);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.whtop .o{font-size:11.5px;color:var(--dim);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.whtop .chip{display:inline-block;margin-top:6px;font-size:11.5px;padding:1px 9px;border-radius:999px;border:1px solid color-mix(in srgb,var(--plasma) 45%,transparent);color:var(--plasma)}
+.whstats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.whstats div{padding:8px 6px;border-radius:12px;background:var(--panel);border:1px solid var(--line);text-align:center;font-size:10.5px;color:var(--dim)}
+.whstats b{display:block;font:600 13.5px var(--mono);color:var(--ink);font-variant-numeric:tabular-nums}
+.whstats .warn b{color:var(--warn)}
+.whcard .btn{min-height:42px}
+
 #diagPanel{position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);inset-inline:12px;z-index:2147483001;padding:10px 12px;border-radius:12px;background:#111;color:#fff;font:12px/1.55 var(--ui);direction:rtl;box-shadow:0 6px 24px rgba(0,0,0,.4);max-height:70vh;overflow:auto;white-space:pre-wrap}
 #diagPanel b{color:#ffd166}#diagPanel button{margin-top:8px;background:#333;color:#fff;border:0;border-radius:8px;padding:6px 12px;font:inherit}
 
@@ -1371,6 +1397,9 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
           <span class="sdot" id="statDot" hidden></span>
         </button>
+        <button class="ib statbtn" id="whBtn" type="button" aria-label="مخزن الفصول">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg>
+        </button>
         <button class="ib statbtn" id="libBtn" type="button" aria-label="مكتبة الروايات">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM9 19V7a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1z"/><path d="m14.5 6.6 2.9-.8a1 1 0 0 1 1.2.7l2.9 11a1 1 0 0 1-.7 1.2l-2.9.8a1 1 0 0 1-1.2-.7l-2.9-11a1 1 0 0 1 .7-1.2z"/></svg>
         </button>
@@ -1420,6 +1449,26 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
     فصل جديد
   </button>
+</div>
+
+<div id="whView" class="view" dir="rtl">
+  <div class="wrap">
+    <div class="nbar">
+      <button class="ib" id="whBack" type="button" aria-label="رجوع"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>
+      <h2 class="vtitle">مخزن الفصول</h2>
+      <button class="ib" id="whAddBtn" type="button" aria-label="إضافة فصول"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+    </div>
+    <p class="whsub">الفصول الخام لكل رواياتك قبل ترجمتها: أضف، ابحث، احذف، أو ترجم دفعة.</p>
+    <div class="whadd" id="whAdd" hidden>
+      <b>إضافة فصول جديدة</b>
+      <label class="search" for="whNq"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="whNq" type="search" placeholder="اختر الرواية: ابحث بالاسم" autocomplete="off"></label>
+      <div class="whpick" id="whPick"></div>
+      <div class="whgo"><span id="whChosen">لم تُختر رواية بعد</span><button type="button" class="btn primary" id="whFile" disabled>ارفع ملف فصول (TXT أو EPUB)</button><button type="button" class="btn" id="whPaste" disabled>الصق فصولاً</button></div>
+    </div>
+    <div class="lvsum" id="whSum"></div>
+    <label class="search" for="whQ"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="whQ" type="search" placeholder="ابحث في المخزن باسم الرواية" autocomplete="off"></label>
+    <div class="whlist" id="whList"></div>
+  </div>
 </div>
 
 <div id="libView" class="view" dir="rtl">
@@ -2132,6 +2181,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
         <div class="rwsel-r"><button type="button" class="dang" id="rwSelDel">احذف المحدد</button><button type="button" class="pri" id="rwSelTr">ترجم المحدد</button></div>
       </div>
     </div>
+    <label class="search" for="rwQ" style="margin:6px 0 8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="rwQ" type="search" placeholder="ابحث برقم الفصل أو عنوانه" autocomplete="off"></label>
     <div class="list" id="rwList"></div>
     <div class="row"><button class="btn" id="rwClose" type="button">إغلاق</button><button class="btn primary" id="rwAdd" type="button">لصق فصول خام</button></div>
   </div>
@@ -3241,6 +3291,7 @@ function renderLibrary(){
   $('#stats').innerHTML=`<div><b>${chapters.length}</b>فصل محفوظ</div><div><b>${chapters.length?novels.length:0}</b>رواية</div><div><b>${done}</b>فصل مكتمل</div><div><b>${kfmt(totalW)}</b>كلمة</div>`;
   renderStatDot();if($('#statsView').classList.contains('show')){renderWeek();renderTotals()}
   if($('#libView').classList.contains('show'))try{renderLibView()}catch(e){}
+  if($('#whView').classList.contains('show'))try{renderWh()}catch(e){}
   try{renderHome()}catch(e){}
   $('#novels').innerHTML=chapters.length?novels.map(n=>`<option value="${esc(n)}">`).join(''):'';
 
@@ -7352,6 +7403,50 @@ function renderLibView(){
     b.onclick=()=>openNovel(n);box.appendChild(b);
   });
 }
+
+/* ---------- chapters warehouse: every novel's raw chapters on one page ---------- */
+let whNovel=null;
+const fmtSize=n=>n>=1e6?(n/1e6).toFixed(1)+' م.ب':n>=1e3?Math.round(n/1e3)+' ك.ب':n+' ب';
+function whRows(){
+  const by=new Map();raws.forEach(r=>{if(r.novel==null)return;if(!by.has(r.novel))by.set(r.novel,[]);by.get(r.novel).push(r)});
+  return [...by.entries()].map(([n,l])=>{const nums=l.map(r=>r.num).filter(x=>x!=null).sort((a,b)=>a-b);
+    const tr=chapters.filter(c=>nv(c)===n&&c.num!=null).map(c=>c.num),have=new Set([...tr,...nums]);
+    const lo=nums[0],hi=nums[nums.length-1],below=tr.filter(x=>x<lo),start=below.length?Math.max(...below):lo;let miss=0;for(let k=start+1;k<hi;k++)if(!have.has(k))miss++;
+    const size=l.reduce((a,r)=>a+(typeof rawLen==='function'?rawLen(r):(r.text||'').length)*3,0);
+    const last=Math.max(0,...l.map(r=>r.createdAt||0));
+    return {n,l,lo,hi,miss,size,last,m:novelMeta(n)}}).sort((a,b)=>b.last-a.last)}
+function renderWh(){
+  const rows=whRows(),q=lvNorm($('#whQ').value.trim());
+  const tot=rows.reduce((a,r)=>a+r.l.length,0),sz=rows.reduce((a,r)=>a+r.size,0),miss=rows.reduce((a,r)=>a+r.miss,0);
+  $('#whSum').innerHTML=`<div><b>${rows.length}</b>رواية</div><div><b>${tot}</b>فصل خام</div><div><b>${fmtSize(sz)}</b>الحجم</div><div><b>${miss}</b>فصل ناقص</div>`;
+  const L=$('#whList');L.innerHTML='';
+  const vis=rows.filter(r=>!q||lvNorm(r.n).includes(q)||lvNorm(r.m.origName).includes(q));
+  if(!vis.length){L.innerHTML=`<div class="empty">${rows.length?'لا رواية في المخزن تطابق البحث.':'المخزن فارغ. اضغط + لإضافة فصول.'}</div>`;return}
+  vis.forEach(r=>{const c=document.createElement('div');c.className='whcard';
+    c.innerHTML=`<div class="whtop"><div class="cover"><div class="ico">${iconHTML(r.m.icon,r.n,22)}</div><div class="cn"></div></div><div style="min-width:0;flex:1"><div class="t"></div><div class="o"></div><span class="chip">${r.l.length} فصل</span></div></div>
+      <div class="whstats"><div><b dir="ltr">${r.lo??'—'}–${r.hi??'—'}</b>النطاق</div><div><b>${fmtSize(r.size)}</b>الحجم</div><div class="${r.miss?'warn':''}"><b>${r.miss}</b>ناقص</div></div>
+      <button type="button" class="btn">إدارة الفصول: بحث، تحديد، حذف، ترجمة</button>`;
+    paintCover(c.querySelector('.cover'),r.n,r.m);c.querySelector('.t').textContent=r.n;
+    const o=c.querySelector('.o');if(r.m.origName)o.textContent=r.m.origName;else o.remove();
+    c.querySelector('.btn').onclick=()=>{curNovel=r.n;$('#rwQ').value='';renderRawSheet();showSheet($('#rawSheet'))};
+    L.appendChild(c)});
+}
+function renderWhPick(){
+  const q=lvNorm($('#whNq').value.trim()),P=$('#whPick');P.innerHTML='';
+  [...allNovelNames()].filter(n=>!q||lvNorm(n).includes(q)||lvNorm(novelMeta(n).origName).includes(q)).slice(0,60).forEach(n=>{
+    const b=document.createElement('button');b.type='button';b.setAttribute('aria-pressed',String(n===whNovel));
+    b.innerHTML='<span class="cover"><span class="ico"></span><span class="cn"></span></span><span></span>';b.lastChild.textContent=n;paintCover(b.querySelector('.cover'),n,novelMeta(n));
+    b.onclick=()=>{whNovel=n;$('#whChosen').textContent='الرواية: '+n;$('#whFile').disabled=$('#whPaste').disabled=false;renderWhPick()};P.appendChild(b)});
+}
+function openWh(){$('#whView').classList.add('show');$('#whView').scrollTop=0;renderWh()}
+$('#whBtn').onclick=openWh;$('#whBack').onclick=()=>$('#whView').classList.remove('show');
+$('#whQ').addEventListener('input',renderWh);$('#whNq').addEventListener('input',renderWhPick);
+$('#whAddBtn').onclick=()=>{const a=$('#whAdd');a.hidden=!a.hidden;if(!a.hidden){renderWhPick();$('#whNq').focus()}};
+$('#whFile').onclick=()=>{if(!whNovel)return;curNovel=whNovel;$('#imFile').click()};
+$('#whPaste').onclick=()=>{if(!whNovel)return;curNovel=whNovel;openAdd(whNovel);setMode('tr');$('#trStore').checked=true;updateTrInfo()};
+// search inside one novel's raw store
+$('#rwQ').addEventListener('input',()=>{const q=$('#rwQ').value.trim();const n=q.replace(/[^\d٠-٩]/g,'');
+  $('#rwList').querySelectorAll('.rawrow').forEach(row=>{const t=row.textContent;row.hidden=!!q&&!(n&&new RegExp('(^|\\D)'+n.replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d))+'(\\D|$)').test(t))&&!t.includes(q)})});
 function openLibView(){$('#libView').classList.add('show');$('#libView').scrollTop=0;renderLibView()}
 $('#libBtn').onclick=openLibView;$('#shelfAll').onclick=openLibView;
 $('#lvBack').onclick=()=>{$('#libView').classList.remove('show')};
