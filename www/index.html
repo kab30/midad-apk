@@ -110,6 +110,9 @@ button{cursor:pointer;border:0;background:none;touch-action:manipulation}
 .shelf .cover .ico svg{width:26px;height:26px}
 .shelf .cover .ico .letter{font-size:26px!important}
 .shelf .cover .cn{font-size:12px;line-height:1.35;-webkit-line-clamp:3}
+/* home shelf: the cover stays clean, the title sits under it */
+.shelf .novel:not(.newnovel) .cover .cn{display:none}
+.shelf .novel .nname{font:600 12.5px/1.45 var(--ui);color:var(--ink);text-align:center;margin-top:7px;padding:0 2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-wrap:balance}
 .shelf .cover .badge{top:6px;left:6px;font-size:9px;padding:1px 6px}
 .shelf .novel .nmeta{font-size:10.5px;gap:4px}
 .shelf .novel .nmeta span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -3252,9 +3255,9 @@ function renderLibrary(){
     const m=novelMeta(name);
     const b=document.createElement('button');b.type='button';b.className='novel';
     b.innerHTML=`<div class="cover"><div class="ico">${iconHTML(m.icon,name,40)}</div><div class="cn"></div>${s.gaps.length?`<span class="badge">ناقص ${s.gaps.length}</span>`:''}</div>
-      <div class="nmeta"><span><b>${s.count}</b> فصل</span><span><b>${kfmt(s.words)}</b> كلمة</span></div>
+      <div class="nname"></div>
       <div class="bar"><i style="width:${Math.round(s.read*100)}%"></i></div>`;
-    b.querySelector('.cn').textContent=name;paintCover(b.querySelector('.cover'),name,m);
+    b.querySelector('.cn').textContent=name;b.querySelector('.nname').textContent=name;b.title=`${name} · ${s.count} فصل`;paintCover(b.querySelector('.cover'),name,m);
     b.dataset.novel=name;b.onclick=()=>openNovel(name);shelf.appendChild(b);
   }
   if(!libCounted&&stats.length){libCounted=true;shelf.querySelectorAll('.nmeta b').forEach(b=>countUp(b,0,800));countUp($('#shelfInfo'),0,800)}
