@@ -4212,6 +4212,13 @@ function fmtMoney(t){
   t=String(t).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/٫/g,'.').replace(/٬/g,',');
   return t.replace(/\d[\d,]*(\.\d+)?/g,m=>{const [a,b]=m.replace(/,/g,'').split('.');if(a.length<4)return m;return a.replace(/\B(?=(\d{3})+(?!\d))/g,',')+(b?'.'+b:'')});
 }
+/* "1 مليار دولار" / "مليار دولار" / "500 مليون يوان" → one comparable amount in yuan */
+function moneyAbs(t){t=fmtMoney(String(t||''));if(!t)return null;const m=t.match(/\d[\d,]*(\.\d+)?/);let n=m?parseFloat(m[0].replace(/,/g,'')):null;
+  const W=[[/تريليون|ترليون/,1e12],[/مليار|بليون|亿/,1e9],[/مليون/,1e6],[/ألف|آلاف|الف|万/,1e3]];let mul=1;for(const [r,x] of W)if(r.test(t)){mul=x;break}
+  if(/亿/.test(t))mul=1e8;else if(/万/.test(t)&&mul===1e3)mul=1e4;
+  if(n==null){if(mul===1)return null;n=1}
+  const R=/دولار|\$|USD/i.test(t)?CUR_RATE.USD:/يورو|€|EUR/i.test(t)?CUR_RATE.EUR:/جنيه|£|GBP/i.test(t)?CUR_RATE.GBP:/ين ياباني|JPY/i.test(t)?CUR_RATE.JPY:/وون|KRW/i.test(t)?CUR_RATE.KRW:1;
+  return n*mul*R}
 function moneyWords(v){const a=Math.abs(v),f=x=>(+x.toFixed(x<10?2:1)).toString();
   return a>=1e12?f(v/1e12)+' تريليون':a>=1e9?f(v/1e9)+' مليار':a>=1e6?f(v/1e6)+' مليون':a>=1e3?f(v/1e3)+' ألف':String(v)}
 const pkind=l=>PKINDS[l&&l.kind]?l.kind:'people';
@@ -4495,13 +4502,27 @@ ${batch.map(it=>`${batchHead(it)}\n${kbText(it)}`).join('\n\n')}`;
     const after=cur.hero&&cur.hero.stage?`${cur.hero.stage}|${cur.hero.sub||''}`:'';
     const k0=pkind(powLadders(cur)[0]);
     const reading=$('#reader').classList.contains('show')&&document.visibilityState==='visible'&&current&&nv(current)===novel&&!opt.recent;
-    if(before&&after&&before!==after&&reading){
+    // show a rise once: only when it goes past the highest rank/amount already announced for this novel
+    let fresh=false;
+    if(before&&after&&before!==after){
+      let ps={};try{ps=JSON.parse(localStorage.getItem('midad.promoSeen')||'{}')||{}}catch(e){}
+      const L0=powLadders(cur)[0]||{stages:[]},ix=(L0.stages||[]).findIndex(x=>x.name===cur.hero.stage);
+      const v=k0==='wealth'?moneyAbs(cur.hero.sub||cur.hero.stage):null;
+      const pv=moneyAbs(heroBefore&&heroBefore.sub||'');
+      const o=ps[novel]||{ix:-1,v:null};
+      if(o.v==null&&pv!=null)o.v=pv;
+      if(o.ix<0&&heroBefore){const bi=(L0.stages||[]).findIndex(x=>x.name===heroBefore.stage);if(bi>o.ix)o.ix=bi}
+      fresh=k0==='wealth'?(v!=null?(o.v==null||v>o.v*1.001):ix>o.ix):ix>o.ix||(ix===o.ix&&ix>-1&&cur.hero.sub&&cur.hero.sub!==o.sub&&!(o.subs||[]).includes(cur.hero.sub));
+      if(fresh){if(v!=null)o.v=Math.max(o.v||0,v);if(ix>o.ix){o.ix=ix;o.subs=[]}o.sub=cur.hero.sub||'';o.subs=[...(o.subs||[]),cur.hero.sub||''].slice(-20)}
+      ps[novel]=o;try{localStorage.setItem('midad.promoSeen',JSON.stringify(ps))}catch(e){}
+    }
+    if(fresh&&reading){
       const L0=powLadders(cur)[0]||{stages:[]},idx=(L0.stages||[]).findIndex(x=>x.name===cur.hero.stage),who=cur.hero.name||(k0==='company'?'الشركة':'البطل');
       showPromo(k0==='wealth'?{k:'wealth',head:`ثروة ${who}${cur.hero.ch?' · الفصل '+cur.hero.ch:''}`,from:fmtMoney(heroBefore&&heroBefore.sub||''),to:fmtMoney(cur.hero.sub||cur.hero.stage),fromV:numIn(heroBefore&&heroBefore.sub),idx,total:(L0.stages||[]).length}
         :k0==='company'?{k:'company',head:`${who} تكبر`,from:heroBefore&&heroBefore.stage,to:cur.hero.stage,idx,total:(L0.stages||[]).length}
         :{k:'people',head:`ترقّى ${who}${cur.hero.ch?' · الفصل '+cur.hero.ch:''}`,from:heroBefore?heroBefore.stage+(heroBefore.sub?' – '+heroBefore.sub:''):'',to:cur.hero.stage+(cur.hero.sub?' – '+cur.hero.sub:''),idx,total:(L0.stages||[]).length});
     }
-    else if(before&&after&&before!==after)toast(k0==='wealth'?fmtMoney(`💰 ثروة ${cur.hero.name||'البطل'} الآن: ${cur.hero.sub||cur.hero.stage}${cur.hero.ch?' (الفصل '+cur.hero.ch+')':''}`):k0==='company'?`🏢 ${cur.hero.name||'الشركة'} صارت: ${cur.hero.stage}`:`ترقّى ${cur.hero.name||'البطل'} إلى ${cur.hero.stage}${cur.hero.sub?' – '+cur.hero.sub:''}${cur.hero.ch?' في الفصل '+cur.hero.ch:''}`);
+    else if(fresh)toast(k0==='wealth'?fmtMoney(`💰 ثروة ${cur.hero.name||'البطل'} الآن: ${cur.hero.sub||cur.hero.stage}${cur.hero.ch?' (الفصل '+cur.hero.ch+')':''}`):k0==='company'?`🏢 ${cur.hero.name||'الشركة'} صارت: ${cur.hero.stage}`:`ترقّى ${cur.hero.name||'البطل'} إلى ${cur.hero.stage}${cur.hero.sub?' – '+cur.hero.sub:''}${cur.hero.ch?' في الفصل '+cur.hero.ch:''}`);
     else if(!quiet)toast('تم تحديث سلّم القوة');
   }catch(e){if(!quiet)toast(TR_ERR[e&&e.code]||'تعذّر تحديث سلّم القوة، حاول مرة أخرى')}
   powBusy=false;powMsg='';if(openSheet&&openSheet.id==='powSheet')renderPow();
@@ -8067,6 +8088,7 @@ applyUI();
 renderUsage();applyPrefs();renderLibrary();restoreView();
 })();
 </script>
+
 
 <script>
 (function(){const C=window.Capacitor;if(!C||!C.Plugins||!C.Plugins.App)return;
