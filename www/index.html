@@ -1350,6 +1350,8 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 #adForm .manbtns #mDel[data-arm="1"]{background:color-mix(in srgb,var(--danger,#e5484d) 14%,transparent)}
 #adForm label.manf.row{flex-direction:row;align-items:flex-start;gap:10px}#adForm label.manf input[type=checkbox]{flex:0 0 20px!important;width:20px!important;min-width:20px;height:20px;padding:0!important;margin-top:2px;border:0;appearance:auto!important;-webkit-appearance:checkbox!important;accent-color:var(--plasma)}#adForm label.manf.row>span{line-height:1.6;color:var(--ink)}#adForm label.manf.row>span{font-weight:500}
 #adForm .seg{margin-bottom:2px}
+#adExist{padding:12px 14px;border-radius:14px;background:color-mix(in srgb,var(--plasma) 10%,transparent);border:1px solid color-mix(in srgb,var(--plasma) 35%,transparent);font:500 13.5px/1.8 var(--ui);color:var(--ink)}
+#adExist b{color:var(--plasma)}#adExist .ax{display:block;font-size:12.5px;color:var(--dim)}
 .lxcard.manual,.chcard.manual{border-color:color-mix(in srgb,var(--plasma) 45%,var(--line))}
 /* home effects: soft sheen on the main cards, press feedback, glowing section titles */
 .herocard,.hgoal,.hready button,.halert{position:relative;overflow:hidden;transition:transform .2s,box-shadow .3s}
@@ -2061,6 +2063,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
   <div class="scroll"><form id="adForm" autocomplete="off">
     <div class="seg" id="adKind" role="group" aria-label="أين يُضاف"><button type="button" data-k="gloss">قاموس الأسماء</button><button type="button" data-k="chars">شخصية</button><button type="button" data-k="lex">مصطلح</button></div>
     <small class="cpnote" id="adStat"></small>
+    <div id="adExist" hidden></div>
     <label class="manf"><span>الاسم أو المصطلح بالعربية</span><input id="adName" required></label>
     <label class="manf"><span>الاسم الأصلي (صيني أو إنجليزي)</span><input id="adSrc" dir="auto"></label>
     <label class="manf" id="adCatL"><span id="adCatT">الفئة</span><input id="adCat" list="adCats"><datalist id="adCats"></datalist></label>
@@ -2670,7 +2673,14 @@ function mergeNovelFields(p,o){
     r[f]=res;
   }
   if(!(p.rels&&p.rels.edges&&p.rels.edges.length)&&o.rels&&o.rels.edges&&o.rels.edges.length){r.rels=o.rels;changed=true}
-  if(!(p.glossary||'').trim()&&(o.glossary||'').trim()){r.glossary=o.glossary;changed=true}
+  // glossary: names saved on either copy are kept (auto-added names of each chapter never get lost); names removed on purpose stay removed
+  {const del=new Set([...(p.glossDel||[]),...(o.glossDel||[])]),mp=parseGloss(p.glossary),mo=parseGloss(o.glossary);
+   const add=[...mo].filter(([k])=>!mp.has(k)&&!del.has(k));
+   const keep=(p.glossary||'').split('\n').filter(l=>{const i=l.search(/[=＝:：]/);return !(i>0&&del.has(l.slice(0,i).trim()))});
+   const g=[...keep,...add.map(([a,b])=>a+' = '+b)].join('\n').replace(/^\n+/,'').slice(0,60000);
+   if(g!==(p.glossary||'')&&(g.trim()||(p.glossary||'').trim())){r.glossary=g;changed=true}
+   if(del.size){const dl=[...del].slice(-800);if(JSON.stringify(dl)!==JSON.stringify(p.glossDel||[])){r.glossDel=dl;changed=true}}
+   if((o.glossUpTo||0)>(p.glossUpTo||0)){r.glossUpTo=o.glossUpTo;changed=true}}
   // power ladder: a copy that has none never wipes out the one the other copy holds
   if(!p.power&&o.power){r.power=o.power;changed=true}
   // the reader's own text fields (style notes, description, original name, link…) each keep their own edit time:
@@ -6239,7 +6249,9 @@ function renderSugg(){
 $('#nGloss').onclick=openGloss;
 $('#gsCancel').onclick=hideSheet;
 $('#gsAll').onclick=()=>{const cbs=[...document.querySelectorAll('#gsList input')];const all=cbs.every(c=>c.checked);cbs.forEach(c=>c.checked=!all)};
-function saveGlossText(t){meta.novels[curNovel]=Object.assign({},meta.novels[curNovel]||{},{glossary:t.slice(0,60000)});saveMeta()}
+function saveGlossText(t){const m0=meta.novels[curNovel]||{},a=parseGloss(m0.glossary),b=parseGloss(t);
+  const del=new Set(m0.glossDel||[]);a.forEach((v,k)=>{if(!b.has(k))del.add(k)});b.forEach((v,k)=>del.delete(k));
+  meta.novels[curNovel]=Object.assign({},m0,{glossary:t.slice(0,60000),glossDel:[...del].slice(-800)});saveMeta()}
 $('#gsSave').onclick=()=>{saveGlossText($('#gsText').value.trim());hideSheet();renderNovel();toast('تم حفظ القاموس')};
 $('#gsAdd').onclick=()=>{
   const picked=[...document.querySelectorAll('#gsList input')].filter(c=>c.checked).map(c=>gsSugg[+c.dataset.i]);
@@ -6297,7 +6309,7 @@ async function autoGlossRead(novel){
   try{
     const s=await extractNames(novel,todo);
     const m2=meta.novels[novel]||{},cur=parseGloss(m2.glossary);let n=0;
-    s.forEach(x=>{if(!cur.has(x.src)){cur.set(x.src,x.ar);n++}});
+    const gd=new Set(m2.glossDel||[]);s.forEach(x=>{if(!cur.has(x.src)&&!gd.has(x.src)){cur.set(x.src,x.ar);n++}});
     const upd={glossUpTo:Math.max(...todo.map(c=>c.num),up==null?-Infinity:up)};
     if(n)upd.glossary=[...cur].map(([a,b])=>a+' = '+b).join('\n').slice(0,60000);
     meta.novels[novel]=Object.assign({},m2,upd);saveMeta();
@@ -6435,7 +6447,35 @@ function applyNumFix(i,oldT,newT){
 
 /* ---------- add a name / character / term straight from the chapter (long-press on it) ---------- */
 function entAt(x,y){const el=document.elementFromPoint(x,y);const e=el&&el.closest&&el.closest('#article .ent');return e?e.textContent.trim():''}
-let adKind='gloss',adCtx=null,adBusy=false;
+let adKind='gloss',adCtx=null,adBusy=false,adEdit=null;
+/* is this name already saved (dictionary, characters or terms)? looks by the Arabic form or by the original */
+function adFind(name,src){
+  const m=meta.novels[adCtx&&adCtx.novel]||{},hits=[];
+  if(name||src)parseGloss(m.glossary).forEach((v,k)=>{if((src&&k===src)||(name&&v===name))hits.push({k:'gloss',name:v,src:k})});
+  for(const [key,f] of [['chars','name'],['lex','term']])((m[key]||{}).list||[]).forEach(x=>{if(x&&((name&&x[f]===name)||(src&&x.src&&x.src===src)))hits.push({k:key,name:x[f],src:x.src||'',o:x})});
+  return hits}
+const AD_KN={gloss:'قاموس الأسماء',chars:'الشخصيات',lex:'المصطلحات'};
+function adCheck(fill){
+  if(!adCtx)return;const name=$('#adName').value.trim(),src=$('#adSrc').value.trim();
+  const hits=adFind(name,src);
+  if(hits.length){
+    // remember the saved form, so a new spelling replaces it instead of making a second entry
+    const old=adEdit&&adEdit.name;adEdit={name:hits[0].name,src:hits.find(h=>h.src)?.src||'',hits};
+    if(old&&old!==adEdit.name&&hits.every(h=>h.name!==old))adEdit.name=hits[0].name;
+    if(fill){const h=hits.find(x=>x.k!=='gloss')||hits[0];
+      if(!$('#adSrc').value&&adEdit.src)$('#adSrc').value=adEdit.src;
+      if(h.o){adSetKind(h.k);if(!$('#adCat').value)$('#adCat').value=(h.k==='lex'?h.o.cat:h.o.role)||'';if(!$('#adDesc').value)$('#adDesc').value=h.o.desc||''}}
+  }
+  const X=$('#adExist');
+  if(!adEdit){X.hidden=true;return}
+  const where=[...new Set(adEdit.hits.map(h=>AD_KN[h.k]))].join(' و');
+  const nn=$('#adName').value.trim(),ren=nn&&nn!==adEdit.name;
+  X.hidden=false;
+  X.innerHTML=`موجود من قبل في <b></b>: «<span class="an"></span>»${adEdit.src?' · الأصل <span class="as" dir="auto"></span>':''}<span class="ax"></span>`;
+  X.querySelector('b').textContent=where;X.querySelector('.an').textContent=adEdit.name;if(adEdit.src)X.querySelector('.as').textContent=adEdit.src;
+  X.querySelector('.ax').textContent=ren?`عند الحفظ يتغيّر «${adEdit.name}» إلى «${nn}» في المحفوظات وفي فصول هذه الرواية المترجمة.`:'غيّر الاسم أو الحقول ثم احفظ، ويُحدَّث المحفوظ بدل أن يُضاف مرة ثانية.';
+}
+let adChkT=null;['#adName','#adSrc'].forEach(q=>$(q).addEventListener('input',()=>{clearTimeout(adChkT);adChkT=setTimeout(()=>adCheck(false),250)}));
 function adSetKind(k){adKind=k;$('#adKind').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.k===k)));
   const g=k==='gloss';$('#adCatL').hidden=g;$('#adDescL').hidden=g;$('#adAlsoL').hidden=g;
   $('#adCatT').textContent=k==='lex'?'الفئة':'الدور (بطل، صديق، خصم…)';
@@ -6447,6 +6487,7 @@ function openAddName(word,i,lines){
   $('#adName').value=word||'';$('#adSrc').value='';$('#adCat').value='';$('#adDesc').value='';$('#adAlso').checked=true;$('#adStat').textContent='';
   const m=meta.novels[adCtx.novel]||{},has=(k,f)=>((m[k]||{}).list||[]).some(x=>x[f]===word);
   adSetKind(has('chars','name')?'chars':has('lex','term')?'lex':'gloss');
+  adEdit=null;adCheck(true);
   showSheet($('#anSheet'));
   if(adCtx.src||adCtx.line)adSuggest();
 }
@@ -6470,7 +6511,7 @@ ${termsPrompt()}
     if(r&&typeof r==='object'){if(r.ar&&r.ar.length<=40)$('#adName').value=r.ar.trim();if(r.src&&!$('#adSrc').value)$('#adSrc').value=String(r.src).trim().slice(0,40);
       if(['chars','lex','gloss'].includes(r.kind))adSetKind(r.kind);
       const c=adKind==='lex'?r.cat:r.role;if(c&&!$('#adCat').value)$('#adCat').value=String(c).slice(0,30);if(r.desc&&!$('#adDesc').value)$('#adDesc').value=String(r.desc).slice(0,300);
-      $('#adStat').textContent='راجع الحقول ثم احفظ.'}
+      $('#adStat').textContent='راجع الحقول ثم احفظ.';adCheck(true)}
   }catch(e){$('#adStat').textContent=TR_ERR[e&&e.code]||'تعذّر الاقتراح، اكتب الحقول بنفسك'}
   finally{adBusy=false;$('#adAi').disabled=false}
 }
@@ -6479,21 +6520,40 @@ $('#adForm').onsubmit=ev=>{ev.preventDefault();
   if(!adCtx)return;const name=$('#adName').value.trim(),src=$('#adSrc').value.trim().slice(0,40),cat=$('#adCat').value.trim().slice(0,30),desc=$('#adDesc').value.trim().slice(0,300);
   if(!name){toast('اكتب الاسم أولاً');return}
   const n=adCtx.novel,m=meta.novels[n]=meta.novels[n]||{};
-  const toGloss=()=>{if(!src)return false;const g=parseGloss(m.glossary);g.set(src,name);m.glossary=[...g].map(([a,b])=>a+' = '+b).join('\n').slice(0,60000);return true};
-  let msg;
-  if(adKind==='gloss'){if(!src){toast('اكتب الاسم الأصلي ليُحفظ في القاموس');return}toGloss();msg='أُضيف إلى قاموس الأسماء'}
-  else{
-    const isL=adKind==='lex',key=isL?'lex':'chars',nk=isL?'term':'name';
+  const ed=adEdit,oldN=ed&&ed.name!==name?ed.name:null,oldSrc=ed&&ed.src||'';
+  const toGloss=force=>{const k=src||oldSrc;if(!k)return false;const g=parseGloss(m.glossary);
+    if(oldN)[...g].forEach(([a,b])=>{if(b===oldN&&a!==k){g.set(a,name)}});
+    if(!force&&!g.has(k)&&!oldN&&!(ed&&ed.hits.some(h=>h.k==='gloss')))return false;
+    if(src&&oldSrc&&src!==oldSrc&&g.get(oldSrc)===(ed&&ed.name))g.delete(oldSrc);
+    g.set(k,name);m.glossary=[...g].map(([a,b])=>a+' = '+b).join('\n').slice(0,60000);if(m.glossDel)m.glossDel=m.glossDel.filter(x=>x!==k);return true};
+  // update one list (characters or terms): the saved entry is renamed in place, never duplicated
+  const upList=(key,add)=>{const isL=key==='lex',nk=isL?'term':'name';
     const cur=m[key]&&Array.isArray(m[key].list)?m[key]:{list:[],upTo:0};
-    const val=isL?{term:name,cat:cat||'أخرى',src,desc,first:adCtx.num||null}:{name,src,role:cat,desc,first:adCtx.num||null};
-    const idx=cur.list.findIndex(x=>x[nk]===name);
-    if(idx>-1){const o=cur.list[idx];cur.list[idx]=Object.assign({},o,Object.fromEntries(Object.entries(val).filter(([k,v])=>v&&!(k==='first'&&o.first))),{manual:true})}
+    let idx=cur.list.findIndex(x=>x[nk]===(oldN||name));if(idx<0)idx=cur.list.findIndex(x=>x[nk]===name);
+    if(idx<0&&(src||oldSrc))idx=cur.list.findIndex(x=>x.src&&x.src===(src||oldSrc));
+    if(idx<0&&!add)return 0;
+    const val=add?(isL?{term:name,cat:cat||'أخرى',src,desc,first:adCtx.num||null}:{name,src,role:cat,desc,first:adCtx.num||null}):{[nk]:name,src};
+    if(idx>-1){const o=cur.list[idx];if(o[nk]!==name){cur.del=[...new Set([...(cur.del||[]),o[nk]])]}
+      cur.list[idx]=Object.assign({},o,Object.fromEntries(Object.entries(val).filter(([k,v])=>v&&!(k==='first'&&o.first))),{[nk]:name,manual:true})}
     else cur.list.push(Object.assign(val,{manual:true}));
-    if(cur.del)cur.del=cur.del.filter(x=>x!==name);m[key]=cur;
-    const g=$('#adAlso').checked&&toGloss();
-    msg=(idx>-1?'حُدّثت ':'أُضيفت ')+(isL?'المصطلح':'الشخصية')+(g?' وحُفظت في القاموس':'');
+    if(cur.del)cur.del=cur.del.filter(x=>x!==name);m[key]=cur;return idx>-1?2:1};
+  let msg,r=0;
+  if(adKind==='gloss'){if(!src&&!oldSrc){toast('اكتب الاسم الأصلي ليُحفظ في القاموس');return}toGloss(true);
+    upList('chars',false);upList('lex',false);msg=ed?'حُدّث في المحفوظات':'أُضيف إلى قاموس الأسماء'}
+  else{
+    const isL=adKind==='lex';r=upList(isL?'lex':'chars',true);upList(isL?'chars':'lex',false);
+    const g=toGloss($('#adAlso').checked);
+    msg=(r===2||ed?'حُدّثت ':'أُضيفت ')+(isL?'المصطلح':'الشخصية')+(g?' وحُفظت في القاموس':'');
   }
-  saveMeta();hideSheet();toast(msg);
+  saveMeta();hideSheet();
+  // a new spelling also replaces the old one in this novel's translated chapters
+  let tot=0,nch=0;
+  if(oldN&&oldN.length>1){const re=frRegex(oldN,true);
+    chapters.filter(c=>nv(c)===n&&!c.sample).forEach(c=>{const t=c.text||'',ti=c.title||'',k=frCount(t,re)+frCount(ti,re);if(!k)return;
+      re.lastIndex=0;c.text=t.replace(re,(m0,a,b)=>a+b+name);re.lastIndex=0;c.title=ti.replace(re,(m0,a,b)=>a+b+name);tot+=k;nch++;saveChapterField(c,{text:c.text,title:c.title})});
+    if(tot)persistLocal()}
+  toast(msg+(tot?` · واستُبدل ${tot} موضع في ${nch} ${nch===1?'فصل':'فصول'}`:''));
+  if(tot&&current&&nv(current)===n){openReader(current.id,{keepTts:tts.on,para:firstVisibleIdx()});if(curNovel)renderNovel();return}
   try{if(prefs.ents!==false&&current&&nv(current)===n){document.querySelectorAll('#article .ent').forEach(e=>e.replaceWith(document.createTextNode(e.textContent)));document.querySelectorAll('#article p').forEach(p=>p.normalize());markEntities()}}catch(_){}
 };
 
