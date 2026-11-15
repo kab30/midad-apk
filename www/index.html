@@ -2293,6 +2293,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
       <div class="opt"><h4>دفء الضوء <output id="warmOut" class="dimout"></output></h4><input type="range" id="warmR" min="0" max="100" step="1" aria-label="دفء الضوء"></div>
     </div>
     <small class="cpnote" style="margin-top:-6px">تخفيف الإضاءة يعمل فوق إضاءة الهاتف وفي كل صفحات مداد، ويمكنك أيضاً سحب إصبعك للأعلى أو للأسفل على الحافة اليسرى للشاشة أثناء القراءة. الدفء يقلل الضوء الأزرق للقراءة ليلاً.</small>
+    <div class="opt"><h4>النزول بنقرة <output id="tapOut" class="dimout"></output></h4><input type="range" id="tapR" min="0" max="100" step="5" aria-label="مقدار النزول بنقرة"><small class="cpnote">نقرة واحدة على النص تنزل بهذا المقدار من طول الشاشة، والنقرتان تُظهران الأشرطة أو تخفيانها. اجعله صفراً لإيقافه.</small></div>
     <div class="opt"><h4>تشخيص التقطيع</h4><button type="button" class="btn" id="diagBtn" style="width:100%">افحص ما يوقف الشاشة (30 ثانية)</button><small class="cpnote">ابدأه ثم انزل في الفصل بإصبعك أو بالنزول التلقائي، وصوّر النتيجة وأرسلها لي.</small></div>
     <div class="opt" id="ntOpt" hidden><h4>اختبار الإشعارات</h4><button type="button" class="btn" id="ntBtn" style="width:100%">أرسل إشعارين تجريبيين</button><small class="cpnote" id="ntStat">بعد الضغط اخرج من التطبيق: يصلك إشعار «الصلاة» بعد 10 ثوانٍ، وإشعار «الفصول» خلال ثوانٍ من الفحص الخلفي.</small></div>
     <div class="opt"><h4>نوع الخط</h4><div class="seg" id="fonts"></div></div>
@@ -5636,7 +5637,7 @@ $('#tGrp').onclick=()=>{prefs.groupSpeech=prefs.groupSpeech===false;applyPrefs()
 $('#tDlg').onclick=()=>{prefs.dialog=!prefs.dialog;applyPrefs()};
 $('#tBold').onclick=()=>{prefs.bold=!prefs.bold;applyPrefs()};
 $('#tWake').onclick=()=>{prefs.wake=!prefs.wake;applyPrefs();prefs.wake?lockWake():releaseWake()};
-$('#setBtn').onclick=()=>showSheet($('#setSheet'));
+$('#setBtn').onclick=()=>{if(typeof tapUi==='function')tapUi();showSheet($('#setSheet'))};
 
 function fmtPara(t,mode){
   const norm=x=>esc(x).replace(/(["“”«»„][^"“”«»„]{1,600}["“”«»„])/g,'<span class="q">$1</span>');
@@ -5814,9 +5815,15 @@ $('#article').addEventListener('click',e=>{if(suppressClick){suppressClick=false
   const ent=e.target.closest('.ent');if(ent&&prefs.ents!==false&&!tts.on){showEnt(ent);return}
   if(tts.on){const tp=e.target.closest('#article p');if(tp){tts.i=+tp.dataset.i;tts.paused=false;speakCur();return}}if(!$('#pMenu').hidden){hidePMenu();return}
   const now=Date.now(),near=tapPrev&&Math.hypot(e.clientX-tapPrev.x,e.clientY-tapPrev.y)<45;
-  if(tapPrev&&now-tapPrev.t<380&&near){tapPrev=null;$('#reader').classList.toggle('immersive');return}
-  tapPrev={t:now,x:e.clientX,y:e.clientY}});
-let tapPrev=null;
+  if(tapPrev&&now-tapPrev.t<380&&near){tapPrev=null;clearTimeout(tapT);$('#reader').classList.toggle('immersive');return}
+  tapPrev={t:now,x:e.clientX,y:e.clientY};
+  // one tap: move down a bit, after waiting to be sure it is not a double tap
+  clearTimeout(tapT);const st=tapStep();
+  if(st>0)tapT=setTimeout(()=>{if(String(getSelection()||'').trim())return;const sc=$('#rscroll');sc.scrollBy({top:Math.round(sc.clientHeight*st/100),behavior:'smooth'})},390)});
+let tapPrev=null,tapT=null;
+const tapStep=()=>prefs.tapStep==null?50:+prefs.tapStep;
+function tapUi(){const r=$('#tapR');if(r&&document.activeElement!==r)r.value=tapStep();const o=$('#tapOut');if(o)o.textContent=tapStep()?tapStep()+'% من الشاشة':'متوقف'}
+$('#tapR').oninput=e=>{prefs.tapStep=+e.target.value;tapUi();lightSave()};tapUi();
 function saveProgress(){
   clearTimeout(progT);if(!current||!dirty||current.sample)return;dirty=false;
   const ch=chapters.find(c=>c.id===current.id);if(!ch)return;ch.progress=current.progress;ch.pAt=Date.now();saveProgLocal(ch);persistSoon();
