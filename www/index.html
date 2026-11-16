@@ -1055,6 +1055,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 .lvbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 10px;font-size:12px;color:var(--dim)}
 .lvbar select{height:32px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:12.5px;padding:0 8px}
 .lvlist{display:flex;flex-direction:column;gap:10px}
+.qhide{display:none!important}
 .lvrow{display:flex;gap:12px;align-items:stretch;width:100%;text-align:start;padding:10px;border-radius:16px;background:var(--deck);border:1px solid var(--line);color:inherit;font:inherit;cursor:pointer}
 .lvrow .cover{width:68px;flex:none;border-radius:10px;padding:6px}
 .lvrow .cover .ico{width:24px;height:24px}.lvrow .cover .ico svg{width:20px;height:20px}.lvrow .cover .ico .letter{font-size:20px!important}
@@ -1433,7 +1434,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 
     <label class="search" for="q">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input id="q" type="search" placeholder="ابحث في الفصول أو رقم الفصل" autocomplete="off">
+      <input id="q" type="search" placeholder="ابحث عن رواية بأي جزء من اسمها" autocomplete="off">
     </label>
     <div id="resumeBox"></div>
     <div class="nslider" id="newSlider" hidden><div class="sec" style="margin-top:0"><h2>أُضيفت حديثاً</h2></div><div class="nstrack" id="nsTrack"></div><div class="nsdots" id="nsDots"></div></div>
@@ -1823,6 +1824,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
   <div class="scroll">
     <div class="fld"><label for="eName">اسم الرواية</label><input id="eName"></div>
     <div class="fld"><label for="eDesc">وصف قصير</label><textarea id="eDesc" class="short" maxlength="400" placeholder="عن ماذا تدور الرواية؟"></textarea></div>
+    <button type="button" class="btn" id="eTrans" style="width:100%;margin:-4px 0 12px">ترجم الاسم والوصف إلى العربية</button>
     <div class="fld"><label for="eOrig">الاسم الأصلي</label><input id="eOrig" maxlength="120" placeholder="مثال: 百分百胜"></div>
     <div class="fld"><label for="eUrl">رابط الرواية</label><input id="eUrl" dir="ltr" type="url" maxlength="300" placeholder="https://..."></div>
     <div class="opt"><h4>طابع الرواية (يضبط مصطلحات الترجمة ونبرتها)</h4><div class="chips stylechips" id="eStyle"></div><small class="cpnote" id="eStyleHint"></small></div>
@@ -3337,13 +3339,16 @@ function renderLibrary(){
   /* search */
   const q=$('#q').value.trim();
   $('#shelfBox').hidden=!!q;$('#resultsBox').hidden=!q;
+  $('#newSlider').classList.toggle('qhide',!!q);$('#resumeBox').classList.toggle('qhide',!!q);
   if(!q)return;
-  const qn=toNum(q);
-  const items=sorted(list).filter(c=>c.title.includes(q)||nv(c).includes(q)||(!isNaN(qn)&&c.num===qn)||(c.text||'').includes(q));
-  $('#secTitle').textContent='نتائج البحث ('+items.length+')';
+  // the search finds novels: any part of the name (start, middle or end), the original name, a character or a dictionary name
+  const rows=lvRows().map(r=>({...r,h:lvHit(r,q)})).filter(r=>r.h.ok);
+  const nq=lvNorm(q),rank=r=>{const x=lvNorm(r.n);return x.startsWith(nq)?0:x.includes(nq)?1:r.h.where?3:2};
+  rows.sort((a,b)=>rank(a)-rank(b)||(b.lr||b.s.last)-(a.lr||a.s.last)||a.n.localeCompare(b.n,'ar'));
+  $('#secTitle').textContent='الروايات ('+rows.length+')';
   const L=$('#list');L.innerHTML='';
-  if(!items.length){L.innerHTML='<div class="empty">لا توجد فصول مطابقة.</div>';return}
-  items.forEach(c=>L.appendChild(chapterCard(c,true)));
+  if(!rows.length){L.innerHTML='<div class="empty">لا توجد رواية تطابق «'+esc(q)+'».</div>';return}
+  const W=document.createElement('div');W.style.cssText='display:grid;gap:10px';rows.forEach(r=>W.appendChild(lvCard(r,q)));L.appendChild(W);
 }
 function chapterCard(c,showNovel,dupSet){
   const p=Math.round((c.progress||0)*100);
@@ -5054,6 +5059,32 @@ function newNovel(){
   setTimeout(()=>{try{$('#eName').focus({preventScroll:true})}catch(e){}},300);
 }
 let curNovelBefore=null;
+/* paste the name and the blurb in Chinese or English, get them in Arabic; the original name is kept in its own field */
+const hasAr=t=>/[\u0621-\u064A]/.test(t),isForeign=t=>!!t&&/[\u3400-\u9fffA-Za-z\uac00-\ud7af\u3040-\u30ff]/.test(t)&&!(hasAr(t)&&!/[\u3400-\u9fff]/.test(t));
+$('#eTrans').onclick=async()=>{
+  const nm=$('#eName').value.trim(),ds=$('#eDesc').value.trim(),og=$('#eOrig').value.trim();
+  const srcName=isForeign(nm)?nm:(!nm&&og?og:''),srcDesc=isForeign(ds)?ds:'';
+  if(!srcName&&!srcDesc){toast(nm||ds?'الاسم والوصف بالعربية أصلاً':'اكتب اسم الرواية أو الوصف بالصينية أو الإنجليزية أولاً');return}
+  const sample=await getSample();if(!sample)return;
+  const b=$('#eTrans');b.disabled=true;const t0=b.textContent;b.textContent='يترجم…';
+  try{
+    const r=await sample.json(`ترجم معلومات رواية ويب إلى العربية الفصحى الأدبية.
+${srcName?'العنوان الأصلي: '+srcName:''}
+${srcDesc?'الوصف الأصلي:\n'+srcDesc.slice(0,3000):''}
+- title: عنوان عربي جذاب وأمين للمعنى يناسب غلاف رواية (لا تكتب الأحرف الصينية ولا علامات التنصيص). الأسماء تُكتب بنطقها العربي، والأسماء الساخرة لدول أو شركات حقيقية تُكتب باسمها الحقيقي (大夏/华夏 = الصين).
+- desc: ترجمة الوصف كاملة بأسلوب سلس، بلا تلخيص ولا إضافة، وفي حدود 390 حرفاً؛ إن كان أطول فاختصره دون أن تفقد الفكرة الأساسية. احذف سطور الإعلانات وروابط المواقع إن وُجدت.
+- لا تستعمل كلمة إله أو آلهة أو يا إلهي؛ استعمل الكائن السامي أو سماوي.
+${typeof termsPrompt==='function'?termsPrompt():''}
+أعد JSON فقط: {"title":"","desc":""}`,{cache:false,...ecoTier()});
+    trackUse('lex',0);
+    if(r&&typeof r==='object'){
+      if(srcName&&r.title){if(!og)$('#eOrig').value=srcName.slice(0,120);$('#eName').value=String(r.title).replace(/["«»]/g,'').trim().slice(0,80)}
+      if(srcDesc&&r.desc)$('#eDesc').value=String(r.desc).trim().slice(0,400);
+      if(typeof renderEdit==='function')renderEdit();toast('تُرجم، راجعه ثم احفظ')}
+    else toast('لم تصل ترجمة، أعد المحاولة');
+  }catch(e){toast(TR_ERR[e&&e.code]||'تعذّرت الترجمة، حاول مرة أخرى')}
+  finally{b.disabled=false;b.textContent=t0}
+};
 function delLabel(n){const c=chapters.filter(x=>nv(x)===n).length,r=raws.filter(x=>x.novel===n).length;return c||r?`احذف الرواية وكل محتواها (${c} فصل${r?' و'+r+' خام':''})`:'حذف الرواية'}
 $('#eDelete').onclick=async()=>{
   const b=$('#eDelete');
@@ -7445,8 +7476,9 @@ function lvRows(){
 }
 function lvHit(r,q){
   if(!q)return {ok:true,where:''};
-  const t=lvNorm(q);
-  if(lvNorm(r.n).includes(t))return {ok:true,where:''};
+  const t=lvNorm(q),nn=lvNorm(r.n),toks=t.split(/\s+/).filter(Boolean),ns=nn.replace(/\s+/g,'');
+  if(nn.includes(t)||ns.includes(t.replace(/\s+/g,''))||(toks.length>1&&toks.every(k=>nn.includes(k))))return {ok:true,where:''};
+  if(toks.length>1&&toks.every(k=>lvNorm(r.n+' '+(r.m.origName||'')).includes(k)))return {ok:true,where:''};
   if(lvNorm(r.m.origName).includes(t))return {ok:true,where:'الاسم الأصلي'};
   const ch=r.chars.find(x=>lvNorm(x).includes(t));if(ch)return {ok:true,where:'شخصية: '+ch};
   if(lvNorm(r.m.desc).includes(t))return {ok:true,where:'الوصف'};
@@ -7475,7 +7507,10 @@ function renderLibView(){
   $('#lvCount').textContent=q||lvFilter!=='all'?`${L.length} من ${rows.length} رواية`:`${rows.length} رواية`;
   const box=$('#lvList');box.innerHTML='';
   if(!L.length){box.innerHTML=`<div class="empty">${q?'لا توجد رواية تطابق «'+esc(q)+'».':'لا توجد روايات في هذا القسم.'}</div>`;return}
-  L.forEach(r=>{
+  L.forEach(r=>box.appendChild(lvCard(r,q)));
+}
+function lvCard(r,q){
+  {
     const {n,s,m}=r,pc=s.count?Math.round(s.done/s.count*100):0;
     const b=document.createElement('button');b.type='button';b.className='lvrow';
     b.innerHTML=`<div class="cover"><div class="ico">${iconHTML(m.icon,n,24)}</div><div class="cn"></div></div><div class="lvb"><div class="t"></div><div class="o"></div><div class="d"></div><div class="hit"></div><div class="m"></div><div class="pb"><i style="width:${pc}%"></i></div></div>`;
@@ -7488,8 +7523,8 @@ function renderLibView(){
     M.innerHTML=`<span><b>${s.count}</b> فصل</span>${s.min!=null?`<span>${s.min===s.max?'الفصل '+s.min:'من '+s.min+' إلى '+s.max}</span>`:''}<span><b>${s.done}</b> مقروء · ${pc}%</span>`;
     const tg=document.createElement('span');tg.className='lvtag'+(r.st==='done'?' ok':'');tg.textContent={done:'أنهيت فصولها',reading:'أقرأها الآن',new:'لم أبدأها',empty:'بلا فصول'}[r.st];M.appendChild(tg);
     if(s.gaps.length){const g=document.createElement('span');g.className='lvtag warn';g.textContent='ناقص '+s.gaps.length;M.appendChild(g)}
-    b.onclick=()=>openNovel(n);box.appendChild(b);
-  });
+    b.onclick=()=>openNovel(n);return b;
+  }
 }
 
 /* ---------- chapters warehouse: every novel's raw chapters on one page ---------- */
