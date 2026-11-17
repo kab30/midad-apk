@@ -1352,6 +1352,15 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 #adForm label.manf.row{flex-direction:row;align-items:flex-start;gap:10px}#adForm label.manf input[type=checkbox]{flex:0 0 20px!important;width:20px!important;min-width:20px;height:20px;padding:0!important;margin-top:2px;border:0;appearance:auto!important;-webkit-appearance:checkbox!important;accent-color:var(--plasma)}#adForm label.manf.row>span{line-height:1.6;color:var(--ink)}#adForm label.manf.row>span{font-weight:500}
 #adForm .seg{margin-bottom:2px}
 #adExist{padding:12px 14px;border-radius:14px;background:color-mix(in srgb,var(--plasma) 10%,transparent);border:1px solid color-mix(in srgb,var(--plasma) 35%,transparent);font:500 13.5px/1.8 var(--ui);color:var(--ink)}
+#gsFind{display:flex;align-items:center;gap:8px;padding:0 14px;height:46px;border-radius:14px;background:var(--deck);border:1px solid var(--line);margin-bottom:10px;color:var(--dim)}
+#gsFind input{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font:500 15px var(--ui);outline:0}
+#gsHits{display:grid;gap:8px;margin-bottom:14px}
+#gsHits .gh{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:color-mix(in srgb,var(--plasma) 8%,transparent);border:1px solid color-mix(in srgb,var(--plasma) 28%,transparent);text-align:start;width:100%;color:var(--ink);font:inherit;cursor:pointer}
+#gsHits .gh .gt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+#gsHits .gh b{font:700 15px var(--ui)}#gsHits .gh small{font:500 12px/1.5 var(--ui);color:var(--dim)}
+#gsHits .gh .ge{flex:none;font:600 12.5px var(--ui);color:var(--plasma)}
+#gsHits .gnone{padding:12px 14px;border-radius:14px;border:1px dashed var(--line);font:500 13.5px/1.7 var(--ui);color:var(--dim);display:flex;align-items:center;gap:10px;justify-content:space-between}
+#gsHits mark{background:color-mix(in srgb,var(--plasma) 30%,transparent);color:inherit;border-radius:3px}
 #adExist b{color:var(--plasma)}#adExist .ax{display:block;font-size:12.5px;color:var(--dim)}
 .lxcard.manual,.chcard.manual{border-color:color-mix(in srgb,var(--plasma) 45%,var(--line))}
 /* home effects: soft sheen on the main cards, press feedback, glowing section titles */
@@ -2127,6 +2136,8 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
   <div class="grab"></div>
   <h3>قاموس الأسماء</h3>
   <div class="scroll">
+    <div id="gsFind"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="gsQ" type="search" dir="auto" placeholder="ابحث عن اسم أو مصطلح، بالعربية أو بالأصل" aria-label="ابحث في القاموس والشخصيات والمصطلحات"></div>
+    <div id="gsHits" hidden></div>
     <div class="sugg" id="gsSugg" hidden>
       <div class="sghead"><b id="gsSuggT">أسماء مقترحة</b><button type="button" id="gsAll">تحديد الكل</button></div>
       <ul id="gsList"></ul>
@@ -6277,7 +6288,35 @@ function renderSugg(){
   $('#gsSuggT').textContent=`${gsSugg.length} اسم مقترح`;
   $('#gsList').innerHTML=gsSugg.map((s,i)=>`<li><label><input type="checkbox" data-i="${i}" checked><span class="sn"><bdi>${esc(s.src)}</bdi>${esc(s.ar)}</span><span class="ty">${esc(s.type||'اسم')}</span></label></li>`).join('');
 }
-$('#nGloss').onclick=openGloss;
+$('#nGloss').onclick=()=>{$('#gsQ').value='';gsFind();openGloss()};
+/* one box to look a name up in the dictionary, the characters and the terms of this novel, and edit it from there */
+function gsFind(){
+  const q=$('#gsQ').value.trim(),H=$('#gsHits');if(!q){H.hidden=true;H.innerHTML='';return}
+  const m=meta.novels[curNovel]||{},k=lvNorm(q),hit=t=>!!t&&lvNorm(t).includes(k),rows=new Map();
+  const put=(name,src,where,extra)=>{const key=name||src;const r=rows.get(key)||{name,src,where:[],extra:''};if(!r.where.includes(where))r.where.push(where);if(src&&!r.src)r.src=src;if(extra&&!r.extra)r.extra=extra;rows.set(key,r)};
+  parseGloss($('#gsText').value||m.glossary).forEach((v,s0)=>{if(hit(v)||hit(s0))put(v,s0,'القاموس')});
+  ((m.chars||{}).list||[]).forEach(x=>{if(x&&(hit(x.name)||hit(x.src)))put(x.name,x.src||'','الشخصيات',x.role||'')});
+  ((m.lex||{}).list||[]).forEach(x=>{if(x&&(hit(x.term)||hit(x.src)))put(x.term,x.src||'','المصطلحات',x.cat||'')});
+  H.hidden=false;H.innerHTML='';
+  const L=[...rows.values()].sort((a,b)=>(lvNorm(a.name).startsWith(k)?0:1)-(lvNorm(b.name).startsWith(k)?0:1)).slice(0,30);
+  if(!L.length){const d=document.createElement('div');d.className='gnone';d.innerHTML='<span>غير موجود في القاموس ولا الشخصيات ولا المصطلحات.</span>';
+    const a=document.createElement('button');a.type='button';a.className='btn';a.textContent='أضفه';a.onclick=()=>gsEdit(/[\u0621-\u064A]/.test(q)?q:'',/[\u0621-\u064A]/.test(q)?'':q);d.appendChild(a);H.appendChild(d);return}
+  L.forEach(r=>{const b=document.createElement('button');b.type='button';b.className='gh';
+    b.innerHTML='<span class="gt"><b></b><small></small></span><span class="ge">✓ موجود · عدّل</span>';
+    lvMark(b.querySelector('b'),r.name,q);
+    b.querySelector('small').textContent=[r.src&&('الأصل '+r.src),r.where.join(' و'),r.extra].filter(Boolean).join(' · ');
+    b.onclick=()=>gsEdit(r.name,r.src);H.appendChild(b)});
+}
+let gsT=null;$('#gsQ').addEventListener('input',()=>{clearTimeout(gsT);gsT=setTimeout(gsFind,150)});
+function gsEdit(name,src){
+  // unsaved typing in the dictionary box is kept before switching to the editor
+  const t=$('#gsText').value.trim();if(t!==((meta.novels[curNovel]||{}).glossary||'').trim())saveGlossText(t);
+  adCtx={novel:curNovel,num:null,line:'',src:''};
+  $('#adName').value=name||'';$('#adSrc').value=src||'';$('#adCat').value='';$('#adDesc').value='';$('#adAlso').checked=true;$('#adStat').textContent='';
+  const m=meta.novels[curNovel]||{},has=(k,f)=>((m[k]||{}).list||[]).some(x=>x[f]===name);
+  adSetKind(has('chars','name')?'chars':has('lex','term')?'lex':'gloss');
+  adEdit=null;adCheck(true);hideSheet();setTimeout(()=>showSheet($('#anSheet')),220);
+}
 $('#gsCancel').onclick=hideSheet;
 $('#gsAll').onclick=()=>{const cbs=[...document.querySelectorAll('#gsList input')];const all=cbs.every(c=>c.checked);cbs.forEach(c=>c.checked=!all)};
 function saveGlossText(t){const m0=meta.novels[curNovel]||{},a=parseGloss(m0.glossary),b=parseGloss(t);
@@ -6577,6 +6616,7 @@ $('#adForm').onsubmit=ev=>{ev.preventDefault();
     msg=(r===2||ed?'حُدّثت ':'أُضيفت ')+(isL?'المصطلح':'الشخصية')+(g?' وحُفظت في القاموس':'');
   }
   saveMeta();hideSheet();
+  if(!current&&curNovel===n){try{renderNovel()}catch(_){}}
   // a new spelling also replaces the old one in this novel's translated chapters
   let tot=0,nch=0;
   if(oldN&&oldN.length>1){const re=frRegex(oldN,true);
