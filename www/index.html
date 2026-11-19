@@ -5636,7 +5636,7 @@ async function runQueue(){
         if(code==='gem_quota'||code==='rate_limited'){trCtl=null;trRunning=false;trErr=TR_ERR[code]||'وصلت حد الاستخدام.';trErrCode=code;renderPill();return}}
       proofing=null;renderPill();
     }
-    if(ch&&prefs.trReview!==false)reviewChapter(ch,false);
+    if(ch&&(prefs.trReview!==false||prefs.trProof!==false))reviewChapter(ch,false,prefs.trProof!==false&&!!ch.proof);
     if(ch){const ck=chCheck(ch);if(ck)setTimeout(()=>toast(`⚠ الفصل ${r.num}: ${ck.issues[0]}`,6000),2400)}
   }
   trCtl=null;trRunning=false;renderPill();
@@ -7298,7 +7298,7 @@ async function proofNow(ch){
     toast(pr&&pr.fixes.length?`المدقق صحّح ${pr.fixes.length} ${pr.fixes.length===1?'خطأ':'أخطاء'}`:'المدقق لم يجد أخطاء')}
   catch(e){proofing=null;renderPill();toast(TR_ERR[e&&e.code]||'تعذّر التدقيق، حاول مرة أخرى')}
 }
-async function reviewChapter(ch,manual){
+async function reviewChapter(ch,manual,auto){
   const gl=parseGloss((meta.novels[nv(ch)]||{}).glossary);
   if(!gl.size){if(manual)toast('أضف أسماء لقاموس الرواية أولاً');return}
   const text=ch.text||'',src=ch.src||'';
@@ -7323,6 +7323,14 @@ ${text.slice(0,20000)}
     const issues=(Array.isArray(arr)?arr:[]).map(x=>({src:String(x&&x.src||'').trim(),found:String(x&&x.found||'').trim()}))
       .filter(x=>gl.has(x.src)&&x.found&&x.found!==gl.get(x.src)&&text.includes(x.found)&&x.found.length<=60)
       .map(x=>({src:x.src,ar:gl.get(x.src),found:x.found,count:text.split(x.found).length-1}));
+    if(auto&&issues.length){
+      // with the proofreader on, leftover names are fixed directly and listed with its changes (one box, nothing to approve)
+      let t=ch.text;const pf=ch.proof||{at:Date.now(),fixes:[]};
+      issues.forEach(x=>{if(!t.includes(x.found))return;t=t.split(x.found).join(x.ar);pf.fixes.push({find:x.found,rep:x.ar,type:'اسم',why:'حسب القاموس ('+x.src+')',cnt:x.count,all:true})});
+      ch.text=t;ch.proof=pf;ch.review={issues:[],at:Date.now()};persistLocal();
+      if(col&&!ch.pending)col.doc(ch.id).update({text:ch.text,proof:ch.proof,review:ch.review}).catch(()=>{});
+      if(current&&current.id===ch.id){const pi=firstVisibleIdx();openReader(ch.id,{keepTts:tts.on,para:pi})}
+      return}
     ch.review={issues,at:Date.now()};saveChapterField(ch,{review:ch.review});
     if(current&&current.id===ch.id)renderReview();
     if(issues.length)toast(`المراجعة: ${issues.length} اسم مختلف عن القاموس في «${ch.title}»`);
