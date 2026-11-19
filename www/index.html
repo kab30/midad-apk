@@ -522,6 +522,16 @@ body.selmode .card.sel::after{background:var(--danger);border-color:var(--danger
 .rwgaps .rwg{display:inline-block;padding:0 8px;margin:2px 0;border-radius:999px;background:color-mix(in srgb,var(--warn) 18%,transparent);font-weight:600;font-variant-numeric:tabular-nums}
 .rwgaps small{display:block;color:var(--dim);font-size:11.5px}
 .revbox{font-family:var(--ui);margin:0 0 1.6em;padding:12px 14px;border-radius:14px;border:1px solid color-mix(in srgb,var(--ra) 50%,transparent);background:color-mix(in srgb,var(--ra) 8%,transparent);font-size:14px;line-height:1.7}
+.proofbox{font-family:var(--ui);margin:0 0 1.4em;border-radius:14px;border:1px solid color-mix(in srgb,#34c38f 45%,transparent);background:color-mix(in srgb,#34c38f 7%,transparent);font-size:14px;line-height:1.7;overflow:hidden}
+.proofbox .pfh{all:unset;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:9px 14px;cursor:pointer}
+.proofbox .pfh span{color:#2fae80;font-weight:700;font-size:13.5px}.proofbox .pfh small{font-size:12px;opacity:.7}
+.proofbox .pfl{padding:0 14px 8px}
+.pfr{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-top:1px solid var(--rs)}
+.pfr .pft{flex:none;font-size:11px;padding:1px 8px;border-radius:999px;border:1px solid color-mix(in srgb,#34c38f 50%,transparent);color:#2fae80;margin-top:3px}
+.pfr .pfx{flex:1;min-width:0;overflow-wrap:anywhere;display:flex;flex-direction:column}
+.pfr .pfx s{opacity:.6;font-size:13px}.pfr .pfx b{font-weight:600}.pfr .pfx small{font-size:11.5px;opacity:.7}
+.pfr button{flex:none;all:unset;cursor:pointer;font-size:12px;padding:3px 10px;border-radius:999px;border:1px solid var(--rs);opacity:.85}
+.card .prw{display:inline-block;font-size:11px;color:#2fae80;border:1px solid color-mix(in srgb,#34c38f 50%,transparent);border-radius:999px;padding:0 7px;margin-inline-start:6px}
 .revbox>b{display:block;color:var(--ra);margin-bottom:6px;font-size:13.5px}
 .revrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-top:1px solid var(--rs)}
 .revrow .rv{flex:1;min-width:0;overflow-wrap:anywhere}
@@ -1794,6 +1804,10 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
         <span>مراجعة الأسماء بعد كل فصل<small>يقارن الترجمة بقاموس الرواية وينبّهك لأي اسم كُتب بطريقة مختلفة</small></span>
         <input type="checkbox" id="trReview" class="cb">
       </label>
+      <label class="tog" for="trProof" style="border:0;padding:0">
+        <span>المدقق الذكي<small>بعد ترجمة كل فصل يقرأه مرة ثانية مع الأصل ويصحّح بنفسه الأسماء والمصطلحات والمعنى والنقص والأرقام، ويبقى فصلان جاهزان أمامك دائماً. يستهلك تقريباً مثل ترجمة ثانية للفصل</small></span>
+        <input type="checkbox" id="trProof" class="cb">
+      </label>
       <label class="tog" for="trStore" style="border:0;padding:0">
         <span>احفظ في المخزن الخام بدون ترجمة الآن<small>يترجم مداد كل فصل تلقائياً عندما تقترب من نهاية الفصل الذي قبله</small></span>
         <input type="checkbox" id="trStore" class="cb">
@@ -2334,6 +2348,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
     </div>
     <button type="button" class="redo" id="frBtn">بحث واستبدال في الرواية</button>
     <button type="button" class="redo" id="markReadBtn">علّم الفصل كمقروء</button>
+    <button type="button" class="redo" id="proofBtn">دقّق هذا الفصل بالمدقق الذكي</button>
     <button type="button" class="redo" id="reviewBtn">راجع الأسماء مع القاموس</button>
     <button type="button" class="redo" id="redoBtn">أعد ترجمة الفصل كاملاً</button>
     <button type="button" class="del" id="delBtn">حذف هذا الفصل</button>
@@ -3366,6 +3381,7 @@ function chapterCard(c,showNovel,dupSet){
   const b=document.createElement('button');b.type='button';b.className='card'+(dupSet&&dupSet.has(c.num)?' dup':'')+(p>97?' read':'');
   b.innerHTML=`<div class="num">${c.num??'—'}<small>فصل</small>${p>97?'<span class="ck" aria-label="مقروء"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></span>':''}</div><div class="body"><div class="ttl"></div><div class="sub">${showNovel?'<span class="nv"></span>':''}<span>${Math.max(1,Math.round(words(c.text||'')/readWpm()))} د قراءة</span>${marksOf(c).length?`<span>${marksOf(c).length} علامة</span>`:''}${c.rate?`<span class="rate">${'★'.repeat(c.rate)}</span>`:''}${c.note?'<span>📝</span>':''}<span>${fmtDate(c.createdAt)}</span>${c.sample?'<span class="tag">مثال</span>':''}${dupSet&&dupSet.has(c.num)?'<span class="tag" style="border-color:var(--danger);color:var(--danger)">مكرر</span>':''}${p>97?'<span class="tag" style="border-color:var(--plasma);color:var(--plasma)">مكتمل</span>':''}</div><div class="bar"><i style="width:${p}%"></i></div></div>`;
   b.querySelector('.ttl').textContent=c.title;if(showNovel)b.querySelector('.nv').textContent=nv(c);
+  try{if(c.proof){const w=document.createElement('span');w.className='prw';w.title='دقّقه المدقق'+(c.proof.fixes&&c.proof.fixes.length?' وصحّح '+c.proof.fixes.length:'');w.textContent='✓ مدقّق';b.querySelector('.ttl').after(w)}}catch(e){}
   try{if(!c.chkOk&&chCheck(c)){const w=document.createElement('span');w.className='chkw';w.title='قد تكون الترجمة ناقصة';w.textContent='⚠ ناقص؟';b.querySelector('.ttl').after(w)}}catch(e){}
   b.dataset.id=c.id;b.onclick=()=>{if(selMode&&!showNovel){toggleSel(c.id,b);return}openReader(c.id)};if(selMode&&selIds.has(c.id))b.classList.add('sel');return b;
 }
@@ -5610,6 +5626,16 @@ async function runQueue(){
     toast((job.replaceId?`أُعيدت ترجمة الفصل ${r.num}`:`اكتملت ترجمة الفصل ${r.num}`)+(job.cleaned?` · حُذف ${job.cleaned} ${job.cleaned===1?'سطر زائد':'أسطر زائدة'}`:'')+(job.trunc?'، راجع نهايته فقد تكون مقطوعة':''));
     renderPill();if(ch)trackUse('tr',0,0);
     if(ch&&!job.replaceId)autoSuggestNames(novel);
+    if(ch&&prefs.trProof!==false){
+      proofing={num:r.num};renderPill();
+      try{const pr=await proofChapter(ch,sample,{signal:trCtl&&trCtl.signal});
+        if(pr){if(current&&current.id===ch.id){const pi=firstVisibleIdx();openReader(ch.id,{keepTts:tts.on,para:pi})}
+          if(pr.fixes.length)toast(`المدقق صحّح ${pr.fixes.length} ${pr.fixes.length===1?'خطأ':'أخطاء'} في الفصل ${r.num}`)}}
+      catch(e){const code=e&&e.code;proofing=null;
+        if(code==='cancelled'){trCtl=null;trRunning=false;trQueue.length=0;renderPill();if(current)updateNav();toast('تم إيقاف الترجمة');return}
+        if(code==='gem_quota'||code==='rate_limited'){trCtl=null;trRunning=false;trErr=TR_ERR[code]||'وصلت حد الاستخدام.';trErrCode=code;renderPill();return}}
+      proofing=null;renderPill();
+    }
     if(ch&&prefs.trReview!==false)reviewChapter(ch,false);
     if(ch){const ck=chCheck(ch);if(ck)setTimeout(()=>toast(`⚠ الفصل ${r.num}: ${ck.issues[0]}`,6000),2400)}
   }
@@ -5618,11 +5644,14 @@ async function runQueue(){
 }
 function renderPill(){
   const pl=$('#trPill');
-  if(!trQueue.length&&!trErr){pl.hidden=true;pillOpen=false;return}
+  if(!trQueue.length&&!trErr&&!proofing){pl.hidden=true;pillOpen=false;return}
   pl.hidden=false;pl.classList.toggle('err',!!trErr);pl.classList.toggle('open',pillOpen&&!trErr);pl.classList.toggle('mini',!pillOpen&&!trErr);
   $('#plErrAct').hidden=!trErr;$('#plStop').hidden=!!trErr;$('#plUsage').hidden=true;
   const sLeft=usage.s&&usage.s.at>Date.now()?` · يتجدد الحد بعد ${fmtLeft(usage.s.at-Date.now())}`:'';
   if(trErr){$('#plTxt').textContent=trErr+(trQueue.length?` (${trQueue.length} فصل بانتظار الإعادة)`:'');$('#plPct').textContent='';$('#plBar').style.width='0';return}
+  if(proofing){const w=trQueue.length;$('#plTxt').textContent=`المدقق يراجع الفصل ${proofing.num}`+(w?` · ${w} بالانتظار`:'');$('#plPct').textContent='';$('#plBar').style.width='100%';
+    $('#plRingP').textContent='✓';$('#plRingC').textContent='تدقيق';$('#plRingV').style.strokeDashoffset='0';$('#plRing').classList.add('think');
+    const q=$('#plRingQ');q.hidden=!w;q.textContent='+'+w;$('#plRing').setAttribute('aria-label',`المدقق يراجع الفصل ${proofing.num}`);$('#plLive').textContent='';return}
   const j=trQueue[0];
   const waiting=trQueue.length-1;
   $('#plTxt').textContent=`يترجم الفصل ${j.r.num}`+(j.parts>1?` · جزء ${j.part}/${j.parts}`:'')+(j.phase==='think'?' · يفكر…':'')+(waiting?` · ${waiting} بالانتظار`:'');
@@ -5775,7 +5804,7 @@ function openReader(id,opt){
   const r=$('#reader');r.classList.add('show');r.classList.remove('immersive');
   applyPrefs();updateNav();maybeAutoNext();paintAskDot();saveView();renderMarkBtn();renderPowChip();
   const sc=$('#rscroll');
-  applyMarks();if(prefs.ents!==false)markEntities();try{markMoney()}catch(e){}renderIllustrations();renderRecap();renderReview();try{renderCheck()}catch(e){}hideEnt();applyBili();setTimeout(focusTick,60);
+  applyMarks();if(prefs.ents!==false)markEntities();try{markMoney()}catch(e){}renderIllustrations();renderRecap();renderProof();renderReview();try{renderCheck()}catch(e){}hideEnt();applyBili();setTimeout(focusTick,60);
   requestAnimationFrame(()=>{
     const tp=opt.para!=null&&document.querySelector(`#article p[data-i="${opt.para}"]`);
     if(tp){tp.scrollIntoView({block:'center'});tp.classList.add('flash');setTimeout(()=>tp.classList.remove('flash'),1700)}
@@ -5931,10 +5960,14 @@ function maybeAutoNext(){
   if(!current||current.sample||current.num==null)return;
   if((meta.novels[nv(current)]||{}).rawAuto===false)return;
   if(trErr)return;
-  const raw=nextRaw(current);if(!raw)return;
-  if(hasChapter(raw.novel,raw.num)||trQueue.some(j=>j.novel===raw.novel&&j.r.num===raw.num))return;
+  // always keep the next chapters ready (2 by default): reading 20 means 21 and 22 are translated and proofread
+  const n=nv(current),ahead=Math.max(1,Math.min(5,prefs.ahead==null?2:+prefs.ahead||2)),list=[];
+  for(let k=1;k<=ahead;k++){const num=current.num+k;
+    if(hasChapter(n,num)||trQueue.some(j=>j.novel===n&&j.r.num===num))continue;
+    const raw=raws.find(r=>r.novel===n&&r.num===num);if(!raw)break;list.push(raw)}
+  if(!list.length)return;
   const cid=current.id;
-  getTr().then(s=>{if(s&&current&&current.id===cid&&nextRaw(current)===raw)queueRaw(raw)});
+  getTr().then(s=>{if(s&&current&&current.id===cid)list.forEach((r,i)=>queueRaw(r,i>0))});
 }
 function renderRawSet(){
   const lg=TR_LANG[prefs.trLang]?prefs.trLang:'easy',tr=TIERS[prefs.trTier]?prefs.trTier:'default';
@@ -7180,6 +7213,91 @@ function renderCheck(){
     const g=e.target.closest('[data-go]');if(g){const p=ps.find(x=>+x.dataset.i===+g.dataset.go);if(p){p.scrollIntoView({block:'center',behavior:'smooth'});p.classList.remove('flash');void p.offsetWidth;p.classList.add('flash')}return}
     if(e.target.id==='chkOk'){current.chkOk=true;saveChapterField(current,{chkOk:true});box.remove();document.querySelectorAll('#article p.chkshort').forEach(p=>p.classList.remove('chkshort'));renderLibrary();if(curNovel)renderNovel();toast('أُخفي تنبيه هذا الفصل')}};
 }
+/* ---------- the proofreader: a second reading of every new chapter, original beside translation, fixing real mistakes by itself ---------- */
+let proofing=null;
+function parseFixes(t){t=String(t||'').replace(/```(?:json)?/g,'');const a=t.indexOf('['),b=t.lastIndexOf(']');if(a<0||b<=a)return [];
+  try{const v=JSON.parse(t.slice(a,b+1));return Array.isArray(v)?v:[]}catch(e){return []}}
+async function proofChapter(ch,sample,opts={}){
+  const src=(ch.src||'').trim(),text=ch.text||'';if(!src||!text||!sample)return null;
+  const n=nv(ch),m=meta.novels[n]||{},gl=parseGloss(m.glossary);
+  const gUse=[...gl].filter(([k])=>src.includes(k)).slice(0,200).map(([k,v])=>k+' = '+v).join('\n');
+  const own=[m.styleNote&&m.styleNote.trim(),prefs.trCustom&&prefs.trCustom.trim()].filter(Boolean).join('\n');
+  const parts=chunkLines(text.split('\n'),9000),fixes=[];
+  for(let i=0;i<parts.length;i++){
+    const prompt=`أنت مدقق ترجمة صارم ومحترف. أمامك فصل من رواية صينية وترجمته العربية. قارن الترجمة بالأصل جملة بجملة، واكتشف الأخطاء الحقيقية فقط وصحّحها:
+1) الأسماء: كل اسم موجود في قاموس الرواية يُكتب بصيغته المعتمدة حرفياً، وكذلك أي اسم كُتب بتهجئتين مختلفتين داخل الفصل.
+2) المصطلحات: طبّق المصطلحات والترجمات المعتمدة المذكورة أدناه.
+3) المعنى: جملة تُرجمت بمعنى مختلف أو معكوس، أو نُسب فيها الكلام أو الفعل لشخص خطأ، أو ضمير بجنس خطأ، أو نفي ضاع.
+4) النقص: جملة أو جزء جملة من الأصل لم يُترجم؛ أضفه في موضعه (اجعل find الجملة المجاورة في الترجمة، وreplace الجملة نفسها مع الجزء الناقص).
+5) الأرقام والمبالغ: 万 = عشرة آلاف، 亿 = مئة مليون، 10亿 = مليار؛ تحقّق من كل رقم ومبلغ ووحدة.
+6) قواعد الترجمة أدناه، ومنها: الحوار بين " " فقط، ولا تُستعمل كلمة إله أو آلهة أو يا إلهي.
+لا تقترح تحسينات أسلوبية أو ذوقية، ولا تعِد صياغة جملة صحيحة. صحّح الأخطاء فقط.
+
+قواعد الترجمة:
+${trRules()}
+${gUse?`\nقاموس الرواية (الأصل = المعتمد):\n${gUse}\n`:''}${termsPrompt()}${own?`\nقواعد خاصة بهذه الرواية (لها الأولوية):\n${own}\n`:''}
+النص الأصلي:
+<<<
+${src.slice(0,20000)}
+>>>
+${parts.length>1?`\nهذا الجزء ${i+1} من ${parts.length} من الترجمة؛ راجع ما يقابله في الأصل فقط.\n`:''}
+الترجمة:
+<<<
+${parts[i].join('\n')}
+>>>
+
+أعد JSON فقط بلا أي كلام: مصفوفة [{"type":"اسم|مصطلح|معنى|ناقص|رقم|قاعدة","find":"نص منسوخ حرفياً من الترجمة","replace":"النص بعد التصحيح","why":"سبب قصير جداً"}]
+- find منسوخ حرفياً من الترجمة كما هو بكل حروفه وعلاماته، وأقصر ما يمكن مع بقائه واضح الموضع (كلمة أو عبارة أو جملة، لا فقرة كاملة إلا عند الضرورة).
+- لنوعي اسم ومصطلح اجعل find الكلمة الخطأ وحدها، ويُصحَّح كل مواضعها.
+- إن كانت الترجمة سليمة أعد [].`;
+    const res=await sample(prompt,{signal:opts.signal,cache:false,modelTier:'default',maxTokens:8192});
+    if(sample!==geminiSample)trackUse('review',0);
+    fixes.push(...parseFixes(res&&res.text));
+  }
+  let t=ch.text;const done=[];
+  for(const f of fixes){
+    const find=String(f&&f.find||''),rp=String(f&&f.replace!=null?f.replace:''),type=String(f&&f.type||'').trim().slice(0,12);
+    if(find.length<2||!rp.trim()||find===rp||!t.includes(find))continue;
+    if(/[\u3400-\u9fff]/.test(rp)||rp.length>find.length*3+300)continue;
+    if(/\n/.test(rp)&&!/\n/.test(find))continue;
+    const all=/اسم|مصطلح/.test(type),cnt=all?t.split(find).length-1:1;
+    t=all?t.split(find).join(rp):t.replace(find,()=>rp);
+    done.push({find,rep:rp,type,why:String(f.why||'').slice(0,160),cnt,all});
+  }
+  t=applyTerms(t);
+  ch.text=t;ch.proof={at:Date.now(),fixes:done.slice(0,80)};
+  persistLocal();if(col&&!ch.pending)col.doc(ch.id).update({text:ch.text,proof:ch.proof}).catch(()=>{});
+  return ch.proof;
+}
+const PF_T={'اسم':'اسم','مصطلح':'مصطلح','معنى':'معنى','ناقص':'نقص','رقم':'رقم','قاعدة':'قاعدة'};
+function renderProof(){
+  const old=$('#proofBox');if(old)old.remove();
+  if(!current||!current.proof)return;const pf=current.proof,L=pf.fixes||[];
+  const box=document.createElement('div');box.className='proofbox';box.id='proofBox';
+  box.innerHTML=`<button type="button" class="pfh"><span>✓ دقّقه المدقق</span><small>${L.length?L.length+' '+(L.length===1?'تصحيح':L.length<11?'تصحيحات':'تصحيحاً')+' · اضغط للتفاصيل':'لم يجد أخطاء'}</small></button><div class="pfl" hidden></div>`;
+  const list=box.querySelector('.pfl');
+  L.forEach((x,k)=>{const r=document.createElement('div');r.className='pfr';
+    r.innerHTML='<span class="pft"></span><span class="pfx"><s></s><b></b><small></small></span><button type="button">تراجع</button>';
+    r.querySelector('.pft').textContent=PF_T[x.type]||x.type||'تصحيح';r.querySelector('s').textContent=x.find;r.querySelector('b').textContent=x.rep;
+    r.querySelector('small').textContent=(x.why||'')+(x.cnt>1?` · ${x.cnt} مواضع`:'');
+    r.querySelector('button').onclick=()=>{const ch=current;if(!ch.text.includes(x.rep)){toast('تغيّر هذا الموضع بعد التدقيق');return}
+      ch.text=x.all?ch.text.split(x.rep).join(x.find):ch.text.replace(x.rep,()=>x.find);
+      ch.proof.fixes=ch.proof.fixes.filter(y=>y!==x);persistLocal();if(col&&!ch.pending)col.doc(ch.id).update({text:ch.text,proof:ch.proof}).catch(()=>{});
+      const pi=firstVisibleIdx();openReader(ch.id,{keepTts:tts.on,para:pi});setTimeout(()=>{const b=$('#proofBox');if(b){b.querySelector('.pfl').hidden=false}},50);toast('رجع النص كما كان')};
+    list.appendChild(r)});
+  box.querySelector('.pfh').onclick=()=>{if(L.length)list.hidden=!list.hidden};
+  const h1=$('#article h1');if(h1)h1.after(box);
+}
+async function proofNow(ch){
+  if(!ch||ch.sample)return;if(!ch.src){toast('هذا الفصل بلا نص أصلي محفوظ، فلا يمكن تدقيقه');return}
+  if(trRunning||proofing){toast('انتظر حتى تنتهي الترجمة الجارية');return}
+  const sample=await getTr();if(!sample){toast('التدقيق غير متاح في هذا العرض');return}
+  proofing={num:ch.num};renderPill();
+  try{const pr=await proofChapter(ch,sample);proofing=null;renderPill();
+    if(current&&current.id===ch.id){const pi=firstVisibleIdx();openReader(ch.id,{keepTts:tts.on,para:pi})}
+    toast(pr&&pr.fixes.length?`المدقق صحّح ${pr.fixes.length} ${pr.fixes.length===1?'خطأ':'أخطاء'}`:'المدقق لم يجد أخطاء')}
+  catch(e){proofing=null;renderPill();toast(TR_ERR[e&&e.code]||'تعذّر التدقيق، حاول مرة أخرى')}
+}
 async function reviewChapter(ch,manual){
   const gl=parseGloss((meta.novels[nv(ch)]||{}).glossary);
   if(!gl.size){if(manual)toast('أضف أسماء لقاموس الرواية أولاً');return}
@@ -7233,6 +7351,7 @@ function renderReview(){
   const a=box.querySelector('#revAll');if(a)a.onclick=()=>fix(iss.slice());
   const n=box.querySelector('#revNone');if(n)n.onclick=()=>skip(iss.slice());
 }
+$('#proofBtn').onclick=()=>{if(!current||current.sample)return;hideSheet();proofNow(current)};
 $('#reviewBtn').onclick=()=>{if(!current||current.sample)return;hideSheet();reviewChapter(current,true)};
 
 /* add-sheet: quality tier + review toggle + style info */
@@ -7245,7 +7364,7 @@ function renderTrOpts(){
   $('#trEngHint').textContent='المفتاح محفوظ في هذا الهاتف فقط. الجودة: سريعة = gemini-2.5-flash-lite، متوازنة = gemini-2.5-flash، دقيقة = gemini-2.5-pro، إلا إذا كتبت نموذجاً بنفسك. كل ميزات الذكاء في التطبيق تستخدم هذا المفتاح.';if(0)$('#trEngHint').textContent=en==='gemini'?(gemKey()?'الترجمة عبر '+gemModel()+' بمفتاحك، ولا تستهلك من حد Gemini. القاموس والطابع ومستوى اللغة والمصطلحات تُطبّق كما هي. المفتاح محفوظ في هذا الجهاز فقط. خيار «جودة الترجمة» خاص بـ Gemini.':'الصق مفتاحك من Google AI Studio، ثم اضغط «اختبر الاتصال».'):'الترجمة عبر Gemini ضمن حد استخدامك. باقي الميزات (الشخصيات، المسرد، المساعد) تبقى على Gemini دائماً.';
   document.querySelectorAll('#trTier button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.t===prefs.trTier)));
   $('#trTierHint').textContent=(TIERS[prefs.trTier]||TIERS.default)[1];
-  $('#trReview').checked=prefs.trReview!==false;$('#trClean').checked=prefs.trClean!==false;$('#trEco').checked=!!prefs.eco;
+  $('#trReview').checked=prefs.trReview!==false;$('#trProof').checked=prefs.trProof!==false;$('#trClean').checked=prefs.trClean!==false;$('#trEco').checked=!!prefs.eco;
   if($('#trCustom')&&document.activeElement!==$('#trCustom'))$('#trCustom').value=prefs.trCustom||'';
   if($('#trPromptTxt'))$('#trPromptTxt').textContent=trRules()+(prefs.trCustom&&prefs.trCustom.trim()?'\n\nتعليمات خاصة من القارئ، طبّقها مع القواعد السابقة:\n'+prefs.trCustom.trim():'');
   if($('#trCurSum'))$('#trCurSum').textContent=`المستوى: ${(TR_LANG[prefs.trLang]||TR_LANG.easy)[0]} · الجودة: ${(TIERS[prefs.trTier]||TIERS.default)[0]} · وضع التوفير: ${prefs.eco?'مفعّل':'معطّل'} · عدد التعليمات الخاصة: ${(prefs.trCustom||'').trim()?'نعم':'لا'}`;
@@ -7268,6 +7387,7 @@ $('#gemTest').onclick=async()=>{
 $('#trEco').onchange=e=>{prefs.eco=e.target.checked;LS.set('midad.prefs',prefs);queuePrefsSave();toast(e.target.checked?'وضع التوفير مفعّل':'وضع التوفير متوقف')};
 $('#trClean').onchange=e=>{prefs.trClean=e.target.checked;LS.set('midad.prefs',prefs);queuePrefsSave();toast(e.target.checked?'سيُنظَّف كل فصل خام قبل ترجمته':'لن يُنظَّف الفصل الخام')};
 $('#trReview').onchange=e=>{prefs.trReview=e.target.checked;LS.set('midad.prefs',prefs);queuePrefsSave()};
+$('#trProof').onchange=e=>{prefs.trProof=e.target.checked;LS.set('midad.prefs',prefs);queuePrefsSave();toast(e.target.checked?'المدقق الذكي يعمل بعد كل فصل':'أوقفت المدقق')};
 $('#inNovel').addEventListener('input',()=>{if(addMode==='tr')renderTrOpts()});
 
 /* novel edit sheet: genre style */
