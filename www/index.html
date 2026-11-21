@@ -336,6 +336,15 @@ body.selmode .card.sel::after{background:var(--danger);border-color:var(--danger
 .sdot{position:absolute;top:-6px;left:-6px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;display:flex;align-items:center;gap:2px;justify-content:center;
   background:var(--warn);color:#2a1800;font-family:var(--mono);font-size:10.5px;font-weight:700}
 .sdot[hidden]{display:none}
+.pgwrap{position:relative;margin-inline-start:6px}
+.pgmenu{position:absolute;top:calc(100% + 8px);inset-inline-start:0;z-index:40;min-width:210px;padding:6px;border-radius:16px;background:var(--deck);border:1px solid var(--line);box-shadow:0 14px 40px rgba(0,0,0,.28);display:flex;flex-direction:column;gap:2px;transform-origin:top right;animation:pgIn .16s ease-out}
+.pgmenu[hidden]{display:none}
+@keyframes pgIn{from{opacity:0;transform:translateY(-6px) scale(.97)}to{opacity:1;transform:none}}
+.pgi{position:relative;display:flex;align-items:center;gap:12px;width:100%;min-height:46px;padding:0 12px;border:0;border-radius:11px;background:transparent;color:var(--ink);font:600 14.5px var(--ui);text-align:start;cursor:pointer}
+.pgi:hover,.pgi:focus-visible{background:color-mix(in srgb,var(--plasma) 10%,transparent);outline:0}
+.pgi svg{flex:none;color:var(--plasma)}
+.pgi .pgl{flex:1}
+.pgi .sdot{position:static;order:3}
 #statsView .wchart{height:190px;background-size:100% 40px}
 /* weekly stats */
 .week{margin-bottom:12px;padding:14px;border-radius:18px;background:var(--deck);border:1px solid var(--line);display:flex;flex-direction:column;gap:12px}
@@ -1440,22 +1449,30 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5z"/><path d="M20 5.5c0-.8-.7-1.5-1.5-1.5H13v16h5.5c.8 0 1.5-.7 1.5-1.5z"/><path d="M7 8h1.5M16 8h1.5M7 11h1.5M16 11h1.5"/></svg>
         </div>
         <div><h1>مِداد</h1><small>قارئ فصولك المترجمة</small></div>
-        <button class="ib statbtn" id="statBtn" type="button" aria-label="إحصائياتي">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+        <div class="pgwrap">
+          <button class="ib statbtn" id="pgBtn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="pgMenu" aria-label="الصفحات">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg>
+            <span class="sdot" id="pgDot" hidden></span>
+          </button>
+          <div class="pgmenu" id="pgMenu" role="menu" hidden>
+        <button class="pgi" role="menuitem" id="statBtn" type="button" aria-label="إحصائياتي">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span class="pgl">إحصائياتي</span>
           <span class="sdot" id="statDot" hidden></span>
         </button>
-        <button class="ib statbtn" id="whBtn" type="button" aria-label="مخزن الفصول">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg>
+        <button class="pgi" role="menuitem" id="whBtn" type="button" aria-label="مخزن الفصول">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg><span class="pgl">مخزن الفصول</span>
         </button>
-        <button class="ib statbtn" id="nwBtn" type="button" aria-label="أخبار فرنسا للأجانب">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h13v14H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v8a2 2 0 0 1-2 2"/><path d="M8 9h5M8 13h5M8 16h3"/></svg>
+        <button class="pgi" role="menuitem" id="nwBtn" type="button" aria-label="أخبار فرنسا للأجانب">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h13v14H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v8a2 2 0 0 1-2 2"/><path d="M8 9h5M8 13h5M8 16h3"/></svg><span class="pgl">أخبار فرنسا</span>
         </button>
-        <button class="ib statbtn" id="libBtn" type="button" aria-label="مكتبة الروايات">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM9 19V7a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1z"/><path d="m14.5 6.6 2.9-.8a1 1 0 0 1 1.2.7l2.9 11a1 1 0 0 1-.7 1.2l-2.9.8a1 1 0 0 1-1.2-.7l-2.9-11a1 1 0 0 1 .7-1.2z"/></svg>
+        <button class="pgi" role="menuitem" id="libBtn" type="button" aria-label="مكتبة الروايات">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM9 19V7a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1z"/><path d="m14.5 6.6 2.9-.8a1 1 0 0 1 1.2.7l2.9 11a1 1 0 0 1-.7 1.2l-2.9.8a1 1 0 0 1-1.2-.7l-2.9-11a1 1 0 0 1 .7-1.2z"/></svg><span class="pgl">مكتبة الروايات</span>
         </button>
-        <button class="ib statbtn" id="discBtn" type="button" aria-label="اكتشف رواية">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>
+        <button class="pgi" role="menuitem" id="discBtn" type="button" aria-label="اكتشف رواية">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg><span class="pgl">اكتشف رواية</span>
         </button>
+          </div>
+        </div>
       </div>
       <div class="topr">
         <div class="sync" id="sync"><i></i><span>على هذا الجهاز</span></div>
@@ -7676,7 +7693,15 @@ function renderTotals(){
   const rows=months.map(m=>({m,t:statTotals(k=>k.startsWith(m))})).filter(r=>r.t.rw||r.t.rc),max=Math.max(1,...rows.map(r=>r.t.rw));
   $('#moList').innerHTML=rows.length?rows.map(({m,t})=>{const [y,mm]=m.split('-');return `<div class="morow"><span class="mn">${MONTHS[+mm-1]} ${y}</span><span><b>${kfmt(t.rw)}</b><small>كلمة</small></span><span><b>${t.rc}</b><small>فصل</small></span><span><b>${fmtMin(t.rs)}</b><small>قراءة</small></span><span class="bar"><i style="width:${Math.round(t.rw/max*100)}%"></i></span></div>`}).join(''):'<div class="empty">لا قراءة مسجّلة بعد.</div>';
 }
-function renderStatDot(){const {streak}=weekData();const d=$('#statDot');d.hidden=!streak;d.textContent=streak}
+function renderStatDot(){const {streak}=weekData();const d=$('#statDot');d.hidden=!streak;d.textContent=streak;const g=$('#pgDot');if(g){g.hidden=!streak;g.textContent=streak}}
+/* pages menu: one button on the home bar opens the list of pages */
+{const B=$('#pgBtn'),M=$('#pgMenu');
+ const close=()=>{if(M.hidden)return;M.hidden=true;B.setAttribute('aria-expanded','false')};
+ B.onclick=e=>{e.stopPropagation();const o=M.hidden;M.hidden=!o;B.setAttribute('aria-expanded',String(o));if(o){const f=M.querySelector('.pgi');f&&f.focus({preventScroll:true})}};
+ M.addEventListener('click',e=>{if(e.target.closest('.pgi'))close()});
+ document.addEventListener('click',e=>{if(!e.target.closest('.pgwrap'))close()});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
+ window.addEventListener('scroll',close,{passive:true,capture:true});}
 function openStats(){$('#statsView').classList.add('show');$('#statsView').scrollTop=0;renderWeek();renderTotals();saveView();requestAnimationFrame(()=>$('#statsView').querySelectorAll('b').forEach(b=>{if(b.children.length===0&&/^\s*[\d,.]+/.test(b.textContent))countUp(b,0,800)}))}
 
 /* ---------- full library page: every novel, searchable and filterable ---------- */
