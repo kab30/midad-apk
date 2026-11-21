@@ -1018,6 +1018,31 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 #whView{display:none;overflow-y:auto;z-index:6;background:var(--void);padding-inline:16px;padding-block:0 60px}
 #whView.show{display:flex;animation:vin .28s cubic-bezier(.2,.8,.2,1)}
 #whView .wrap{width:100%}
+#nwView{display:none;overflow-y:auto;z-index:6;background:var(--void);padding-inline:16px;padding-block:0 60px}
+#nwView.show{display:flex;animation:vin .28s cubic-bezier(.2,.8,.2,1)}
+#nwView .wrap{width:100%;max-width:760px;margin:0 auto}
+.nwseg{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto}
+.nwseg button{flex:1 0 auto;min-height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--deck);color:var(--dim);font:600 13px var(--ui);white-space:nowrap}
+.nwseg button[aria-pressed="true"]{border-color:var(--plasma);color:var(--ink);background:color-mix(in srgb,var(--plasma) 14%,var(--deck))}
+.nwstat{font:12.5px/1.6 var(--ui);color:var(--dim);margin:0 2px 10px;min-height:20px}
+.nwlist{display:grid;gap:12px}
+.nwcard{padding:14px;border-radius:18px;background:var(--deck);border:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.nwcard.hot{border-color:color-mix(in srgb,var(--warn) 55%,var(--line))}
+.nwtop{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font:600 11.5px var(--ui);color:var(--dim)}
+.nwtag{padding:1px 9px;border-radius:999px;border:1px solid color-mix(in srgb,var(--plasma) 45%,transparent);color:var(--plasma)}
+.nwcard.hot .nwtag.imp{border-color:color-mix(in srgb,var(--warn) 60%,transparent);color:var(--warn)}
+.nwcard h3{font:700 16px/1.5 var(--ui);margin:0;color:var(--ink)}
+.nwcard p{font:15px/1.85 var(--ui);margin:0;color:var(--ink);opacity:.92}
+.nwyou{font:14px/1.75 var(--ui);padding:9px 12px;border-radius:12px;background:color-mix(in srgb,var(--plasma) 9%,transparent);border-inline-start:3px solid var(--plasma)}
+.nwyou b{color:var(--plasma);font-weight:700}
+.nwlinks{display:flex;flex-wrap:wrap;gap:6px}
+.nwlinks a{font:600 12px var(--ui);color:var(--plasma);text-decoration:none;padding:3px 10px;border-radius:999px;border:1px solid var(--line);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nwempty{padding:22px 16px;border-radius:18px;border:1px dashed var(--line);text-align:center;font:14px/1.8 var(--ui);color:var(--dim)}
+.nwsk{height:120px;border-radius:18px;background:linear-gradient(90deg,var(--deck),color-mix(in srgb,var(--line) 60%,var(--deck)),var(--deck));background-size:200% 100%;animation:nwsh 1.3s linear infinite}
+@keyframes nwsh{to{background-position:-200% 0}}
+.nwsrc{margin-top:16px;font:12px/1.7 var(--ui);color:var(--dim)}
+.nwsrc a{color:var(--dim)}
+#nwRef.spin svg{animation:spin 1s linear infinite}
 .whsub{font:13px/1.6 var(--ui);color:var(--dim);margin:0 2px 12px}
 .whadd{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:16px;background:var(--deck);border:1px solid var(--line);margin-bottom:14px}
 .whadd>b{font:700 14px var(--ui)}
@@ -1422,6 +1447,9 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
         <button class="ib statbtn" id="whBtn" type="button" aria-label="مخزن الفصول">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg>
         </button>
+        <button class="ib statbtn" id="nwBtn" type="button" aria-label="أخبار فرنسا للأجانب">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h13v14H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v8a2 2 0 0 1-2 2"/><path d="M8 9h5M8 13h5M8 16h3"/></svg>
+        </button>
         <button class="ib statbtn" id="libBtn" type="button" aria-label="مكتبة الروايات">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM9 19V7a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1z"/><path d="m14.5 6.6 2.9-.8a1 1 0 0 1 1.2.7l2.9 11a1 1 0 0 1-.7 1.2l-2.9.8a1 1 0 0 1-1.2-.7l-2.9-11a1 1 0 0 1 .7-1.2z"/></svg>
         </button>
@@ -1493,6 +1521,24 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
   </div>
 </div>
 
+<div id="nwView" class="view" dir="rtl">
+  <div class="wrap">
+    <div class="nbar">
+      <button class="ib" id="nwBack" type="button" aria-label="رجوع"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>
+      <h2 class="vtitle">أخبار فرنسا</h2>
+      <button class="ib" id="nwRef" type="button" aria-label="تحديث الأخبار"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
+    </div>
+    <p class="whsub">آخر ما صدر في فرنسا من قرارات حكومية وقوانين وتغييرات تخص الأجانب والإقامة والأوراق، مع مصدر كل خبر.</p>
+    <div class="seg nwseg" id="nwTabs" role="tablist">
+      <button type="button" data-t="papers" aria-pressed="true">الإقامة والأوراق</button>
+      <button type="button" data-t="laws" aria-pressed="false">قوانين وقرارات</button>
+      <button type="button" data-t="trend" aria-pressed="false">الأكثر تداولاً</button>
+    </div>
+    <div class="nwstat" id="nwStat"></div>
+    <div class="nwlist" id="nwList"></div>
+    <div class="nwsrc" id="nwSrc" hidden></div>
+  </div>
+</div>
 <div id="libView" class="view" dir="rtl">
   <div class="wrap">
     <div class="nbar">
@@ -5355,7 +5401,7 @@ async function geminiSample(input,opts={}){
   let resp;
   try{
     resp=await fetch(url,{method:'POST',signal:opts.signal,headers:{'Content-Type':'application/json','x-goog-api-key':gemKey()},
-      body:JSON.stringify({contents:[{role:'user',parts:[{text}]}],generationConfig:{temperature:0.7,maxOutputTokens:opts.maxTokens||16384}})});
+      body:JSON.stringify(Object.assign({contents:[{role:'user',parts:[{text}]}],generationConfig:{temperature:opts.temperature!=null?opts.temperature:0.7,maxOutputTokens:opts.maxTokens||16384}},opts.search?{tools:[{google_search:{}}]}:{}))});
   }catch(e){
     if(e&&e.name==='AbortError')throw {code:'cancelled'};
     throw {code:'gem_blocked',message:String(e&&e.message||e)};
@@ -5365,7 +5411,7 @@ async function geminiSample(input,opts={}){
     const st=resp.status;
     throw {code:st===429?'gem_quota':((st===400&&/key/i.test(msg))||st===401||st===403)?'gem_key':st===404?'gem_model':'gem_http',message:msg||('HTTP '+st)};
   }
-  const rd=resp.body.getReader(),dec=new TextDecoder();let buf='',out='',fin='',block='';
+  const rd=resp.body.getReader(),dec=new TextDecoder();let buf='',out='',fin='',block='';const srcs=[];
   try{
     for(;;){
       const {value,done}=await rd.read();if(done)break;
@@ -5380,11 +5426,12 @@ async function geminiSample(input,opts={}){
         const d=parts.filter(p=>!p.thought).map(p=>p.text||'').join('');
         if(d){out+=d;opts.onText&&opts.onText({text:out,delta:d})}
         if(c.finishReason)fin=c.finishReason;
+        const gm=c.groundingMetadata;if(gm&&gm.groundingChunks)gm.groundingChunks.forEach(g=>{const w=g.web;if(w&&w.uri&&!srcs.some(x=>x.uri===w.uri))srcs.push({uri:w.uri,title:w.title||''})});
       }
     }
   }catch(e){if(e&&e.name==='AbortError')throw {code:'cancelled'};throw {code:'gem_net',text:out}}
   if(!out){if(block||fin==='SAFETY'||fin==='PROHIBITED_CONTENT')throw {code:'gem_safety'};throw {code:'gem_empty'}}
-  return {text:out,truncated:fin==='MAX_TOKENS'};
+  return {text:out,truncated:fin==='MAX_TOKENS',sources:srcs};
 }
 /* translation engine: Gemini when chosen and a key is set, otherwise Gemini */
 async function getTr(){if(gemReady())return geminiSample;return getSample()}
@@ -7729,6 +7776,64 @@ function renderWhPick(){
     b.innerHTML='<span class="cover"><span class="ico"></span><span class="cn"></span></span><span></span>';b.lastChild.textContent=n;paintCover(b.querySelector('.cover'),n,novelMeta(n));
     b.onclick=()=>{whNovel=n;$('#whChosen').textContent='الرواية: '+n;$('#whFile').disabled=$('#whPaste').disabled=false;renderWhPick()};P.appendChild(b)});
 }
+/* ---------- France news for foreigners: searched live on Google through Gemini, every item with its source ---------- */
+const NW_TOP={
+  papers:{n:'الإقامة والأوراق',q:'بطاقات الإقامة (titre de séjour) وتجديدها، منصة ANEF ومواعيد المحافظات (préfectures)، التجنيس، لمّ الشمل، التأشيرات، تصاريح العمل، رسوم الطوابع (timbres fiscaux)، اختبارات اللغة الفرنسية والاندماج (contrat d\'intégration républicaine)، قوانين الهجرة الجديدة ومراسيمها، وأي اتفاق أو خلاف بين فرنسا والمغرب يخص التأشيرات أو الجالية المغربية'},
+  laws:{n:'قوانين وقرارات',q:'قرارات الحكومة الفرنسية والقوانين والمراسيم الجديدة التي تمس حياة المقيمين اليومية: العمل والأجور والبطالة (France Travail)، الإعانات (CAF, APL, RSA)، الضرائب، السكن والإيجار، الصحة والضمان (Sécurité sociale, mutuelle)، النقل ورخص القيادة، وما يدخل حيز التنفيذ قريباً'},
+  trend:{n:'الأكثر تداولاً',q:'أهم الأخبار المتداولة في فرنسا اليوم: السياسة والحكومة والبرلمان، الإضرابات، الأسعار والاقتصاد، والأحداث الكبرى، مع التركيز على ما يهم مقيماً أجنبياً'}};
+let nwTab='papers',nwBusy=false;
+const nwGet=()=>{try{return JSON.parse(localStorage.getItem('midad.news')||'{}')||{}}catch(e){return {}}};
+function nwAgo(t){const m=Math.round((Date.now()-t)/60000);return m<1?'الآن':m<60?`قبل ${m} د`:m<1440?`قبل ${Math.round(m/60)} س`:`قبل ${Math.round(m/1440)} يوم`}
+function renderNews(){
+  document.querySelectorAll('#nwTabs button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.t===nwTab)));
+  const L=$('#nwList'),st=$('#nwStat'),S=$('#nwSrc');L.innerHTML='';S.hidden=true;
+  $('#nwRef').classList.toggle('spin',nwBusy);
+  if(nwBusy){st.textContent='يبحث في المصادر الفرنسية الآن…';for(let i=0;i<3;i++){const d=document.createElement('div');d.className='nwsk';L.appendChild(d)}return}
+  const c=nwGet()[nwTab];
+  if(!gemKey()&&!c){st.textContent='';L.innerHTML='<div class="nwempty">الأخبار الحية تحتاج مفتاح Gemini، لأنه يبحث في Google عن آخر الأخبار ويعطي المصدر لكل خبر.<br>أضف المفتاح من شاشة الإضافة ← ترجمة.</div>';return}
+  if(!c){st.textContent='';L.innerHTML='<div class="nwempty">اضغط زر التحديث فوق لجلب آخر الأخبار.</div>';return}
+  st.textContent=`آخر تحديث ${nwAgo(c.at)} · ${c.items.length} ${c.items.length===1?'خبر':'أخبار'}`+(c.items.length?'':' · لا جديد');
+  if(!c.items.length){L.innerHTML='<div class="nwempty">لم يجد البحث أخباراً جديدة مؤكدة في هذا القسم خلال الأيام الأخيرة.</div>'}
+  c.items.forEach(x=>{const d=document.createElement('article');d.className='nwcard'+(x.important?' hot':'');
+    d.innerHTML='<div class="nwtop"><span class="nwtag"></span><span class="nwd"></span></div><h3></h3><p></p>'+(x.you?'<div class="nwyou"><b>ماذا يعني لك: </b><span></span></div>':'')+'<div class="nwlinks"></div>';
+    const tg=d.querySelector('.nwtag');tg.textContent=x.important?'مهم لك':(x.tag||NW_TOP[nwTab].n);if(x.important)tg.classList.add('imp');
+    d.querySelector('.nwd').textContent=x.date||'';d.querySelector('h3').textContent=x.title||'';d.querySelector('p').textContent=x.summary||'';
+    if(x.you)d.querySelector('.nwyou span').textContent=x.you;
+    const lk=d.querySelector('.nwlinks');(x.links||[]).slice(0,3).forEach(u=>{const a=document.createElement('a');a.href=u.url;a.target='_blank';a.rel='noopener';a.textContent=u.name||nwHost(u.url);lk.appendChild(a)});
+    L.appendChild(d)});
+  if(c.sources&&c.sources.length){S.hidden=false;S.textContent='مصادر البحث: ';c.sources.slice(0,10).forEach((u,i)=>{const a=document.createElement('a');a.href=u.uri;a.target='_blank';a.rel='noopener';a.textContent=u.title||nwHost(u.uri);S.appendChild(a);if(i<Math.min(9,c.sources.length-1))S.appendChild(document.createTextNode(' · '))})}
+}
+const nwHost=u=>{try{return new URL(u).hostname.replace(/^www\./,'')}catch(e){return 'المصدر'}};
+async function loadNews(force){
+  if(nwBusy)return;const all=nwGet(),c=all[nwTab];
+  if(!force&&c&&Date.now()-c.at<4*3600e3){renderNews();return}
+  if(!gemKey()){renderNews();if(force)toast('أضف مفتاح Gemini أولاً');return}
+  nwBusy=true;renderNews();const tab=nwTab;
+  const today=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const prompt=`اليوم ${today}. ابحث في Google الآن عن آخر الأخبار في فرنسا خلال الأيام السبعة الأخيرة (وحتى ثلاثين يوماً إن قلّ الجديد) في هذا الموضوع:
+${NW_TOP[tab].q}.
+القارئ مغربي مقيم في فرنسا (منطقة Hauts-de-France، محافظة Nord في Lille)، ويهمه كل ما يمس أوراقه وإقامته وحياته اليومية.
+اعتمد على مصادر موثوقة: service-public.fr، interieur.gouv.fr، legifrance.gouv.fr، administration-etrangers-en-france.interieur.gouv.fr، nord.gouv.fr، vie-publique.fr، ومواقع إخبارية كبرى مثل Le Monde وFrance Info وLe Figaro وInfoMigrants.
+لا تذكر أي خبر لم تجده في نتائج البحث، ولا تخترع تاريخاً أو رقماً أو رابطاً. الأحدث أولاً، والأهم للقارئ أولاً.
+أعد JSON فقط بلا أي كلام آخر، بهذا الشكل:
+{"items":[{"title":"عنوان عربي قصير وواضح","summary":"ملخص بالعربية الفصحى السهلة في جملتين أو ثلاث: ماذا تغيّر ومتى","you":"جملة عملية: ماذا يعني هذا لمغربي مقيم في فرنسا وماذا يفعل (اتركه فارغاً إن لم يمسه)","date":"تاريخ الخبر بالعربية مثل 18 نوفمبر 2026","tag":"إقامة|تجنيس|تأشيرات|عمل|إعانات|ضرائب|سكن|صحة|سياسة|اقتصاد|أخرى","important":true,"links":[{"name":"اسم المصدر","url":"https://..."}]}]}
+من 4 إلى 8 أخبار. important تكون true فقط للأخبار التي تمس الأوراق والإقامة أو تتطلب منه فعل شيء.`;
+  try{
+    const r=await geminiSample(prompt,{search:true,temperature:0.3,maxTokens:8192});
+    let t=String(r.text||'').replace(/```(?:json)?/g,'');const a=t.indexOf('{'),b=t.lastIndexOf('}');
+    let v=null;try{v=JSON.parse(t.slice(a,b+1))}catch(e){}
+    if(!v||!Array.isArray(v.items))throw {code:'nw_parse'};
+    const ok=u=>/^https?:\/\//.test(u||'');
+    const items=v.items.filter(x=>x&&x.title).slice(0,10).map(x=>({title:String(x.title).slice(0,160),summary:String(x.summary||'').slice(0,600),you:String(x.you||'').slice(0,400),date:String(x.date||'').slice(0,40),tag:String(x.tag||'').slice(0,20),important:!!x.important,
+      links:(Array.isArray(x.links)?x.links:[]).filter(u=>u&&ok(u.url)).slice(0,3).map(u=>({name:String(u.name||'').slice(0,40),url:String(u.url)}))}));
+    const n=nwGet();n[tab]={at:Date.now(),items,sources:(r.sources||[]).slice(0,12)};try{localStorage.setItem('midad.news',JSON.stringify(n))}catch(e){}
+  }catch(e){toast(e&&e.code==='nw_parse'?'لم تصل الأخبار بشكل سليم، اضغط تحديث مرة أخرى':(TR_ERR[e&&e.code]||'تعذّر جلب الأخبار، حاول بعد قليل'))}
+  finally{nwBusy=false;if(nwTab===tab)renderNews()}
+}
+function openNews(){$('#nwView').classList.add('show');$('#nwView').scrollTop=0;loadNews(false)}
+$('#nwBtn').onclick=openNews;$('#nwBack').onclick=()=>$('#nwView').classList.remove('show');
+$('#nwRef').onclick=()=>loadNews(true);
+document.querySelectorAll('#nwTabs button').forEach(b=>b.onclick=()=>{if(nwBusy)return;nwTab=b.dataset.t;loadNews(false)});
 function openWh(){$('#whView').classList.add('show');$('#whView').scrollTop=0;renderWh()}
 $('#whBtn').onclick=openWh;$('#whBack').onclick=()=>$('#whView').classList.remove('show');
 $('#whQ').addEventListener('input',renderWh);$('#whNq').addEventListener('input',renderWhPick);
