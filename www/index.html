@@ -1051,7 +1051,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 @keyframes nwsh{to{background-position:-200% 0}}
 .nwsrc{margin-top:16px;font:12px/1.7 var(--ui);color:var(--dim)}
 .nwsrc a{color:var(--dim)}
-#nwRef.spin svg{animation:spin 1s linear infinite}
+#nwRef.nwspin svg{animation:spin 1s linear infinite}
 .whsub{font:13px/1.6 var(--ui);color:var(--dim);margin:0 2px 12px}
 .whadd{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:16px;background:var(--deck);border:1px solid var(--line);margin-bottom:14px}
 .whadd>b{font:700 14px var(--ui)}
@@ -7812,7 +7812,7 @@ function nwAgo(t){const m=Math.round((Date.now()-t)/60000);return m<1?'الآن'
 function renderNews(){
   document.querySelectorAll('#nwTabs button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.t===nwTab)));
   const L=$('#nwList'),st=$('#nwStat'),S=$('#nwSrc');L.innerHTML='';S.hidden=true;
-  $('#nwRef').classList.toggle('spin',nwBusy);
+  $('#nwRef').classList.toggle('nwspin',nwBusy);
   if(nwBusy){st.textContent='يبحث في المصادر الفرنسية الآن…';for(let i=0;i<3;i++){const d=document.createElement('div');d.className='nwsk';L.appendChild(d)}return}
   const c=nwGet()[nwTab];
   if(!gemKey()&&!c){st.textContent='';L.innerHTML='<div class="nwempty">الأخبار الحية تحتاج مفتاح Gemini، لأنه يبحث في Google عن آخر الأخبار ويعطي المصدر لكل خبر.<br>أضف المفتاح من شاشة الإضافة ← ترجمة.</div>';return}
@@ -7828,6 +7828,22 @@ function renderNews(){
     L.appendChild(d)});
   if(c.sources&&c.sources.length){S.hidden=false;S.textContent='مصادر البحث: ';c.sources.slice(0,10).forEach((u,i)=>{const a=document.createElement('a');a.href=u.uri;a.target='_blank';a.rel='noopener';a.textContent=u.title||nwHost(u.uri);S.appendChild(a);if(i<Math.min(9,c.sources.length-1))S.appendChild(document.createTextNode(' · '))})}
 }
+/* reads the answer: "### title / التاريخ: / المصدر: name | url" blocks, a cut-off last item still counts; JSON answers are read too */
+function nwParse(raw){
+  let t=String(raw||'').replace(/```(?:json|markdown)?/g,'').replace(/\[\d+(?:[,،]\s*\d+)*\]/g,'').replace(/\*\*/g,'').replace(/[ \t]+([.،,؛])/g,'$1');
+  try{const a=t.indexOf('{'),b=t.lastIndexOf('}');if(a>-1&&b>a&&/"items"/.test(t)){const v=JSON.parse(t.slice(a,b+1));if(Array.isArray(v.items))return v.items.map(x=>({...x,links:x.links||[]}))}}catch(e){}
+  const out=[];
+  t.split(/^\s*#{2,4}\s*/m).slice(1).forEach(bl=>{
+    const L=bl.split('\n').map(x=>x.trim()).filter(Boolean);if(!L.length)return;
+    const it={title:L[0].replace(/^[\d.\-–•)\s]+/,''),summary:'',you:'',date:'',tag:'',important:false,links:[]};
+    const get=k=>{const l=L.find(x=>x.replace(/^[-•*]\s*/,'').startsWith(k));return l?l.replace(/^[-•*]\s*/,'').slice(k.length).replace(/^\s*[:：]\s*/,'').trim():''};
+    it.date=get('التاريخ');it.tag=get('التصنيف');it.important=/^نعم/.test(get('مهم'));it.summary=get('الملخص');
+    const y=get('ماذا يعني لك');it.you=/^[-–—]?$/.test(y)?'':y;
+    L.filter(x=>/^[-•*]?\s*المصدر/.test(x)||/https?:\/\//.test(x)).forEach(x=>{const m=x.match(/https?:\/\/[^\s)\]>"']+/);if(!m)return;
+      let nm=x.replace(/^[-•*]?\s*المصدر\s*[:：]?/,'').split('|')[0].replace(m[0],'').replace(/[()\[\]]/g,'').trim();it.links.push({name:nm,url:m[0].replace(/[.,،]+$/,'')})});
+    if(!it.summary){const rest=L.slice(1).filter(x=>!/^(التاريخ|التصنيف|مهم|ماذا يعني لك|المصدر)/.test(x.replace(/^[-•*]\s*/,'')));it.summary=rest.join(' ')}
+    if(it.title&&(it.summary||it.links.length))out.push(it)});
+  return out}
 const nwHost=u=>{try{return new URL(u).hostname.replace(/^www\./,'')}catch(e){return 'المصدر'}};
 async function loadNews(force){
   if(nwBusy)return;const all=nwGet(),c=all[nwTab];
@@ -7840,19 +7856,24 @@ ${NW_TOP[tab].q}.
 القارئ مغربي مقيم في فرنسا (منطقة Hauts-de-France، محافظة Nord في Lille)، ويهمه كل ما يمس أوراقه وإقامته وحياته اليومية.
 اعتمد على مصادر موثوقة: service-public.fr، interieur.gouv.fr، legifrance.gouv.fr، administration-etrangers-en-france.interieur.gouv.fr، nord.gouv.fr، vie-publique.fr، ومواقع إخبارية كبرى مثل Le Monde وFrance Info وLe Figaro وInfoMigrants.
 لا تذكر أي خبر لم تجده في نتائج البحث، ولا تخترع تاريخاً أو رقماً أو رابطاً. الأحدث أولاً، والأهم للقارئ أولاً.
-أعد JSON فقط بلا أي كلام آخر، بهذا الشكل:
-{"items":[{"title":"عنوان عربي قصير وواضح","summary":"ملخص بالعربية الفصحى السهلة في جملتين أو ثلاث: ماذا تغيّر ومتى","you":"جملة عملية: ماذا يعني هذا لمغربي مقيم في فرنسا وماذا يفعل (اتركه فارغاً إن لم يمسه)","date":"تاريخ الخبر بالعربية مثل 18 نوفمبر 2026","tag":"إقامة|تجنيس|تأشيرات|عمل|إعانات|ضرائب|سكن|صحة|سياسة|اقتصاد|أخرى","important":true,"links":[{"name":"اسم المصدر","url":"https://..."}]}]}
-من 4 إلى 8 أخبار. important تكون true فقط للأخبار التي تمس الأوراق والإقامة أو تتطلب منه فعل شيء.`;
+اكتب من 4 إلى 8 أخبار، كل خبر بهذا الشكل حرفياً (بدون JSON وبدون أي مقدمة أو خاتمة):
+### عنوان عربي قصير وواضح
+التاريخ: تاريخ الخبر مثل 18 نوفمبر 2026
+التصنيف: إقامة أو تجنيس أو تأشيرات أو عمل أو إعانات أو ضرائب أو سكن أو صحة أو سياسة أو اقتصاد أو أخرى
+مهم: نعم أو لا
+الملخص: جملتان أو ثلاث بالعربية الفصحى السهلة: ماذا تغيّر ومتى
+ماذا يعني لك: جملة عملية لمغربي مقيم في فرنسا وماذا يفعل (اكتب - إن لم يمسه)
+المصدر: اسم الموقع | الرابط الكامل https://...
+«مهم: نعم» فقط للأخبار التي تمس الأوراق والإقامة أو تتطلب منه فعل شيء.`;
   try{
-    const r=await geminiSample(prompt,{search:true,temperature:0.3,maxTokens:8192});
-    let t=String(r.text||'').replace(/```(?:json)?/g,'');const a=t.indexOf('{'),b=t.lastIndexOf('}');
-    let v=null;try{v=JSON.parse(t.slice(a,b+1))}catch(e){}
-    if(!v||!Array.isArray(v.items))throw {code:'nw_parse'};
+    const r=await geminiSample(prompt,{search:true,temperature:0.3});
+    const v={items:nwParse(r.text)};
+    if(!v.items.length){console.warn('news raw',String(r.text||'').slice(0,600));throw {code:'nw_parse',raw:String(r.text||'').slice(0,160)}}
     const ok=u=>/^https?:\/\//.test(u||'');
     const items=v.items.filter(x=>x&&x.title).slice(0,10).map(x=>({title:String(x.title).slice(0,160),summary:String(x.summary||'').slice(0,600),you:String(x.you||'').slice(0,400),date:String(x.date||'').slice(0,40),tag:String(x.tag||'').slice(0,20),important:!!x.important,
       links:(Array.isArray(x.links)?x.links:[]).filter(u=>u&&ok(u.url)).slice(0,3).map(u=>({name:String(u.name||'').slice(0,40),url:String(u.url)}))}));
     const n=nwGet();n[tab]={at:Date.now(),items,sources:(r.sources||[]).slice(0,12)};try{localStorage.setItem('midad.news',JSON.stringify(n))}catch(e){}
-  }catch(e){toast(e&&e.code==='nw_parse'?'لم تصل الأخبار بشكل سليم، اضغط تحديث مرة أخرى':(TR_ERR[e&&e.code]||'تعذّر جلب الأخبار، حاول بعد قليل'))}
+  }catch(e){toast(e&&e.code==='nw_parse'?'لم يرجع Gemini أخباراً مقروءة'+(e.raw?': «'+e.raw.slice(0,90)+'…»':'')+'، اضغط تحديث مرة أخرى':(TR_ERR[e&&e.code]||'تعذّر جلب الأخبار، حاول بعد قليل'))}
   finally{nwBusy=false;if(nwTab===tab)renderNews()}
 }
 function openNews(){$('#nwView').classList.add('show');$('#nwView').scrollTop=0;loadNews(false)}
