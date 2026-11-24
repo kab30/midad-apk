@@ -3469,7 +3469,7 @@ function countUp(el,from,dur){
 let nStatsAnim=null,libCounted=false;
 function openNovelNow(name){if(curNovel!==name){$('#nSearch').value='';$('#nReadSec').open=false;nStatsAnim=null}curNovel=name;$('#novelView').classList.add('show');$('#novelView').scrollTop=0;renderNovel();saveView()}
 function coverOf(name){return [...document.querySelectorAll('#library [data-novel]')].find(b=>b.dataset.novel===name&&b.offsetParent)?.querySelector('.cover')||null}
-function openNovel(name){
+function openNovel(name){setTimeout(()=>proofCatchUp(name),3000);
   if($('#novelView').classList.contains('show')){openNovelNow(name);return}
   const c=coverOf(name);if(c)c.style.viewTransitionName='ncover';
   vt(()=>{if(c)c.style.viewTransitionName='';openNovelNow(name)});
@@ -5692,12 +5692,15 @@ async function runQueue(){
     if(ch&&!job.replaceId)autoSuggestNames(novel);
     if(ch&&prefs.trProof!==false){
       proofing={num:r.num};renderPill();
-      try{const pr=await proofChapter(ch,sample,{signal:trCtl&&trCtl.signal});
+      // one retry: a busy or dropped connection right after the translation used to skip the proofreading silently
+      try{let pr=null;for(let at=0;;at++){try{pr=await proofChapter(ch,sample,{signal:trCtl&&trCtl.signal});break}
+          catch(e1){const c1=e1&&e1.code;if(at>0||c1==='cancelled'||c1==='gem_quota'||c1==='rate_limited'||c1==='gem_key')throw e1;await new Promise(r0=>setTimeout(r0,8000))}}
         if(pr){if(current&&current.id===ch.id){const pi=firstVisibleIdx();openReader(ch.id,{keepTts:tts.on,para:pi})}
           if(pr.fixes.length)toast(`المدقق صحّح ${pr.fixes.length} ${pr.fixes.length===1?'خطأ':'أخطاء'} في الفصل ${r.num}`)}}
       catch(e){const code=e&&e.code;proofing=null;
         if(code==='cancelled'){trCtl=null;trRunning=false;trQueue.length=0;renderPill();if(current)updateNav();toast('تم إيقاف الترجمة');return}
-        if(code==='gem_quota'||code==='rate_limited'){trCtl=null;trRunning=false;trErr=TR_ERR[code]||'وصلت حد الاستخدام.';trErrCode=code;renderPill();return}}
+        if(code==='gem_quota'||code==='rate_limited'){trCtl=null;trRunning=false;trErr=TR_ERR[code]||'وصلت حد الاستخدام.';trErrCode=code;renderPill();return}
+        proofFail.set(ch.id,Date.now());toast(`لم يكتمل تدقيق الفصل ${r.num}، سيُعاد لاحقاً`)}
       proofing=null;renderPill();
     }
     if(ch&&(prefs.trReview!==false||prefs.trProof!==false))reviewChapter(ch,false,prefs.trProof!==false&&!!ch.proof);
@@ -5705,6 +5708,32 @@ async function runQueue(){
   }
   trCtl=null;trRunning=false;renderPill();
   if(current)maybeAutoNext();
+  setTimeout(()=>proofCatchUp(current?nv(current):curNovel),1500);
+}
+/* chapters that missed the proofreader (app closed or put away mid-way, connection dropped, translated before it existed)
+   get it later, one at a time, unread ones only, whenever the novel or a chapter is opened */
+const proofFail=new Map();let proofBg=false;
+async function proofCatchUp(novel){
+  if(!novel||proofBg||prefs.trProof===false||trRunning||trQueue.length||proofing)return;
+  const due=()=>chapters.filter(c=>nv(c)===novel&&c.src&&!c.proof&&!c.sample&&!c.pending&&!isReadCh(c)&&!(Date.now()-(proofFail.get(c.id)||0)<10*60e3)).sort((a,b)=>(a.num||0)-(b.num||0));
+  if(!due().length)return;
+  const sample=await getTr();if(!sample)return;
+  proofBg=true;
+  try{
+    for(let k=0;k<12;k++){
+      if(trRunning||trQueue.length||prefs.trProof===false)break;
+      const ch=due()[0];if(!ch)break;
+      proofing={num:ch.num};renderPill();
+      try{const pr=await proofChapter(ch,sample);
+        if(pr){try{if(curNovel===novel&&!current)renderNovel()}catch(_){}
+          if(current&&current.id===ch.id){const pi=firstVisibleIdx();openReader(ch.id,{keepTts:tts.on,para:pi})}
+          if(pr.fixes.length)toast(`المدقق صحّح ${pr.fixes.length} ${pr.fixes.length===1?'خطأ':'أخطاء'} في الفصل ${ch.num}`)}
+        if(prefs.trReview!==false||prefs.trProof!==false)reviewChapter(ch,false,true)}
+      catch(e){proofFail.set(ch.id,Date.now());proofing=null;renderPill();break}
+      proofing=null;renderPill();
+      await new Promise(r0=>setTimeout(r0,2500));
+    }
+  }finally{proofBg=false;proofing=null;renderPill()}
 }
 function renderPill(){
   const pl=$('#trPill');
@@ -5851,6 +5880,7 @@ function bumpStat(f,n){
   saveStats();
 }
 function openReader(id,opt){
+  setTimeout(()=>{if(current)proofCatchUp(nv(current))},4000);
   opt=opt||{};
   const ch=all().find(c=>c.id===id);if(!ch)return;
   if(tts.on&&!opt.keepTts)ttsStop();
