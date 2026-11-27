@@ -572,6 +572,10 @@ body.selmode .card.sel::after{background:var(--danger);border-color:var(--danger
 .entpop .mean .mn{font-size:12.5px;line-height:1.7;color:var(--dim)}
 .entpop .mbtn{width:100%;min-height:40px;border-radius:12px;border:1px dashed var(--plasma);background:transparent;color:var(--plasma);font:600 13.5px var(--ui);cursor:pointer}
 .entpop .mbtn:disabled{opacity:.7}
+.entpop .mact{display:flex;gap:8px;margin-top:8px}
+.entpop .mact button{min-height:40px;border-radius:12px;font:600 13px var(--ui);cursor:pointer;padding:0 12px}
+.entpop .muse{flex:1;min-width:0;border:0;background:var(--plasma);color:var(--onacc,#fff);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.entpop .medit{flex:none;border:1px solid var(--line);background:transparent;color:var(--ink)}
 #article .ent.gn{text-decoration-style:dotted;text-decoration-color:color-mix(in srgb,currentColor 35%,transparent)}
 .entpop .eh{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
 .entpop .eh b{font-size:16px}
@@ -4868,6 +4872,12 @@ function fillMean(box,name,src,pop){
     box.querySelector('.mv').textContent=mv.meaning||'';
     const P=box.querySelector('.mp');(mv.parts||[]).slice(0,8).forEach(x=>{const d=document.createElement('span');d.innerHTML='<bdi class="mc"></bdi><i></i><b></b>';d.querySelector('.mc').textContent=x.c||'';d.querySelector('i').textContent=x.py||'';d.querySelector('b').textContent=x.m||'';P.appendChild(d)});
     box.querySelector('.mn').textContent=mv.note||'';
+    // use the meaning as the name, or edit the saved name, right here
+    if(!current.sample){const A=document.createElement('div');A.className='mact';
+      const u=document.createElement('button');u.type='button';u.className='muse';u.textContent='استعمل المعنى «'+(mv.meaning.length>22?mv.meaning.slice(0,22)+'…':mv.meaning)+'»';
+      u.onclick=()=>{hideEnt();editNameHere(name,src,mv.meaning)};
+      const e2=document.createElement('button');e2.type='button';e2.className='medit';e2.textContent='عدّل الاسم';e2.onclick=()=>{hideEnt();editNameHere(name,src,'')};
+      A.append(u,e2);box.appendChild(A)}
   }else{
     const b=document.createElement('button');b.type='button';b.className='mbtn';b.textContent='ما معنى هذا الاسم؟';box.appendChild(b);
     b.onclick=async()=>{b.disabled=true;b.textContent='يبحث عن المعنى…';
@@ -4892,11 +4902,23 @@ ${src?'':'الأحرف الصينية غير معروفة: استنتجها من
 function placePop(pop,r){r=r||(pop._r);if(!r)return;pop._r=r;const pw=pop.offsetWidth,ph=pop.offsetHeight;
   let top=r.bottom+8;if(top+ph>innerHeight-80)top=Math.max(70,r.top-ph-8);
   pop.style.top=top+'px';pop.style.left=Math.max(12,Math.min(innerWidth-pw-12,r.left+r.width/2-pw/2))+'px'}
+/* opens the add/edit sheet on a saved name: the old spelling is remembered, so saving renames it in the dictionary,
+   characters, terms and this novel's chapters; a name not saved yet is simply added */
+function editNameHere(oldName,src,newName){
+  adCtx={novel:nv(current),num:current.num,line:'',src:''};
+  $('#adName').value=oldName;$('#adSrc').value=src||'';$('#adCat').value='';$('#adDesc').value='';$('#adAlso').checked=true;$('#adStat').textContent='';
+  const m=meta.novels[adCtx.novel]||{},has=(k,f)=>((m[k]||{}).list||[]).some(x=>x[f]===oldName);
+  adSetKind(has('chars','name')?'chars':has('lex','term')?'lex':'gloss');
+  adEdit=null;adCheck(true);
+  if(newName){$('#adName').value=newName;adCheck(false);$('#adStat').textContent=adEdit?'راجع ثم احفظ: يتغيّر الاسم في كل مكان.':'الاسم غير محفوظ بعد، احفظه ليُضاف.'}
+  showSheet($('#anSheet'));
+  if(!newName)setTimeout(()=>{const i=$('#adName');i.focus();i.select()},250);
+}
 function showMeanPop(name,src,rect){
   const pop=$('#entPop');src=src||nameSrc(name);
   pop.innerHTML='<div class="eh"><b></b><bdi></bdi><span class="tag">اسم</span></div><div class="mean"></div><div class="ex"><button type="button" class="ask">عدّله</button><button type="button" class="cl">إغلاق</button></div>';
   pop.querySelector('b').textContent=name;pop.querySelector('bdi').textContent=src||'';
-  pop.querySelector('.ask').onclick=()=>{hideEnt();adCtx={novel:nv(current),num:current.num,line:'',src:''};$('#adName').value=name;$('#adSrc').value=src||'';$('#adCat').value='';$('#adDesc').value='';$('#adAlso').checked=true;$('#adStat').textContent='';adSetKind('gloss');adEdit=null;adCheck(true);showSheet($('#anSheet'))};
+  pop.querySelector('.ask').onclick=()=>{hideEnt();editNameHere(name,src,'')};
   pop.querySelector('.cl').onclick=hideEnt;
   pop.hidden=false;fillMean(pop.querySelector('.mean'),name,src,pop);pop._r=rect;placePop(pop,rect);
 }
