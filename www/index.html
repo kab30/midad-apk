@@ -4354,11 +4354,13 @@ function powSync(pw){const L=powLadders(pw);pw.ladders=L;const p=L[0]||{stages:[
 function powToGloss(novel,full){
   const m=meta.novels[novel]||{},g=parseGloss(m.glossary),pairs=[];
   powLadders(m.power).forEach(l=>(l.stages||[]).forEach(x=>{
-    const src=String(x.src||'').replace(/[（(].*?[)）]/g,'').split(/[\/、,，]/)[0].trim();
-    if(!x.name||!src||!/[\u3400-\u9fff]/.test(src)||src.length>12)return;
+    const src=(String(x.src||'').match(/[\u3400-\u9fff]{1,12}/)||[''])[0];
+    if(!x.name||!src)return;
     const nm=x.name.trim(),old=g.get(src);
     if(old===nm)return;if(old&&!full)return;
     g.set(src,nm);pairs.push({src,nm,old:old||''})}));
+  if(full)powLadders(m.power).forEach(l=>(l.stages||[]).forEach(x=>{const src=(String(x.src||'').match(/[\u3400-\u9fff]{1,12}/)||[''])[0];if(!src||!x.name)return;
+    ['级','阶','境','級'].forEach(suf=>{const k=src+suf,o=g.get(k);if(o&&o!==x.name.trim()){g.set(k,x.name.trim());pairs.push({src:k,nm:x.name.trim(),old:o})}})}));
   if(!pairs.length)return {added:0,changed:0,repl:0,nch:0};
   meta.novels[novel]=Object.assign({},m,{glossary:[...g].map(([a,b])=>a+' = '+b).join('\n').slice(0,60000)});
   if(m.glossDel)meta.novels[novel].glossDel=m.glossDel.filter(k=>!pairs.some(p0=>p0.src===k));
@@ -4371,8 +4373,36 @@ function powToGloss(novel,full){
   if(touched.size&&current&&touched.has(current)){const pi=firstVisibleIdx();openReader(current.id,{keepTts:tts.on,para:pi})}
   return {added:pairs.filter(p0=>!p0.old).length,changed:pairs.filter(p0=>p0.old).length,repl,nch:touched.size};
 }
+async function powFillChinese(novel){
+  const m=meta.novels[novel]||{},pw=Object.assign({},m.power||{}),L=powLadders(pw),g=parseGloss(m.glossary);
+  const byAr=new Map();g.forEach((v,k)=>{if(/[\u3400-\u9fff]/.test(k)&&!byAr.has(v))byAr.set(v,k)});
+  const need=[];let got=0;
+  L.forEach(l=>(l.stages||[]).forEach(x=>{if(!x.name||/[\u3400-\u9fff]/.test(x.src||''))return;
+    const k=byAr.get(x.name.trim());if(k){x.src=(x.src?x.src+' / ':'')+k;got++;return}
+    if(x.src&&/[A-Za-z]/.test(x.src))need.push(x)}));
+  if(need.length){const sample=await getSample();
+    if(sample){try{
+      const r=await sample.json(`رواية «${novel}»${m.origName?` (الاسم الأصلي: ${m.origName})`:''}.
+هذه أسماء درجات ومراتب من أنظمة الرواية، مكتوبة بالإنجليزية كما في الويكي. أعطني اسم كل منها بالأحرف الصينية كما يُكتب في النص الصيني الأصلي للرواية نفسها (مثلاً Mysterious-Iron → 玄铁، Secret-Silver → 秘银).
+${[...new Set(need.map(x=>x.src))].slice(0,80).join('\n')}
+إن لم تكن متأكداً من اسم فاترك zh فارغاً. أعد JSON فقط: {"map":[{"en":"","zh":""}]}`,{cache:false,modelTier:'default'});
+      const mp=new Map((r&&Array.isArray(r.map)?r.map:[]).filter(y=>y&&y.en&&/^[\u3400-\u9fff]{1,12}$/.test(String(y.zh||'').trim())&&!/不确定|未知|不知道|不详|无/.test(y.zh)).map(y=>[String(y.en).trim().toLowerCase(),String(y.zh).trim()]));
+      need.forEach(x=>{const zh=mp.get(String(x.src).trim().toLowerCase());if(zh){x.src=x.src+' / '+zh;got++}});
+      trackUse('lex',0);
+    }catch(e){if(!got)throw e}}}
+  if(got){pw.ladders=L;meta.novels[novel]=Object.assign({},meta.novels[novel]||{},{power:pw});saveMeta()}
+  return got;
+}
+async function powUnify(novel,btn){
+  const t0=btn&&btn.textContent;if(btn){btn.disabled=true;btn.textContent='يجهّز الأسماء الصينية للدرجات…'}
+  try{let f=0;try{f=await powFillChinese(novel)}catch(e){toast(TR_ERR[e&&e.code]||'تعذّر جلب الأسماء الصينية، وُحّد الموجود فقط')}
+    const r=powToGloss(novel,true);if(curNovel===novel){try{renderPow()}catch(_){}}
+    toast((f?`عُرف الأصل الصيني لـ ${f} ${f===1?'درجة':f<11?'درجات':'درجة'} · `:'')+powGlossMsg(r),7000);
+  }finally{if(btn){btn.disabled=false;btn.textContent=t0}}
+}
 function powGlossMsg(r){if(!r.added&&!r.changed)return 'أسماء الدرجات متطابقة مع القاموس';
-  return [r.added&&`أُضيفت ${r.added} درجة للقاموس`,r.changed&&`وُحّدت ${r.changed}`,r.repl&&`واستُبدل ${r.repl} موضع في ${r.nch} ${r.nch===1?'فصل':'فصول'}`].filter(Boolean).join(' · ')}
+  const dn=n=>n===1?'درجة واحدة':n===2?'درجتان':n<11?n+' درجات':n+' درجة';
+  return [r.added&&`أُضيف للقاموس ${dn(r.added)}`,r.changed&&`وُحّد ${dn(r.changed)}`,r.repl&&`واستُبدل ${r.repl} موضع في ${r.nch} ${r.nch===1?'فصل':'فصول'}`].filter(Boolean).join(' · ')}
 function powSave(novel,pw){
   powSync(pw);meta.novels[novel]=Object.assign({},meta.novels[novel]||{},{power:pw});saveMeta();
   try{powToGloss(novel,false)}catch(e){}
@@ -4484,9 +4514,9 @@ $('#peDel').onclick=()=>{
 /* import from pasted research */
 let piMode='replace',piBusy=false;
 document.querySelectorAll('#piMode button').forEach(b=>b.onclick=()=>{piMode=b.dataset.m;document.querySelectorAll('#piMode button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)))});
-$('#pwGlossBtn').onclick=()=>{if(!curNovel)return;const m=meta.novels[curNovel]||{};
-  if(!powLadders(m.power).some(l=>(l.stages||[]).some(x=>x.src))){toast('درجات السلّم بلا أسماء صينية؛ جهّزه من الويكي ليُعرف أصل كل درجة');return}
-  toast(powGlossMsg(powToGloss(curNovel,true)),6000)};
+$('#pwGlossBtn').onclick=e=>{if(!curNovel)return;const m=meta.novels[curNovel]||{};
+  if(!powLadders(m.power).some(l=>(l.stages||[]).length)){toast('لا يوجد سلّم بعد');return}
+  powUnify(curNovel,e.currentTarget)};
 $('#pwImpBtn').onclick=()=>{$('#piStat').textContent='';$('#piWikiStat').textContent='';hideSheet();showSheet($('#powImp'))};
 $('#piGo').onclick=async()=>{
   if(piBusy)return;const txt=$('#piText').value.trim();if(txt.length<20){toast('الصق نص البحث أولاً');return}
@@ -4535,6 +4565,7 @@ function piApply(novel,r,mode){
     powSave(novel,pw);powTab=mode==='add'?oldL.length:0;
     $('#piText').value='';hideSheet();renderPow();showSheet($('#powSheet'));
     let gm='';try{const gr=powToGloss(novel,true);if(gr.added||gr.changed)gm=' · '+powGlossMsg(gr)}catch(e){}
+    if(got.some(l=>l.stages.some(x=>x.src&&!/[\u3400-\u9fff]/.test(x.src))))setTimeout(()=>powUnify(novel,null),2500);
     toast(`أُنشئ ${got.length} ${got.length===1?'سلّم':'سلالم'}${gm}، والآن أحدد موقع البطل…`,6000);
     updatePower(novel,true,{recent:true});
     return true;}
