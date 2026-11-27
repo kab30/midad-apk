@@ -2047,6 +2047,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
       <span class="opt-t"><b id="pwUpdateT"></b><small id="pwUpdateS"></small></span>
     </button>
     <div class="pwacts"><button type="button" class="redo" id="pwEditBtn">عدّل يدوياً</button><button type="button" class="redo" id="pwImpBtn">جهّز السلّم من الويكي</button></div>
+    <button type="button" class="redo" id="pwGlossBtn" style="width:100%;margin-top:8px">وحّد أسماء الدرجات مع القاموس والفصول</button>
     <button type="button" class="redo" id="pwRebuild" style="flex:none;min-height:38px">أعد البناء من كل الفصول المقروءة</button>
     <button type="button" class="redo" id="pwGenre" style="flex:none;min-height:38px" hidden>رواية أموال وشركات؟ اكتشف من آخر فصلين</button>
     <div class="pwtabs" id="pwTabs" hidden></div>
@@ -4348,8 +4349,33 @@ const KIND_PROMPT=`صنّف كل سلّم في kind واحد: people (مراحل
 function powSortL(L,genre){const O=genre==='wealth'?['wealth','company'].concat(PKORDER.filter(k=>k!=='wealth'&&k!=='company')):PKORDER;return L.map((l,i)=>[l,i]).sort((a,b)=>(O.indexOf(pkind(a[0]))-O.indexOf(pkind(b[0])))||a[1]-b[1]).map(x=>x[0])}
 function powLadders(pw){if(!pw)return [];if(Array.isArray(pw.ladders)&&pw.ladders.length)return pw.ladders;return pw.stages&&pw.stages.length?[{name:pw.system||'',stages:pw.stages,hero:pw.hero||null,locked:false}]:[]}
 function powSync(pw){const L=powLadders(pw);pw.ladders=L;const p=L[0]||{stages:[],hero:null};pw.stages=p.stages||[];pw.hero=p.hero||null;return pw}
+/* the ladder's stage names become the dictionary names, so a chapter never says "الحديد الغامض" when the ladder says "الحديد الأسود".
+   full: the ladder wins over a different dictionary name, and the old spelling is replaced in this novel's chapters */
+function powToGloss(novel,full){
+  const m=meta.novels[novel]||{},g=parseGloss(m.glossary),pairs=[];
+  powLadders(m.power).forEach(l=>(l.stages||[]).forEach(x=>{
+    const src=String(x.src||'').replace(/[（(].*?[)）]/g,'').split(/[\/、,，]/)[0].trim();
+    if(!x.name||!src||!/[\u3400-\u9fff]/.test(src)||src.length>12)return;
+    const nm=x.name.trim(),old=g.get(src);
+    if(old===nm)return;if(old&&!full)return;
+    g.set(src,nm);pairs.push({src,nm,old:old||''})}));
+  if(!pairs.length)return {added:0,changed:0,repl:0,nch:0};
+  meta.novels[novel]=Object.assign({},m,{glossary:[...g].map(([a,b])=>a+' = '+b).join('\n').slice(0,60000)});
+  if(m.glossDel)meta.novels[novel].glossDel=m.glossDel.filter(k=>!pairs.some(p0=>p0.src===k));
+  saveMeta();
+  let repl=0;const touched=new Set();
+  if(full)pairs.filter(p0=>p0.old&&p0.old.length>1&&p0.old!==p0.nm).forEach(p0=>{const re=frRegex(p0.old,true);
+    chapters.filter(c=>nv(c)===novel&&!c.sample).forEach(c=>{const k=frCount(c.text||'',re)+frCount(c.title||'',re);if(!k)return;
+      re.lastIndex=0;c.text=(c.text||'').replace(re,(m0,a,b)=>a+b+p0.nm);re.lastIndex=0;c.title=(c.title||'').replace(re,(m0,a,b)=>a+b+p0.nm);repl+=k;touched.add(c)})});
+  touched.forEach(c=>saveChapterField(c,{text:c.text,title:c.title}));if(touched.size)persistLocal();
+  if(touched.size&&current&&touched.has(current)){const pi=firstVisibleIdx();openReader(current.id,{keepTts:tts.on,para:pi})}
+  return {added:pairs.filter(p0=>!p0.old).length,changed:pairs.filter(p0=>p0.old).length,repl,nch:touched.size};
+}
+function powGlossMsg(r){if(!r.added&&!r.changed)return 'أسماء الدرجات متطابقة مع القاموس';
+  return [r.added&&`أُضيفت ${r.added} درجة للقاموس`,r.changed&&`وُحّدت ${r.changed}`,r.repl&&`واستُبدل ${r.repl} موضع في ${r.nch} ${r.nch===1?'فصل':'فصول'}`].filter(Boolean).join(' · ')}
 function powSave(novel,pw){
   powSync(pw);meta.novels[novel]=Object.assign({},meta.novels[novel]||{},{power:pw});saveMeta();
+  try{powToGloss(novel,false)}catch(e){}
   if(curNovel===novel){renderPow();renderNovel()}
   if(current&&nv(current)===novel){renderPowChip();if(typeof markEntities==='function')markEntities()}
 }
@@ -4458,6 +4484,9 @@ $('#peDel').onclick=()=>{
 /* import from pasted research */
 let piMode='replace',piBusy=false;
 document.querySelectorAll('#piMode button').forEach(b=>b.onclick=()=>{piMode=b.dataset.m;document.querySelectorAll('#piMode button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)))});
+$('#pwGlossBtn').onclick=()=>{if(!curNovel)return;const m=meta.novels[curNovel]||{};
+  if(!powLadders(m.power).some(l=>(l.stages||[]).some(x=>x.src))){toast('درجات السلّم بلا أسماء صينية؛ جهّزه من الويكي ليُعرف أصل كل درجة');return}
+  toast(powGlossMsg(powToGloss(curNovel,true)),6000)};
 $('#pwImpBtn').onclick=()=>{$('#piStat').textContent='';$('#piWikiStat').textContent='';hideSheet();showSheet($('#powImp'))};
 $('#piGo').onclick=async()=>{
   if(piBusy)return;const txt=$('#piText').value.trim();if(txt.length<20){toast('الصق نص البحث أولاً');return}
@@ -4470,7 +4499,7 @@ $('#piGo').onclick=async()=>{
 - رتّب كل سلّم من الأدنى إلى الأعلى كما في النص، بدون إضافة مراحل غير مذكورة وبدون حذف أي مرحلة.
 - إذا ذُكرت عدة رتب في سطر واحد (مثل D و C و B و A) فاجعل كل رتبة مرحلة مستقلة بالترتيب الصحيح من الأضعف.
 - المستويات المرقّمة داخل مرحلة واحدة (مثل I إلى V) تُوضع في subs لتلك المرحلة.
-- name: اسم عربي قصير وواضح. src: الاسم الإنجليزي أو الصيني إن ورد. desc: جملة قصيرة مما ذكره النص (مثل الشرط المطلوب للوصول إليها).
+- name: اسم عربي قصير وواضح. src: الاسم الصيني بالأحرف الصينية كما في النص الأصلي (مثل 玄铁境) إن ورد، وإلا الإنجليزي. desc: جملة قصيرة مما ذكره النص (مثل الشرط المطلوب للوصول إليها).
 - اكتب بالعربية الفصحى، وصحّح الأخطاء الإملائية الواضحة.
 ${termsPrompt()}
 - ممنوع تماماً استخدام كلمات: إله، الإله، آلهة، الإلهة، إلهي، الإلهية، الإلهي. استخدم بدلها: السامي، السماوي، الكائن السامي، المقدّس.
@@ -4505,7 +4534,8 @@ function piApply(novel,r,mode){
     if(r&&r.system)pw.system=S(r.system).slice(0,60);
     powSave(novel,pw);powTab=mode==='add'?oldL.length:0;
     $('#piText').value='';hideSheet();renderPow();showSheet($('#powSheet'));
-    toast(`أُنشئ ${got.length} ${got.length===1?'سلّم':'سلالم'}، والآن أحدد موقع البطل…`);
+    let gm='';try{const gr=powToGloss(novel,true);if(gr.added||gr.changed)gm=' · '+powGlossMsg(gr)}catch(e){}
+    toast(`أُنشئ ${got.length} ${got.length===1?'سلّم':'سلالم'}${gm}، والآن أحدد موقع البطل…`,6000);
     updatePower(novel,true,{recent:true});
     return true;}
 }
@@ -4528,7 +4558,7 @@ ${window.midadCloud?'ابحث في الويب (ويكي الرواية و Fandom
 - سلّم مستقل لكل نظام: مراحل البطل والبشر، رتب الوحوش والمخلوقات، درجات التقنيات والمهارات، درجات الكنوز، المناصب والمنظمات.
 - ${KIND_PROMPT}
 - إذا كانت رواية مال أو استثمار أو شركات أو تكنولوجيا فاجعل genre "wealth" (أو "mixed" إن جمعت القوة والمال)، وأضف ما يُعرف من أنظمة الرواية نفسها (مثل مستويات النظام أو المناصب).
-- رتّب كل سلّم من الأدنى إلى الأعلى. name بالعربية الفصحى، src الاسم الصيني أو الإنجليزي، desc سطر قصير، subs المستويات الفرعية إن وُجدت.
+- رتّب كل سلّم من الأدنى إلى الأعلى. name بالعربية الفصحى، src الاسم الصيني بالأحرف الصينية (مثل 玄铁境) — ابحث عنه وتأكد منه فهو يُستعمل لتوحيد الترجمة — وإلا الإنجليزي، desc سطر قصير، subs المستويات الفرعية إن وُجدت.
 - ممنوع تماماً استخدام كلمات: إله، الإله، آلهة، الإلهة، إلهي، الإلهية، الإلهي. استخدم بدلها: السامي، السماوي، الكائن السامي، المقدّس.
 - مهم جداً: لا تخترع. إذا لم تكن تعرف هذه الرواية بالتحديد أو لم تجد عنها معلومات موثوقة فأعد {"found":false,"ladders":[]}. لا تخلط بينها وبين رواية أخرى تشبهها.
 ${(m.glossary||'').trim()?`استخدم هذه الترجمات الثابتة للأسماء:\n${(m.glossary||'').slice(0,1200)}\n`:''}${termsPrompt()}
