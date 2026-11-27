@@ -6825,7 +6825,7 @@ function adSetKind(k){adKind=k;$('#adKind').querySelectorAll('button').forEach(b
 $('#adKind').onclick=e=>{const b=e.target.closest('button');if(b)adSetKind(b.dataset.k)};
 function openAddName(word,i,lines){
   if(!current||current.sample)return;
-  adCtx={novel:nv(current),num:current.num,line:lines[i]||'',src:srcWindow(i,lines.length)};
+  adCtx={novel:nv(current),num:current.num,line:lines[i]||'',src:srcWindow(i,lines.length,4)};
   $('#adName').value=word||'';$('#adSrc').value='';$('#adCat').value='';$('#adDesc').value='';$('#adAlso').checked=true;$('#adStat').textContent='';
   const m=meta.novels[adCtx.novel]||{},has=(k,f)=>((m[k]||{}).list||[]).some(x=>x[f]===word);
   adSetKind(has('chars','name')?'chars':has('lex','term')?'lex':'gloss');
@@ -6853,7 +6853,20 @@ ${termsPrompt()}
     if(r&&typeof r==='object'){if(r.ar&&r.ar.length<=40)$('#adName').value=r.ar.trim();if(r.src&&!$('#adSrc').value)$('#adSrc').value=String(r.src).trim().slice(0,40);
       if(['chars','lex','gloss'].includes(r.kind))adSetKind(r.kind);
       const c=adKind==='lex'?r.cat:r.role;if(c&&!$('#adCat').value)$('#adCat').value=String(c).slice(0,30);if(r.desc&&!$('#adDesc').value)$('#adDesc').value=String(r.desc).slice(0,300);
-      $('#adStat').textContent='راجع الحقول ثم احفظ.';adCheck(true)}
+      // the original must really be in this chapter's source; if the nearby lines missed it, look through the whole chapter once
+      const full=(current&&nv(current)===adCtx.novel&&current.src)||'';
+      let sv=$('#adSrc').value.trim();
+      if(full&&(!sv||(/[\u3400-\u9fff]/.test(sv)&&!full.includes(sv)))){
+        $('#adStat').textContent='يبحث عن الاسم في الفصل الأصلي كله…';
+        try{const r2=await sample.json(`هذا نص فصل صيني، وترجمته العربية تحتوي «${$('#adName').value.trim()}» في هذه الجملة: ${adCtx.line.slice(0,400)}
+ابحث في النص الصيني عن الكلمة أو الاسم المقابل لـ«${$('#adName').value.trim()}» بالضبط وانسخه حرفياً كما هو.
+النص الصيني:
+${full.slice(0,14000)}
+أعد JSON فقط: {"src":""} (اتركه فارغاً إن لم تجده)`,{cache:false,...ecoTier()});
+          const s2=String(r2&&r2.src||'').trim();if(s2&&full.includes(s2)){$('#adSrc').value=s2.slice(0,40);sv=s2}
+          else if(sv&&!full.includes(sv))$('#adSrc').value=''}catch(_){}
+      }
+      $('#adStat').textContent=$('#adSrc').value?'راجع الحقول ثم احفظ.':'لم أجد الاسم الأصلي في النص؛ اكتبه بنفسك إن عرفته.';adCheck(true)}
   }catch(e){$('#adStat').textContent=TR_ERR[e&&e.code]||'تعذّر الاقتراح، اكتب الحقول بنفسك'}
   finally{adBusy=false;$('#adAi').disabled=false}
 }
@@ -6933,7 +6946,7 @@ ${top.length?'أكثر ما يأخذ الوقت:\n'+top.map(([k,c],i)=>`${i+1}. 
     const x=document.createElement('button');x.textContent='إغلاق';x.onclick=()=>P.remove();P.appendChild(x)}
 }
 $('#diagBtn').onclick=runDiag;
-function srcWindow(i,n){const src=(current.src||'').split('\n').filter(Boolean);if(!src.length)return '';const c=Math.round(i*(src.length-1)/Math.max(1,n-1));return src.slice(Math.max(0,c-1),c+2).join('\n')}
+function srcWindow(i,n,w){w=w||1;const src=(current.src||'').split('\n').filter(Boolean);if(!src.length)return '';const c=Math.round(i*(src.length-1)/Math.max(1,n-1));return src.slice(Math.max(0,c-w),c+w+1).join('\n')}
 function showSource(p,i,n){
   const nx=p.nextElementSibling;if(nx&&nx.classList.contains('srcp')){nx.remove();return}
   const d=document.createElement('div');d.className='srcp';d.dir='auto';d.textContent=srcWindow(i,n);
