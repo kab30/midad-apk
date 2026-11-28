@@ -1041,6 +1041,57 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 #whView{display:none;overflow-y:auto;z-index:6;background:var(--void);padding-inline:16px;padding-block:0 60px}
 #whView.show{display:flex;animation:vin .28s cubic-bezier(.2,.8,.2,1)}
 #whView .wrap{width:100%}
+#cdView{display:none;overflow-y:auto;z-index:6;background:var(--void);padding-inline:16px;padding-block:0 60px}
+#cdView.show{display:flex;animation:vin .28s cubic-bezier(.2,.8,.2,1)}
+#cdView .wrap{width:100%;max-width:760px;margin:0 auto}
+.cdgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.cdgrid[hidden]{display:none}
+.cdmini{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 10px 12px;border-radius:18px;border:1px solid var(--line);background:var(--deck);color:var(--ink);font:inherit;cursor:pointer;text-align:center;overflow:hidden}
+.cdmini::before{content:"";position:absolute;inset:0 0 auto 0;height:4px;background:var(--rar,var(--line))}
+.cdmini .av{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font:800 22px var(--ui);color:#fff;background:var(--rar,#888);box-shadow:0 0 0 3px color-mix(in srgb,var(--rar,#888) 30%,transparent)}
+.cdmini b{font:700 14.5px/1.4 var(--ui)}.cdmini small{font:12px/1.4 var(--ui);color:var(--dim);display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.cdmini .lv{position:absolute;top:10px;inset-inline-start:10px;font:800 11px var(--ui);padding:2px 7px;border-radius:8px;background:color-mix(in srgb,var(--rar,#888) 18%,transparent);color:var(--rar,var(--dim))}
+.cdmini .nw{position:absolute;top:10px;inset-inline-end:10px;font:700 10.5px var(--ui);color:var(--plasma)}
+.cdmini.empty .av{background:var(--line);box-shadow:none;color:var(--dim)}
+.cdcard{--rar:#c9a227}
+.cdcard[hidden]{display:none}
+.cdhero{position:relative;padding:20px 16px 16px;border-radius:22px;overflow:hidden;color:#fff;background:radial-gradient(120% 90% at 100% 0%,color-mix(in srgb,var(--rar) 75%,#000) 0%,#141821 70%);border:1.5px solid color-mix(in srgb,var(--rar) 70%,transparent);box-shadow:0 10px 30px color-mix(in srgb,var(--rar) 25%,transparent)}
+.cdhero .top{display:flex;align-items:center;gap:14px;padding-inline-end:80px}
+.cdhero .av{flex:none;width:72px;height:72px;border-radius:18px;display:grid;place-items:center;font:800 30px var(--ui);background:color-mix(in srgb,var(--rar) 55%,#000);border:2px solid var(--rar)}
+.cdhero h3{margin:0;font:800 22px/1.3 var(--ui)}.cdhero .src{font:13px var(--ui);opacity:.7}
+.cdhero .tt{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.cdhero .tt span{font:600 11.5px var(--ui);padding:2px 9px;border-radius:999px;background:rgba(255,255,255,.12)}
+.cdhero .lvl{position:absolute;top:14px;inset-inline-end:14px;text-align:center;min-width:58px;padding:6px 8px;border-radius:14px;background:rgba(0,0,0,.35);border:1px solid color-mix(in srgb,var(--rar) 60%,transparent)}
+.cdhero .lvl small{display:block;font:600 10px var(--ui);opacity:.75}.cdhero .lvl b{font:800 17px/1.2 var(--ui);color:var(--rar)}
+.cdhero .sum{margin:14px 0 0;font:14px/1.8 var(--ui);opacity:.9}
+.cdkv{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:14px}
+.cdkv div{padding:9px 11px;border-radius:12px;background:rgba(255,255,255,.07)}
+.cdkv small{display:block;font:600 11px var(--ui);opacity:.65}.cdkv b{font:700 14px/1.5 var(--ui)}
+.cdsec{margin-top:14px;padding:14px;border-radius:18px;background:var(--deck);border:1px solid var(--line)}
+.cdsec h4{margin:0 0 10px;font:800 14px var(--ui);color:var(--ink);display:flex;align-items:center;gap:8px}
+.cdsec h4::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--rar);transform:rotate(45deg)}
+.cdstat{display:grid;grid-template-columns:78px 1fr 44px;align-items:center;gap:10px;margin:8px 0}
+.cdstat span{font:600 13px var(--ui);color:var(--ink)}.cdstat i{display:block;height:9px;border-radius:9px;background:var(--line);overflow:hidden}
+.cdstat i em{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,color-mix(in srgb,var(--rar) 55%,#fff),var(--rar))}
+.cdstat b{font:800 13px var(--ui);text-align:end;color:var(--ink)}
+.cdstat small{grid-column:1/-1;margin-top:-4px;font:11.5px/1.5 var(--ui);color:var(--dim)}
+.cdlist{display:grid;gap:8px}
+.cdit{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:14px;border:1px solid var(--line);border-inline-start:4px solid var(--gc,var(--line));background:color-mix(in srgb,var(--gc,transparent) 6%,transparent)}
+.cdit .ic{flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:color-mix(in srgb,var(--gc,var(--dim)) 18%,transparent);color:var(--gc,var(--dim))}
+.cdit b{font:700 14px/1.5 var(--ui);color:var(--ink)}.cdit .g{font:700 11px var(--ui);color:var(--gc,var(--dim));margin-inline-start:6px}
+.cdit p{margin:2px 0 0;font:13px/1.65 var(--ui);color:var(--dim)}
+.cdchips{display:flex;flex-wrap:wrap;gap:6px}
+.cdchips span{font:600 12.5px var(--ui);padding:4px 11px;border-radius:999px;border:1px solid var(--line);color:var(--ink)}
+.cdrel{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line);font:13.5px/1.6 var(--ui);color:var(--ink)}
+.cdrel:first-child{border-top:0}.cdrel small{color:var(--dim);text-align:end}
+.cdfoot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;font:12.5px var(--ui);color:var(--dim)}
+.cdfoot button{min-height:42px;padding:0 16px;border-radius:12px;border:0;background:var(--plasma);color:var(--onacc,#fff);font:700 13.5px var(--ui);cursor:pointer}
+.cdfoot button:disabled{opacity:.6}
+.cdempty{padding:26px 16px;border-radius:18px;border:1px dashed var(--line);text-align:center;font:14px/1.8 var(--ui);color:var(--dim)}
+.cdempty button{margin-top:10px}
+.cdtop{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.cdtop button{min-height:38px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--deck);color:var(--ink);font:600 13px var(--ui);cursor:pointer}
+
 #nwView{display:none;overflow-y:auto;z-index:6;background:var(--void);padding-inline:16px;padding-block:0 60px}
 #nwView.show{display:flex;animation:vin .28s cubic-bezier(.2,.8,.2,1)}
 #nwView .wrap{width:100%;max-width:760px;margin:0 auto}
@@ -1436,7 +1487,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 @media (prefers-reduced-motion:reduce){.herocard::after,.hgoal::after,.hready button,.hsec h3::after{animation:none}}
 
 /* novel page tools: white tiles, the colour lives in the icon and the effects (same language as the prayer times) */
-#nGloss{--tc:#d9a441}#nRaw{--tc:#a7784a}#nChars{--tc:#3fb37f}#nRels{--tc:#5b8cff}#nMarks{--tc:#e5708a}#nLex{--tc:#22b3c4}#nTl{--tc:#9b7cf6}#nChats{--tc:#3d9cf0}#nGal{--tc:#f08a4b}#nPow{--tc:#e5484d}#nTerms{--tc:#6fbf5f}
+#nGloss{--tc:#d9a441}#nRaw{--tc:#a7784a}#nChars{--tc:#3fb37f}#nRels{--tc:#5b8cff}#nCards{--tc:#c9a227}#nMarks{--tc:#e5708a}#nLex{--tc:#22b3c4}#nTl{--tc:#9b7cf6}#nChats{--tc:#3d9cf0}#nGal{--tc:#f08a4b}#nPow{--tc:#e5484d}#nTerms{--tc:#6fbf5f}
 .tools{gap:8px}
 .tools .tool{position:relative;overflow:hidden;display:flex;flex-direction:row;align-items:center;gap:9px;min-height:0;padding:9px 10px;border-radius:16px;background:var(--panel);border:1px solid var(--line);box-shadow:0 1px 2px rgba(0,0,0,.03);transition:transform .2s,box-shadow .3s,border-color .3s;animation:tIn .55s cubic-bezier(.2,.8,.2,1) both}
 .tools .tool:nth-child(2){animation-delay:.04s}.tools .tool:nth-child(3){animation-delay:.08s}.tools .tool:nth-child(4){animation-delay:.12s}.tools .tool:nth-child(5){animation-delay:.16s}.tools .tool:nth-child(6){animation-delay:.2s}.tools .tool:nth-child(7){animation-delay:.24s}.tools .tool:nth-child(8){animation-delay:.28s}.tools .tool:nth-child(9){animation-delay:.32s}.tools .tool:nth-child(10){animation-delay:.36s}.tools .tool:nth-child(11){animation-delay:.4s}.tools .tool:nth-child(12){animation-delay:.44s}
@@ -1691,7 +1742,11 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
         <span class="ti"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18.5 20a6.5 6.5 0 0 0-2.5-5.1"/></svg></span>
         <span class="tt"><b>الشخصيات</b><small id="nCharsInfo">—</small></span>
       </button>
-      <button class="tool" id="nRels" type="button">
+      <button class="tool" id="nCards" type="button">
+        <span class="ti"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2.5"/><circle cx="12" cy="9.5" r="3"/><path d="M8 17h8M9.5 14h5"/></svg></span>
+        <span class="tt"><b>بطاقات الشخصيات</b><small id="nCardsInfo">—</small></span>
+      </button>
+      <button class="tool" id="nRels" type="button" hidden>
         <span class="ti"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.6"/><circle cx="4.5" cy="6" r="2"/><circle cx="19.5" cy="6" r="2"/><circle cx="6" cy="19.5" r="2"/><circle cx="18" cy="19" r="2"/><path d="m6.2 7.3 3.7 3M17.8 7.3l-3.7 3M7.5 18l2.7-4M16.5 17.6l-2.6-3.7"/></svg></span>
         <span class="tt"><b>خريطة العلاقات</b><small id="nRelsInfo">—</small></span>
       </button>
@@ -1741,6 +1796,18 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
   </button>
 </div>
 
+<div id="cdView" class="view" dir="rtl">
+  <div class="wrap">
+    <div class="nbar">
+      <button class="ib" id="cdBack" type="button" aria-label="رجوع"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>
+      <h2 class="vtitle">بطاقات الشخصيات</h2>
+      <span style="width:44px"></span>
+    </div>
+    <p class="whsub" id="cdSub"></p>
+    <div class="cdgrid" id="cdGrid"></div>
+    <div class="cdcard" id="cdCard" hidden></div>
+  </div>
+</div>
 <div id="relView" class="view" dir="rtl">
   <div class="relbar">
     <button class="ib" id="relBack" type="button" aria-label="رجوع"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>
@@ -2788,6 +2855,7 @@ function mergeNovelFields(p,o){
    if(g!==(p.glossary||'')&&(g.trim()||(p.glossary||'').trim())){r.glossary=g;changed=true}
    if(del.size){const dl=[...del].slice(-800);if(JSON.stringify(dl)!==JSON.stringify(p.glossDel||[])){r.glossDel=dl;changed=true}}
    if((o.glossUpTo||0)>(p.glossUpTo||0)){r.glossUpTo=o.glossUpTo;changed=true}}
+  if(o.cards){const pc=p.cards||{},mc=Object.assign({},pc);let ch=false;Object.entries(o.cards).forEach(([k,v])=>{if(v&&(!pc[k]||(v.at||0)>(pc[k].at||0))){mc[k]=v;ch=true}});if(ch){r.cards=mc;changed=true}}
   if(o.meanings&&Object.keys(o.meanings).some(k=>!(p.meanings||{})[k])){r.meanings=Object.assign({},o.meanings,p.meanings||{});changed=true}
   // power ladder: a copy that has none never wipes out the one the other copy holds
   if(!p.power&&o.power){r.power=o.power;changed=true}
@@ -3541,6 +3609,7 @@ function renderNovel(){
   $('#nChatsInfo').textContent=nc.length?`${nq} سؤال في ${nc.length} فصل`:'لا توجد محادثات بعد';
   $('#nTermsInfo').textContent=prefs.termsOn!==false?`${termsCount()} مصطلح مفعّل لكل الروايات`:'متوقفة';
   const ci=(meta.novels[curNovel]||{}).chars;
+  {const mc=meta.novels[curNovel]||{},nc=Object.keys(mc.cards||{}).length,nl=((mc.chars||{}).list||[]).length;$('#nCardsInfo').textContent=nc?`${nc} ${nc===1?'بطاقة':nc<11?'بطاقات':'بطاقة'}`:nl?`${nl} شخصية`:'تحتاج شخصيات'}
   {const rl=(meta.novels[curNovel]||{}).rels;$('#nRelsInfo').textContent=rl&&rl.edges?`${rl.edges.length} علاقة`:(ci&&ci.list&&ci.list.length>1?'جاهزة للرسم':'تحتاج ملف الشخصيات')}
   $('#nCharsInfo').textContent=ci&&ci.list&&ci.list.length?`${ci.list.length} شخصية · حتى الفصل ${ci.part&&ci.part.num>(ci.upTo||0)?ci.part.num+' (جزئياً)':ci.upTo}`:'لم تُبنَ بعد';
   const sb=$('#nSort');const desc=prefs.nSort==='desc';
@@ -5010,6 +5079,7 @@ function showEnt(el){
   if(isC&&item.rel)pop.querySelector('.rl').textContent='العلاقات: '+item.rel;
   pop.querySelector('.ask').onclick=()=>{hideEnt();openChat(`${isC?'من هو':'ما معنى'} «${isC?item.name:item.term}» حتى هذا الفصل؟`)};
   {const mb=document.createElement('div');mb.className='mean';pop.querySelector('.ex').before(mb);fillMean(mb,isC?item.name:item.term,item.src||'',pop)}
+  if(isC){const cb=document.createElement('button');cb.type='button';cb.className='ask';cb.textContent='البطاقة';cb.onclick=()=>{hideEnt();cdNovel=nv(current);cdSel=item.name;$('#cdView').classList.add('show');$('#cdView').scrollTop=0;renderCards();if(!((meta.novels[cdNovel]||{}).cards||{})[item.name])buildCard(cdNovel,item.name)};pop.querySelector('.ex').prepend(cb)}
   pop.querySelector('.cl').onclick=hideEnt;
   pop.hidden=false;
   const r=el.getBoundingClientRect(),pw=pop.offsetWidth,ph=pop.offsetHeight;
@@ -8072,6 +8142,115 @@ function openNews(){$('#nwView').classList.add('show');$('#nwView').scrollTop=0;
 $('#nwBtn').onclick=openNews;$('#nwBack').onclick=()=>$('#nwView').classList.remove('show');
 $('#nwRef').onclick=()=>loadNews(true);
 document.querySelectorAll('#nwTabs button').forEach(b=>b.onclick=()=>{if(nwBusy)return;nwTab=b.dataset.t;loadNews(false)});
+
+/* ---------- character cards: a game-style sheet per character (level, stats, wealth, talents, skills, inventory, titles, relations),
+   built only from the chapters read so far and updated as you read ---------- */
+let cdNovel=null,cdSel=null,cdBusy=false;
+const CD_STATS=['القوة','الرشاقة','التحمّل','الذكاء','الطاقة','الحظ'];
+function cdReadTo(novel){const L=chapters.filter(c=>nv(c)===novel&&!c.sample&&c.num!=null);if(!L.length)return 0;
+  const r=L.filter(isReadCh).map(c=>c.num);let t=r.length?Math.max(...r):0;if(current&&nv(current)===novel&&current.num>t)t=current.num;return t||Math.max(...L.map(c=>c.num))}
+function cdChars(novel){const m=meta.novels[novel]||{};return ((m.chars||{}).list||[]).filter(x=>x&&x.name)}
+function cdRar(x,d){const r=(x&&x.role||'')+(d&&d.title||'');return /بطل|البطل/.test(r)?'#d4a017':/شرير|عدو|خصم/.test(r)?'#d9534f':/حليف|صديق|رفيق|حبيب|زوج/.test(r)?'#3fb37f':'#5b8cff'}
+function cdGrade(g){g=String(g||'');return /سماو|إله|إلهي|divine|神/.test(g)?'#e0453a':/أسطور|legend/.test(g)?'#f08a24':/ملحم|epic/.test(g)?'#a259e6':/ميث|mythic|ذهب|gold|ذهبي/.test(g)?'#d4a017':/فض|سر|silver|mithril|ميثريل/.test(g)?'#8aa4c8':/حديد|iron|برونز|bronze|نحاس/.test(g)?'#b7773d':g?'#6b8fb3':''}
+function cdMentions(novel,name){let n=0;chapters.forEach(c=>{if(nv(c)===novel&&(c.text||'').includes(name))n++});return n}
+function openCards(novel){cdNovel=novel;cdSel=null;$('#cdView').classList.add('show');$('#cdView').scrollTop=0;renderCards()}
+function renderCards(){
+  if(!cdNovel)return;const m=meta.novels[cdNovel]||{},cards=m.cards||{},to=cdReadTo(cdNovel);
+  $('#cdGrid').hidden=!!cdSel;$('#cdCard').hidden=!cdSel;
+  if(cdSel){renderCard();return}
+  const L=cdChars(cdNovel).map(x=>({x,c:cards[x.name],n:cdMentions(cdNovel,x.name)})).sort((a,b)=>(/بطل/.test(b.x.role||'')-/بطل/.test(a.x.role||''))||(!!b.c-!!a.c)||b.n-a.n);
+  $('#cdSub').textContent=L.length?`${L.length} شخصية · البطاقات مبنية على ما قرأته حتى الفصل ${to} فقط، بلا حرق للأحداث.`:'';
+  const G=$('#cdGrid');G.innerHTML='';
+  if(!L.length){G.innerHTML='<div class="cdempty" style="grid-column:1/-1">لا توجد شخصيات محفوظة لهذه الرواية بعد.<br>افتح «الشخصيات» في صفحة الرواية وحدّثها، أو أضف شخصية من الفصل بالضغط المطوّل.</div>';return}
+  L.forEach(({x,c,n})=>{const b=document.createElement('button');b.type='button';b.className='cdmini'+(c?'':' empty');b.style.setProperty('--rar',cdRar(x,c&&c.d));
+    b.innerHTML='<span class="av"></span><b></b><small></small>'+(c&&c.d.level?'<span class="lv"></span>':'')+(c&&cdNewCount(cdNovel,x.name,c)?'<span class="nw"></span>':'');
+    b.querySelector('.av').textContent=[...x.name.replace(/^ال/,'')][0]||'؟';b.querySelector('b').textContent=x.name;
+    b.querySelector('small').textContent=c?(c.d.title||c.d.cls||x.role||''):(x.role||`${n} فصل`)+' · جهّز البطاقة';
+    if(c&&c.d.level)b.querySelector('.lv').textContent=String(c.d.level).replace(/^(المستوى|مستوى)\s*/,'Lv ').slice(0,14);
+    const nw=b.querySelector('.nw');if(nw)nw.textContent='+'+cdNewCount(cdNovel,x.name,c);
+    b.onclick=()=>{cdSel=x.name;$('#cdView').scrollTop=0;renderCards();if(!c)buildCard(cdNovel,x.name)};G.appendChild(b)});
+}
+function cdNewCount(novel,name,c){const to=cdReadTo(novel);return chapters.filter(ch=>nv(ch)===novel&&ch.num>(c.upTo||0)&&ch.num<=to&&(ch.text||'').includes(name)).length}
+const CD_IC={sw:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2"/></svg>',
+  st:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg>',
+  bx:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg>'};
+function renderCard(){
+  const m=meta.novels[cdNovel]||{},x=cdChars(cdNovel).find(y=>y.name===cdSel)||{name:cdSel},c=(m.cards||{})[cdSel],C=$('#cdCard');
+  $('#cdSub').textContent='';C.style.setProperty('--rar',cdRar(x,c&&c.d));C.innerHTML='';
+  const top=document.createElement('div');top.className='cdtop';top.innerHTML='<button type="button">→ كل البطاقات</button>';top.firstChild.onclick=()=>{cdSel=null;renderCards()};C.appendChild(top);
+  if(!c){const e=document.createElement('div');e.className='cdempty';e.innerHTML=cdBusy?'يقرأ ظهور الشخصية في الفصول ويجهّز البطاقة…':'لا توجد بطاقة لهذه الشخصية بعد.<br><button type="button" class="btn">جهّز البطاقة</button>';
+    const bb=e.querySelector('button');if(bb)bb.onclick=()=>buildCard(cdNovel,cdSel);C.appendChild(e);return}
+  const d=c.d,H=document.createElement('div');H.className='cdhero';
+  H.innerHTML='<div class="top"><div class="av"></div><div><h3></h3><div class="src"></div><div class="tt"></div></div></div>'+(d.level?'<div class="lvl"><small>المستوى</small><b></b></div>':'')+'<p class="sum"></p><div class="cdkv"></div>';
+  H.querySelector('.av').textContent=[...cdSel.replace(/^ال/,'')][0]||'؟';H.querySelector('h3').textContent=cdSel;H.querySelector('.src').textContent=x.src||'';
+  [d.title,d.cls,x.role].filter((v,i,a)=>v&&a.indexOf(v)===i).slice(0,3).forEach(t=>{const sp=document.createElement('span');sp.textContent=t;H.querySelector('.tt').appendChild(sp)});
+  if(d.level){const lv=String(d.level).replace(/^(المستوى|مستوى|المرحلة)\s*/,'');H.querySelector('.lvl b').textContent=lv.slice(0,16);if(lv!==String(d.level))H.querySelector('.lvl small').textContent=String(d.level).match(/^(المستوى|مستوى|المرحلة)/)[0]}
+  H.querySelector('.sum').textContent=d.summary||'';
+  const KV=H.querySelector('.cdkv');[['الرتبة',d.rank],['الثروة',d.wealth],['الانتماء',d.faction],['الحالة',d.status]].forEach(([k,v])=>{if(!v)return;const q=document.createElement('div');q.innerHTML='<small></small><b></b>';q.querySelector('small').textContent=k;q.querySelector('b').textContent=v;KV.appendChild(q)});
+  C.appendChild(H);
+  const sec=(t,fill)=>{const S=document.createElement('section');S.className='cdsec';S.innerHTML='<h4></h4>';S.querySelector('h4').textContent=t;fill(S);C.appendChild(S)};
+  const st=(d.stats||[]).filter(y=>y&&y.k);
+  if(st.length)sec('الإحصائيات',S=>st.forEach(y=>{const r=document.createElement('div');r.className='cdstat';const v=Math.max(0,Math.min(100,+y.v||0));
+    r.innerHTML='<span></span><i><em></em></i><b></b>'+(y.why?'<small></small>':'');r.querySelector('span').textContent=y.k;r.querySelector('em').style.width=v+'%';
+    r.querySelector('b').textContent=y.raw?String(y.raw).slice(0,8):v;if(y.why)r.querySelector('small').textContent=y.why;S.appendChild(r)}));
+  const list=(t,arr,ic,gk)=>{arr=(arr||[]).filter(y=>y&&y.n);if(!arr.length)return;sec(t,S=>{const L=document.createElement('div');L.className='cdlist';
+    arr.forEach(y=>{const it=document.createElement('div');it.className='cdit';const gc=cdGrade(y.grade);if(gc)it.style.setProperty('--gc',gc);
+      it.innerHTML='<span class="ic">'+CD_IC[ic]+'</span><div><b></b>'+(y.grade||y.type?'<span class="g"></span>':'')+(y.d?'<p></p>':'')+'</div>';
+      it.querySelector('b').textContent=y.n;const g=it.querySelector('.g');if(g)g.textContent=[y.grade,y.type].filter(Boolean).join(' · ');if(y.d)it.querySelector('p').textContent=y.d;L.appendChild(it)});S.appendChild(L)})};
+  list('المواهب',d.talents,'st');list('القدرات والمهارات',d.skills,'sw');list('المخزن والعتاد',d.items,'bx');
+  if((d.titles||[]).length)sec('الألقاب والإنجازات',S=>{const W=document.createElement('div');W.className='cdchips';d.titles.forEach(t=>{const sp=document.createElement('span');sp.textContent=t;W.appendChild(sp)});S.appendChild(W)});
+  if((d.relations||[]).length)sec('العلاقات',S=>d.relations.filter(y=>y&&y.n).forEach(y=>{const r=document.createElement('div');r.className='cdrel';r.innerHTML='<b></b><small></small>';r.querySelector('b').textContent=y.n;r.querySelector('small').textContent=y.r||'';S.appendChild(r)}));
+  const F=document.createElement('div');F.className='cdfoot';const nn=cdNewCount(cdNovel,cdSel,c);
+  F.innerHTML='<span></span><button type="button"></button>';F.querySelector('span').textContent=`حتى الفصل ${c.upTo}`+(nn?` · ظهر في ${nn} ${nn===1?'فصل جديد':nn<11?'فصول جديدة':'فصلاً جديداً'}`:'');
+  const ub=F.querySelector('button');ub.textContent=cdBusy?'يحدّث…':nn?'حدّث البطاقة':'أعد بناءها';ub.disabled=cdBusy;ub.onclick=()=>buildCard(cdNovel,cdSel,!nn);C.appendChild(F);
+}
+function cdExcerpts(novel,name,from,to,cap){
+  const L=chapters.filter(c=>nv(c)===novel&&!c.sample&&c.num!=null&&c.num>from&&c.num<=to).sort((a,b)=>b.num-a.num),out=[];let len=0;
+  for(const c of L){const P=(c.text||'').split('\n');const got=[];
+    P.forEach((p,i)=>{if(p.includes(name)){got.push(p);const nx=P[i+1];if(nx&&nx.length<220&&!nx.includes(name))got.push(nx)}});
+    if(!got.length)continue;const t=`[الفصل ${c.num}]\n`+got.join('\n');if(len+t.length>cap){if(!out.length)out.push(t.slice(0,cap));break}out.push(t);len+=t.length}
+  return out.reverse().join('\n\n')}
+async function buildCard(novel,name,full){
+  if(cdBusy)return;const sample=await getSample();if(!sample){toast('البطاقات تحتاج الذكاء الاصطناعي، وهو غير متاح هنا');return}
+  const m=meta.novels[novel]||{},x=cdChars(novel).find(y=>y.name===name)||{name},old=(m.cards||{})[name],to=cdReadTo(novel);
+  const from=old&&!full?old.upTo||0:0,ex=cdExcerpts(novel,name,from,to,old&&!full?14000:22000);
+  if(!ex&&!old){toast('لم يظهر هذا الاسم في الفصول التي قرأتها');return}
+  if(!ex){toast('لا جديد عن هذه الشخصية منذ آخر تحديث');return}
+  cdBusy=true;renderCards();
+  try{
+    const pw=m.power?powLadders(m.power).map(l=>`${l.name}: ${(l.stages||[]).map(y=>y.name).join(' < ')}`).join('\n'):'';
+    const r=await sample.json(`أنت تصنع بطاقة شخصية على طريقة الألعاب لشخصية من رواية «${novel}».
+الشخصية: ${name}${x.src?' ('+x.src+')':''}${x.role?' — '+x.role:''}${x.desc?'\nما نعرفه عنها: '+x.desc:''}
+${pw?'\nأنظمة المراتب في الرواية (من الأضعف إلى الأقوى):\n'+pw+'\n':''}${old&&!full?'\nالبطاقة الحالية حتى الفصل '+old.upTo+' (حدّثها بما جدّ، واحتفظ بما لم يتغيّر، واحذف ما فُقد أو استُهلك):\n'+JSON.stringify(old.d)+'\n':''}
+مقاطع من الفصول التي ظهرت فيها حتى الفصل ${to}:
+${ex}
+
+اعتمد على المقاطع فقط، ولا تذكر شيئاً بعد الفصل ${to}. إن عرضت الرواية لوحة حالة (مستوى، سمات، أرقام) فانقلها كما هي.
+- level: المستوى أو المرحلة الحالية باختصار (مثل: المستوى 15، أو: عالم الصقل)، أو "".
+- rank: موقعه في أنظمة المراتب إن عُرف. cls: الصنف أو المهنة (مثل: مبارز سيف، ساحر). title: أبرز لقب.
+- wealth: ثروته أو ما يملك من مال وأصول باختصار، أو "".  faction: النقابة أو العائلة أو الطائفة.  status: حالته الآن باختصار.
+- stats: بالضبط هذه السمات: ${CD_STATS.join('، ')}. v من 0 إلى 100 تقديراً لمكانته بين شخصيات الرواية حتى الآن، raw الرقم الحرفي إن ذكره النص وإلا ""، why سبب قصير جداً.
+- talents: مواهب فطرية. skills: مهارات وتقنيات وقدرات (grade درجتها إن ذُكرت). items: ما يملكه من أسلحة وعتاد وأدوات وكنوز (type نوعها، grade درجتها).
+- titles: ألقاب وإنجازات. relations: أهم علاقاته (n الاسم، r العلاقة بإيجاز). summary: سطران عن الشخصية حتى الآن.
+أعد JSON فقط: {"level":"","rank":"","cls":"","title":"","wealth":"","faction":"","status":"","stats":[{"k":"","v":0,"raw":"","why":""}],"talents":[{"n":"","d":""}],"skills":[{"n":"","grade":"","d":""}],"items":[{"n":"","type":"","grade":"","d":""}],"titles":[""],"relations":[{"n":"","r":""}],"summary":""}`,{cache:false,modelTier:'default'});
+    if(!r||typeof r!=='object')throw {code:'bad'};
+    const S=(v,n)=>typeof v==='string'?applyTerms(v.trim()).slice(0,n):'';
+    const A=(a,f,n)=>(Array.isArray(a)?a:[]).slice(0,n).map(f).filter(y=>y&&(y.n||y.k));
+    const d={level:S(r.level,30),rank:S(r.rank,80),cls:S(r.cls,40),title:S(r.title,50),wealth:S(r.wealth,120),faction:S(r.faction,60),status:S(r.status,80),summary:S(r.summary,400),
+      stats:A(r.stats,y=>({k:S(y&&y.k,14),v:Math.max(0,Math.min(100,Math.round(+(y&&y.v)||0))),raw:S(y&&String(y.raw||''),10),why:S(y&&y.why,90)}),8),
+      talents:A(r.talents,y=>({n:S(y&&y.n,50),d:S(y&&y.d,160)}),10),
+      skills:A(r.skills,y=>({n:S(y&&y.n,50),grade:S(y&&y.grade,24),d:S(y&&y.d,160)}),16),
+      items:A(r.items,y=>({n:S(y&&y.n,50),type:S(y&&y.type,20),grade:S(y&&y.grade,24),d:S(y&&y.d,160)}),20),
+      titles:(Array.isArray(r.titles)?r.titles:[]).map(t=>S(String(t||''),50)).filter(Boolean).slice(0,10),
+      relations:A(r.relations,y=>({n:S(y&&y.n,40),r:S(y&&y.r,60)}),10)};
+    const mm=meta.novels[novel]=meta.novels[novel]||{};mm.cards=Object.assign({},mm.cards||{},{[name]:{upTo:to,at:Date.now(),d}});saveMeta();trackUse('lex',0);
+    toast(old?'حُدّثت البطاقة حتى الفصل '+to:'جاهزة: بطاقة '+name);
+  }catch(e){toast(TR_ERR[e&&e.code]||'تعذّر تجهيز البطاقة، حاول مرة أخرى')}
+  finally{cdBusy=false;if(cdNovel===novel)renderCards()}
+}
+$('#nCards').onclick=()=>openCards(curNovel);
+$('#cdBack').onclick=()=>{if(cdSel){cdSel=null;renderCards();return}$('#cdView').classList.remove('show');cdNovel=null};
+
 function openWh(){$('#whView').classList.add('show');$('#whView').scrollTop=0;renderWh()}
 $('#whBtn').onclick=openWh;$('#whBack').onclick=()=>$('#whView').classList.remove('show');
 $('#whQ').addEventListener('input',renderWh);$('#whNq').addEventListener('input',renderWhPick);
