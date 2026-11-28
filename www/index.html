@@ -1051,7 +1051,7 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 .cdmini .av{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font:800 22px var(--ui);color:#fff;background:var(--rar,#888);box-shadow:0 0 0 3px color-mix(in srgb,var(--rar,#888) 30%,transparent)}
 .cdmini b{font:700 14.5px/1.4 var(--ui)}.cdmini small{font:12px/1.4 var(--ui);color:var(--dim);display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
 .cdmini .lv{position:absolute;top:10px;inset-inline-start:10px;font:800 11px var(--ui);padding:2px 7px;border-radius:8px;background:color-mix(in srgb,var(--rar,#888) 18%,transparent);color:var(--rar,var(--dim))}
-.cdmini .nw{position:absolute;top:10px;inset-inline-end:10px;font:700 10.5px var(--ui);color:var(--plasma)}
+.cdmini .nw{position:absolute;top:40px;inset-inline-end:10px;font:700 10.5px var(--ui);color:var(--plasma)}
 .cdmini.empty .av{background:var(--line);box-shadow:none;color:var(--dim)}
 .cdcard{--rar:#c9a227}
 .cdcard[hidden]{display:none}
@@ -1087,6 +1087,12 @@ input[type=range]{width:100%;accent-color:var(--plasma)}
 .cdfoot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;font:12.5px var(--ui);color:var(--dim)}
 .cdfoot button{min-height:42px;padding:0 16px;border-radius:12px;border:0;background:var(--plasma);color:var(--onacc,#fff);font:700 13.5px var(--ui);cursor:pointer}
 .cdfoot button:disabled{opacity:.6}
+.cdfoot span{flex:1}.cdfoot .cddel{background:transparent;color:var(--dim);border:1px solid var(--line)}
+.cdx{position:absolute;top:8px;inset-inline-end:8px;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font:700 16px/1 var(--ui);color:var(--dim);background:color-mix(in srgb,var(--line) 60%,transparent)}
+.cdmore{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.cdmore>button{min-height:40px;padding:0 16px;border-radius:999px;border:1px dashed var(--line);background:transparent;color:var(--ink);font:600 13px var(--ui);cursor:pointer}
+.cdgone{width:100%;display:flex;flex-wrap:wrap;gap:6px}
+.cdgone button{min-height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--deck);color:var(--dim);font:600 12.5px var(--ui);cursor:pointer}
 .cdempty{padding:26px 16px;border-radius:18px;border:1px dashed var(--line);text-align:center;font:14px/1.8 var(--ui);color:var(--dim)}
 .cdempty button{margin-top:10px}
 .cdtop{display:flex;align-items:center;gap:8px;margin-bottom:12px}
@@ -8158,18 +8164,34 @@ function renderCards(){
   if(!cdNovel)return;const m=meta.novels[cdNovel]||{},cards=m.cards||{},to=cdReadTo(cdNovel);
   $('#cdGrid').hidden=!!cdSel;$('#cdCard').hidden=!cdSel;
   if(cdSel){renderCard();return}
-  const L=cdChars(cdNovel).map(x=>({x,c:cards[x.name],n:cdMentions(cdNovel,x.name)})).sort((a,b)=>(/بطل/.test(b.x.role||'')-/بطل/.test(a.x.role||''))||(!!b.c-!!a.c)||b.n-a.n);
-  $('#cdSub').textContent=L.length?`${L.length} شخصية · البطاقات مبنية على ما قرأته حتى الفصل ${to} فقط، بلا حرق للأحداث.`:'';
+  // only the hero and the main characters by default; the rest stay one tap away, and any character can be removed
+  const hid=new Set(m.cardsHide||[]);
+  const all=cdChars(cdNovel).map(x=>({x,c:cards[x.name],n:cdMentions(cdNovel,x.name)})).sort((a,b)=>(/بطل/.test(b.x.role||'')-/بطل/.test(a.x.role||''))||(!!b.c-!!a.c)||b.n-a.n);
+  const isMain=(y,i)=>/بطل/.test(y.x.role||'')||!!y.c||(i<6&&y.n>=3);
+  const vis=all.filter(y=>!hid.has(y.x.name)),main=vis.filter(isMain),rest=vis.filter((y,i)=>!isMain(y,i)),gone=all.filter(y=>hid.has(y.x.name));
+  const L=cdMore?main.concat(rest):main;
+  $('#cdSub').textContent=all.length?`${main.length} شخصية رئيسية · البطاقات مبنية على ما قرأته حتى الفصل ${to} فقط، ولا يُستهلك شيء إلا عند فتح بطاقة.`:'';
   const G=$('#cdGrid');G.innerHTML='';
-  if(!L.length){G.innerHTML='<div class="cdempty" style="grid-column:1/-1">لا توجد شخصيات محفوظة لهذه الرواية بعد.<br>افتح «الشخصيات» في صفحة الرواية وحدّثها، أو أضف شخصية من الفصل بالضغط المطوّل.</div>';return}
+  if(!all.length){G.innerHTML='<div class="cdempty" style="grid-column:1/-1">لا توجد شخصيات محفوظة لهذه الرواية بعد.<br>افتح «الشخصيات» في صفحة الرواية وحدّثها، أو أضف شخصية من الفصل بالضغط المطوّل.</div>';return}
   L.forEach(({x,c,n})=>{const b=document.createElement('button');b.type='button';b.className='cdmini'+(c?'':' empty');b.style.setProperty('--rar',cdRar(x,c&&c.d));
     b.innerHTML='<span class="av"></span><b></b><small></small>'+(c&&c.d.level?'<span class="lv"></span>':'')+(c&&cdNewCount(cdNovel,x.name,c)?'<span class="nw"></span>':'');
     b.querySelector('.av').textContent=[...x.name.replace(/^ال/,'')][0]||'؟';b.querySelector('b').textContent=x.name;
     b.querySelector('small').textContent=c?(c.d.title||c.d.cls||x.role||''):(x.role||`${n} فصل`)+' · جهّز البطاقة';
     if(c&&c.d.level)b.querySelector('.lv').textContent=String(c.d.level).replace(/^(المستوى|مستوى)\s*/,'Lv ').slice(0,14);
     const nw=b.querySelector('.nw');if(nw)nw.textContent='+'+cdNewCount(cdNovel,x.name,c);
-    b.onclick=()=>{cdSel=x.name;$('#cdView').scrollTop=0;renderCards();if(!c)buildCard(cdNovel,x.name)};G.appendChild(b)});
+    b.onclick=()=>{cdSel=x.name;$('#cdView').scrollTop=0;renderCards();if(!c)buildCard(cdNovel,x.name)};
+    const del=document.createElement('span');del.className='cdx';del.setAttribute('role','button');del.setAttribute('aria-label','أزل '+x.name+' من البطاقات');del.textContent='×';
+    del.onclick=e=>{e.stopPropagation();cdHide(cdNovel,x.name,true)};b.appendChild(del);G.appendChild(b)});
+  const bar=document.createElement('div');bar.className='cdmore';
+  if(rest.length){const t=document.createElement('button');t.type='button';t.textContent=cdMore?'اعرض الرئيسية فقط':`+ شخصيات أخرى (${rest.length})`;t.onclick=()=>{cdMore=!cdMore;renderCards()};bar.appendChild(t)}
+  if(gone.length){const t=document.createElement('button');t.type='button';t.textContent=`المُزالة (${gone.length})`;t.onclick=()=>{bar.querySelector('.cdgone')?bar.querySelector('.cdgone').remove():(()=>{const W=document.createElement('div');W.className='cdgone';
+      gone.forEach(y=>{const r=document.createElement('button');r.type='button';r.textContent='↺ '+y.x.name;r.onclick=()=>cdHide(cdNovel,y.x.name,false);W.appendChild(r)});bar.appendChild(W)})()};bar.appendChild(t)}
+  if(bar.children.length)G.appendChild(bar);
 }
+let cdMore=false;
+function cdHide(novel,name,on){const m=meta.novels[novel]=meta.novels[novel]||{};const h=new Set(m.cardsHide||[]);
+  if(on){h.add(name);if(m.cards&&m.cards[name]){const c2=Object.assign({},m.cards);delete c2[name];m.cards=c2}}else h.delete(name);
+  m.cardsHide=[...h].slice(-300);saveMeta();if(cdSel===name)cdSel=null;renderCards();toast(on?`أُزيلت ${name} من البطاقات`:`أُعيدت ${name}`)}
 function cdNewCount(novel,name,c){const to=cdReadTo(novel);return chapters.filter(ch=>nv(ch)===novel&&ch.num>(c.upTo||0)&&ch.num<=to&&(ch.text||'').includes(name)).length}
 const CD_IC={sw:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2"/></svg>',
   st:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg>',
@@ -8202,6 +8224,7 @@ function renderCard(){
   if((d.relations||[]).length)sec('العلاقات',S=>d.relations.filter(y=>y&&y.n).forEach(y=>{const r=document.createElement('div');r.className='cdrel';r.innerHTML='<b></b><small></small>';r.querySelector('b').textContent=y.n;r.querySelector('small').textContent=y.r||'';S.appendChild(r)}));
   const F=document.createElement('div');F.className='cdfoot';const nn=cdNewCount(cdNovel,cdSel,c);
   F.innerHTML='<span></span><button type="button"></button>';F.querySelector('span').textContent=`حتى الفصل ${c.upTo}`+(nn?` · ظهر في ${nn} ${nn===1?'فصل جديد':nn<11?'فصول جديدة':'فصلاً جديداً'}`:'');
+  const dl=document.createElement('button');dl.type='button';dl.className='cddel';dl.textContent='أزلها';dl.onclick=()=>cdHide(cdNovel,cdSel,true);F.appendChild(dl);
   const ub=F.querySelector('button');ub.textContent=cdBusy?'يحدّث…':nn?'حدّث البطاقة':'أعد بناءها';ub.disabled=cdBusy;ub.onclick=()=>buildCard(cdNovel,cdSel,!nn);C.appendChild(F);
 }
 function cdExcerpts(novel,name,from,to,cap){
